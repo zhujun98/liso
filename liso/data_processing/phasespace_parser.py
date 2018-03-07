@@ -65,11 +65,11 @@ def parse_astra_phasespace(particle_file):
     # remove lost particles
     data = data[data['flag'].isin([3, 5])]
 
-    data['p'] = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
+    p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     # At this step, the timing can be used for timing jitter study.
     data['t'] = data['t'].iloc[0]/1e9 - (data['z'] - z_ref)\
-        /(V_LIGHT * data['pz']/np.sqrt(data['p']**2 + 1))
+        / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
 
     # The bunch is centered for the convenience of the longitudinal
     # phase-space plot.
@@ -99,13 +99,10 @@ def parse_impactt_phasespace(particle_file):
     # Drop the first row if the input file is 'partcl.data'.
     data.dropna(inplace=True)
 
-    data['p'] = \
-        np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
+    p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     data['t'] = -(data['z'] - data['z'].mean()) \
-                / (V_LIGHT * data['pz'] / np.sqrt(data['p'] ** 2 + 1))
-
-    # data.drop(['p'], inplace=True, axis=1)
+        / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
 
     return data
 
