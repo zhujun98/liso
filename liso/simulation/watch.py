@@ -39,25 +39,26 @@ class Watch(object):
                  filter_size=1,
                  min_pars=5,
                  slice_with_peak_current=True):
-        """
-        pfile: string
+        """Initialization.
+
+        :param pfile: string
             Path name of the particle file.
-        slice_percent: float
+        :param slice_percent: float
             Percent of the slice bunch length to the total bunch length.
-        cut_halo: None/float
+        :param cut_halo: None/float
             Percentage of particles to be removed based on their
             transverse distance to the bunch centroid. Applied
             before tail cutting.
-        cut_tail: None/float
+        :param cut_tail: None/float
             Percentage of particles to be removed in the tail.
-        current_bins: int/'auto'
+        :param current_bins: int/'auto'
             No. of bins to calculate the current profile.
-        filter_size: int/float
+        :param filter_size: int/float
             Standard deviation of the Gaussian kernel of the 1D Gaussian
             filter used for current profile calculation.
-        min_pars: int
+        :param min_pars: int
             Minimum allowed number of particles in the data.
-        slice_with_peak_current: Boolean
+        :param slice_with_peak_current: Boolean
             True for calculating slice properties of the slice with peak
             current; False for calculating slice properties of the slice
             in the center of the bunch.
@@ -229,7 +230,7 @@ class Watch(object):
 class AstraWatch(Watch):
     """Watch for Astra simulation."""
     def __init__(self, name, pfile, **kwargs):
-        """"""
+        """Initialization."""
         super().__init__(name, pfile, **kwargs)
 
     def _load_data(self):
@@ -241,7 +242,7 @@ class AstraWatch(Watch):
 class ImpacttWatch(Watch):
     """Watch for ImpactT simulation."""
     def __init__(self, name, pfile, charge, **kwargs):
-        """"""
+        """Initialization"""
         super().__init__(name, pfile, **kwargs)
         self.charge = charge
 
@@ -254,7 +255,7 @@ class ImpacttWatch(Watch):
 class ImpactzWatch(Watch):
     """Watch for ImpactZ simulation."""
     def __init__(self, name, pfile, charge, **kwargs):
-        """"""
+        """Initialization"""
         super().__init__(name, pfile, **kwargs)
         self.charge = charge
 
