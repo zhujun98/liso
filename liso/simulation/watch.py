@@ -41,7 +41,7 @@ class Watch(object):
                  slice_with_peak_current=True):
         """
         pfile: string
-            Name of the particle file.
+            Path name of the particle file.
         slice_percent: float
             Percent of the slice bunch length to the total bunch length.
         cut_halo: None/float
@@ -64,6 +64,7 @@ class Watch(object):
         """
         self.name = name
         self.pfile = pfile
+        self.charge = None
 
         self._slice_percent = 1.0  # property
         self.slice_percent = slice_percent
@@ -112,18 +113,18 @@ class Watch(object):
             raise ValueError("Invalid input for cut_tail: {}".format(value))
 
     @abstractmethod
-    def load_data(self):
-        raise NotImplemented
+    def _load_data(self):
+        pass
 
     def get_data(self):
         """"""
-        data, charge = self.load_data()
+        data = self._load_data()
 
         params = BeamParameters()
 
         n0 = len(data)
         params.n = n0  # Number of particles after processing
-        params.q = charge / n0  # charge per particle
+        params.q = self.charge / n0  # charge per particle
 
         # Cut the halo of the bunch
         params.n = int(params.n*(1 - self.cut_halo))
@@ -231,10 +232,10 @@ class AstraWatch(Watch):
         """"""
         super().__init__(name, pfile, **kwargs)
 
-    def load_data(self):
+    def _load_data(self):
         """Read data from file."""
-        data, charge = parse_astra_phasespace(self.pfile)
-        return data, charge
+        data, self.charge = parse_astra_phasespace(self.pfile)
+        return data
 
 
 class ImpacttWatch(Watch):
@@ -244,10 +245,10 @@ class ImpacttWatch(Watch):
         super().__init__(name, pfile, **kwargs)
         self.charge = charge
 
-    def load_data(self):
+    def _load_data(self):
         """Read data from file."""
         data = parse_impactt_phasespace(self.pfile)
-        return data, self.charge
+        return data
 
 
 class ImpactzWatch(Watch):
@@ -257,10 +258,10 @@ class ImpactzWatch(Watch):
         super().__init__(name, pfile, **kwargs)
         self.charge = charge
 
-    def load_data(self):
+    def _load_data(self):
         """Read data from file."""
         data = parse_impactz_phasespace(self.pfile)
-        return data, self.charge
+        return data
 
 
 class GenesisWatch(Watch):
@@ -270,7 +271,7 @@ class GenesisWatch(Watch):
         super().__init__(name, pfile, **kwargs)
         self.charge = charge
 
-    def load_data(self):
+    def _load_data(self):
         """Read data from file."""
         data = parse_genesis_phasespace(self.pfile)
-        return data, self.charge
+        return data
