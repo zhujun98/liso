@@ -4,7 +4,7 @@ Author: Jun Zhu
 
 Line data parser for different codes.
 
-The returning data is a pandas.DataFrame containing the following columns:
+The data is a pandas.DataFrame containing the following columns:
 
     z (m)
     gamma
@@ -37,7 +37,7 @@ CONST_E = M_E*V_LIGHT**2/Q_E
 
 
 def parse_impactt_line(root_name):
-    """Parse the IMPACT-T line output file.
+    """Parse the IMPACT-T output file.
 
     Columns in the input files:
 
@@ -104,10 +104,10 @@ def parse_impactt_line(root_name):
 
 
 def parse_astra_line(root_name):
-    """Parse the ASTRA line output file.
+    """Parse the ASTRA output file.
 
-    Columns in the input files
-    --------------------------
+    Columns in the input files:
+
     xdata:
         z (m), t (ns), Cx (mm), Sx (mm), Sxp (mm), emitx (um),
         x_xp (um).
@@ -140,13 +140,16 @@ def parse_astra_line(root_name):
     data = pd.DataFrame()
 
     xdata = pd.read_csv(
-        x_file, delim_whitespace=True,
+        x_file,
+        delim_whitespace=True,
         names=['z', 't', 'Cx', 'Sx', 'Sxp', 'emitx', 'x_xp'])
     ydata = pd.read_csv(
-        y_file, delim_whitespace=True,
+        y_file,
+        delim_whitespace=True,
         names=['z', 't', 'Cy', 'Sy', 'Syp', 'emity', 'y_yp'])
     zdata = pd.read_csv(
-        z_file, delim_whitespace=True,
+        z_file,
+        delim_whitespace=True,
         names=['z', 't', 'Ek', 'Sz', 'SdE', 'emitz', 'z_dE'])
 
     # ASTRA will not output .TRemit file by default
