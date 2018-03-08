@@ -7,7 +7,7 @@ The solution is 0.1543 at laser_spot = 0.040 and main_sole_b = 0.2750.
 """
 from liso import Linac
 
-USE_PYOPT = False
+USE_PYOPT = True
 
 if USE_PYOPT:
     from pyOpt import SDPEN
@@ -39,8 +39,8 @@ def obj_func(linac):
 
     # define constraint
     g = list()
-    g.append(linac['gun'].out.n - 500)
     g.append(linac['gun'].out.St - 5e-12)
+    g.append(linac['gun'].all.Sx.max - 0.2e-3)
 
     print(f, g)
     return f, g
@@ -61,4 +61,4 @@ opt.add_icon('g2')  # inequality constraint
 opt.add_var('laser_spot', value=0.1, lower=0.04, upper=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lower=0.0, upper=0.4)  # variable
 
-opt.solve(optimizer, threads=2)  # Run the optimization
+opt.solve(optimizer, workers=2)  # Run the optimization

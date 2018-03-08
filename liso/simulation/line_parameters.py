@@ -1,13 +1,6 @@
 #!/usr/bin/python
-
 """
-Hold three classes:
-
-- BeamEvolution:
-    Store and update the beam evolution and its statistics
-
-- Stats
-    Store and update the statistics of a single variable
+Author: Jun Zhu
 
 Important note:
 _______________
@@ -16,12 +9,9 @@ of the beam. Therefore, when the beam has a large energy spread or a
 big divergence angle, the result will be quite different from the
 true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
 get the very-close Twiss parameters even in extreme conditions.
-
-
-Author: Jun Zhu
-
 """
-from .stats import Stats
+import numpy as np
+
 from ..backend import config
 
 V_LIGHT = config['vLight']
@@ -54,17 +44,8 @@ class LineParameters(object):
     emitx_tr/emity_tr: Stats objects
         Normalized trace-space emittance (m.rad).
     """
-    def __init__(self, rootname, zlim=None, opt=False):
-        """Initialize BeamStats object
-
-        :param root_name: string
-            The root name of the output files. For Impact-T files,
-            root_name will be set to 'fort' if not given.
-        :param zlim: scalar/tuple
-            If None, passed as (-INF, INF)
-            if scalar, being passed as (left, INF)
-            if tuple, the first two elements being passed as (left, right)
-        """
+    def __init__(self):
+        """Initialization."""
         self.z = Stats()
         self.gamma = Stats()
         self.SdE = Stats()
@@ -81,7 +62,6 @@ class LineParameters(object):
         self.emity_tr = Stats()
 
     def __str__(self):
-        """Print output"""
         text = '- z (m)\n'
         text += str(self.__getattribute__('z'))
         text += '- gamma\n'
@@ -112,3 +92,57 @@ class LineParameters(object):
         text += str(self.__getattribute__('emity_tr'))
 
         return text
+
+
+class Stats(object):
+    """Store the statistic values of an array-like object.
+
+    Attributes
+    ----------
+    start: float
+        First value.
+    end: float
+        Last value.
+    max: float
+        Maximum value.
+    min: float
+        Minimum value.
+    ave: float
+        Average value.
+    std: float
+        Standard deviation.
+    """
+    def __init__(self):
+        """Initialization."""
+        self.start = None
+        self.end = None
+        self.max = None
+        self.min = None
+        self.ave = None
+        self.std = None
+
+    def __str__(self):
+        text = "{:12}    {:12}    {:12}    {:12}    {:12}    {:12}\n".\
+            format('start', 'end', 'minimum', 'maximum', 'average', 'std')
+
+        text += "{:12.4e}    {:12.4e}    {:12.4e}    {:12.4e}    {:12.4e}    {:12.4e}\n\n".\
+            format(self.start, self.end, self.min, self.max, self.ave, self.std)
+
+        return text
+
+    def update(self, data):
+        """Update attributes
+
+        :param data: array-like
+            Input data.
+        """
+        data = np.asarray(data)
+        if data.ndim > 1:
+            raise ValueError("One-dimensional array is foreseen!")
+
+        self.start = data[0]
+        self.end = data[-1]
+        self.max = data.max()
+        self.min = data.min()
+        self.ave = data.mean()
+        self.std = data.std(ddof=0)

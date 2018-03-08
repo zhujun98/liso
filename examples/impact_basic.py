@@ -48,6 +48,7 @@ def obj_func(linac):
     # define constraint
     g = list()
     g.append(linac['matching'].out.Sy*1.e3 - 0.15)
+    g.append(linac['matching'].all.Sx.max*1.e3 - 0.20)
 
     print(f, g)
     return f, g
@@ -57,7 +58,8 @@ opt = LinacOptimization(linac, obj_func)
 
 opt.add_obj('Sx')  # objective
 opt.add_icon('g1')  # inequality constraint
+opt.add_icon('g2')  # inequality constraint
 opt.add_var('MQZM1_G', value=0.0, lower=-12.0, upper=12.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lower=-12.0, upper=12.0)  # variable
 
-opt.solve(optimizer, threads=2)  # Run the optimization
+opt.solve(optimizer, workers=2)  # Run the optimization

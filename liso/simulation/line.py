@@ -3,13 +3,15 @@ Author: Jun Zhu
 
 """
 from abc import abstractmethod
+from abc import ABC
 
+from .line_parameters import Stats
+from .line_parameters import LineParameters
 from ..data_processing import parse_astra_line
 from ..data_processing import parse_impactt_line
 from ..data_processing import parse_impactz_line
 from ..data_processing import parse_genesis_line
 from ..backend import config
-from .stats import Stats
 
 
 V_LIGHT = config['vLight']
@@ -20,18 +22,21 @@ INF = config['INF']
 CONST_E = M_E*V_LIGHT**2/Q_E
 
 
-class Line(object):
-    """Store the beam evolution and its statistics
+class Line(ABC):
+    """Line abstract class.
 
+    The class has a method get_data() which returns a LineParameter
+    object.
     """
     def __init__(self, name, rootname, zlim=(-INF, INF)):
         """Initialize BeamStats object
 
-        :param root_name: string
-            The root name of the output files. For Impact-T files,
-            root_name will be set to 'fort' if not given.
-        :param zlim: tuple
-
+        :param name: string
+            Name of the Line object.
+        :param rootname: string
+            The rootname (including path) of output files.
+        :param zlim: tuple, (z_min, z_max)
+            Range of the z coordinate.
         """
         self.name = name
         self.rootname = rootname
@@ -44,13 +49,19 @@ class Line(object):
         self.z_max = zlim[1]
 
     @abstractmethod
-    def load_data(self):
-        """Load data from file."""
+    def _load_data(self):
+        """Load data from output files.
+
+        The rootname of these files is self.rootname.
+        """
         raise NotImplemented
 
     def get_data(self):
-        """Update attributes of attributes"""
-        data = self.load_data()
+        """Read data from files and analyse the data.
+
+        :return: A LineParameter object.
+        """
+        data = self._load_data()
 
         # Slice data in the range of self.z_lim
         z_max = min(data['z'].max(), self.z_max)
@@ -67,39 +78,40 @@ class Line(object):
             if z_max < data['z'][i]:
                 i_max = i - 1
                 break
-
         data = data.ix[i_min:i_max]
 
-        for key, value in self.__dict__.items():
+        params = LineParameters()
+        for key, value in params.__dict__.items():
             if isinstance(value, Stats):
                 value.update(data[key])
+
+        return params
 
     def __str__(self):
         text = 'Name: %s\n' % self.name
         text += 'Rootname: %s\n' % self.rootname
-
         return text
 
 
 class AstraLine(Line):
-    def load_data(self):
-        """Load data from file."""
+    def _load_data(self):
+        """Override the abstract method."""
         return parse_astra_line(self.rootname)
 
 
 class ImpacttLine(Line):
-    def load_data(self):
-        """Load data from file."""
+    def _load_data(self):
+        """Override the abstract method."""
         return parse_impactt_line(self.rootname)
 
 
 class ImpactzLine(Line):
-    def load_data(self):
-        """Load data from file."""
+    def _load_data(self):
+        """Override the abstract method."""
         return parse_impactz_line(self.rootname)
 
 
 class GenesisLine(Line):
-    def load_data(self):
-        """Load data from file."""
+    def _load_data(self):
+        """Override the abstract method."""
         return parse_genesis_line(self.rootname)

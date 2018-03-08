@@ -7,6 +7,7 @@ Author: Jun Zhu
 
 """
 from abc import abstractmethod
+from abc import ABC
 
 import numpy as np
 
@@ -29,8 +30,12 @@ INF = config['INF']
 CONST_E = M_E*V_LIGHT**2/Q_E
 
 
-class Watch(object):
-    """Beam parameters for a phasespace."""
+class Watch(ABC):
+    """Watch abstract class.
+
+    The class has a method get_data() which returns a BeamParameter
+    object.
+    """
     def __init__(self, name, pfile, *,
                  slice_percent=0.1,
                  cut_halo=0.0,
@@ -41,6 +46,8 @@ class Watch(object):
                  slice_with_peak_current=True):
         """Initialization.
 
+        :param name: string
+            Name of the Watch object.
         :param pfile: string
             Path name of the particle file.
         :param slice_percent: float
@@ -115,10 +122,17 @@ class Watch(object):
 
     @abstractmethod
     def _load_data(self):
+        """Read data from the particle file.
+
+        The particle file is self.pfile.
+        """
         pass
 
     def get_data(self):
-        """"""
+        """Read data from the particle file and analyse the data.
+
+        :return: A BeamParameters object
+        """
         data = self._load_data()
 
         params = BeamParameters()
@@ -223,7 +237,6 @@ class Watch(object):
     def __str__(self):
         text = 'Name: %s\n' % self.name
         text += 'Particle file: %s\n' % self.pfile
-
         return text
 
 
@@ -234,7 +247,7 @@ class AstraWatch(Watch):
         super().__init__(name, pfile, **kwargs)
 
     def _load_data(self):
-        """Read data from file."""
+        """Override the abstract method."""
         data, self.charge = parse_astra_phasespace(self.pfile)
         return data
 
@@ -247,9 +260,8 @@ class ImpacttWatch(Watch):
         self.charge = charge
 
     def _load_data(self):
-        """Read data from file."""
-        data = parse_impactt_phasespace(self.pfile)
-        return data
+        """Override the abstract method."""
+        return parse_impactt_phasespace(self.pfile)
 
 
 class ImpactzWatch(Watch):
@@ -260,9 +272,8 @@ class ImpactzWatch(Watch):
         self.charge = charge
 
     def _load_data(self):
-        """Read data from file."""
-        data = parse_impactz_phasespace(self.pfile)
-        return data
+        """Override the abstract method."""
+        return parse_impactz_phasespace(self.pfile)
 
 
 class GenesisWatch(Watch):
@@ -273,6 +284,5 @@ class GenesisWatch(Watch):
         self.charge = charge
 
     def _load_data(self):
-        """Read data from file."""
-        data = parse_genesis_phasespace(self.pfile)
-        return data
+        """Override the abstract method."""
+        return parse_genesis_phasespace(self.pfile)

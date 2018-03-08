@@ -8,9 +8,7 @@ from abc import ABC
 from abc import abstractmethod
 from collections import OrderedDict
 
-import psutil
 import subprocess
-import signal
 
 from ..backend import config
 from .watch import AstraWatch, ImpacttWatch
@@ -22,22 +20,19 @@ INF = config['INF']
 
 
 class Beamline(ABC):
-    """Beamline abstraction class.
-
-    :param templates: array of strings
-        Name of the input template file. The patterns (<string>) in
-        the template file will be replaced at the beginning of
-        each simulation to generate a new input file.
-    """
+    """Beamline abstraction class."""
     exec_s = None  # series simulation exec
     exec_p = None  # parallel simulation exec
 
     def __init__(self, name, input_file, template):
         """Initialization.
 
-        :param name:
-        :param input_file:
-        :param template:
+        :param name: string
+            Name of the beamline.
+        :param input_file: string
+            The path of the input file.
+        :param template: string
+            The path of the template file.
         """
         self.name = name
         self.dirname = os.path.dirname(os.path.abspath(input_file))
@@ -52,12 +47,32 @@ class Beamline(ABC):
 
     @abstractmethod
     def add_watch(self, name, pfile, **kwargs):
+        """Add a Watch object to the beamline.
+
+        :param name: string
+            Name of the Watch object.
+        :param pfile: string
+            Filename of the Watch object. This file is assumed to be in
+            the same folder of the input file of this object.
+        :param kwargs: keyword arguments
+            Pass to the initializer of the Watch object.
+        """
         if hasattr(self, name):
             raise ValueError("Watch attribute {} already exists!".format(name))
         return os.path.join(self.dirname, os.path.basename(pfile))
 
     @abstractmethod
     def add_line(self, name, rootname, **kwargs):
+        """Add a Line object to the beamline.
+
+        :param name: string
+            Name of the Line object.
+        :param rootname
+            Rootname of the Line object. Files with the rootname are assumed
+            to be in the same folder of the input file of this object.
+        :param kwargs: keyword arguments
+            Pass to the initializer of the Line object.
+        """
         if hasattr(self, name):
             raise ValueError("Line attribute {} already exists!".format(name))
         return os.path.join(self.dirname, os.path.basename(rootname))
@@ -101,18 +116,27 @@ class Beamline(ABC):
                 data = line.get_data()
             except FileNotFoundError:
                 raise
+            except Exception as e:
+                print(e)
+                raise
             finally:
                 super().__setattr__(line.name, data)
 
-    def simulate(self, threads=1, time_out=300):
-        """Simulate the beamline."""
+    def simulate(self, workers=1, time_out=300):
+        """Simulate the beamline.
+
+        :param workers: int
+            Number of threads.
+        :param time_out: int
+            Number of seconds.
+        """
         if not os.path.exists(os.path.join(self.dirname, self.input_file)):
             pass
 
-        if threads > 1:
+        if workers > 1:
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
                 time_out,
-                threads,
+                workers,
                 self.__class__.exec_p,
                 self.input_file)
         else:
@@ -162,57 +186,69 @@ class Beamline(ABC):
 
 
 class AstraBeamline(Beamline):
-    """Beamline simulated by ASTRA."""
+    """Beamline simulated by ASTRA.
+
+    Inherit from Beamline class.
+    """
     exec_s = config['ASTRA']
     exec_p = config['ASTRA_P']
 
     def __init__(self, name, input_file, template):
-        """"""
+        """Initialization."""
         super().__init__(name, input_file, template)
         self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001']
 
     def add_watch(self, name, pfile, **kwargs):
-        """"""
+        """Override the abstract method."""
         pfile = super().add_watch(name, pfile, **kwargs)
         self.watches[name] = AstraWatch(name, pfile, **kwargs)
 
     def add_line(self, name, rootname, **kwargs):
-        """"""
+        """Override the abstract method."""
         rootname = super().add_line(name, rootname, **kwargs)
         self.lines[name] = AstraLine(name, rootname, **kwargs)
 
 
 class ImpacttBeamline(Beamline):
-    """Beamline simulated by IMPACT-T."""
+    """Beamline simulated by IMPACT-T.
+
+    Inherit from Beamline class.
+    """
     exec_s = config['IMPACTT']
     exec_p = config['IMPACTT_P']
 
     def __init__(self, name, input_file, template, charge):
-        """"""
+        """Initialization."""
         super().__init__(name, input_file, template)
         self.charge = charge
         self._output_suffixes = ['.18', '.24', '.25', '.26']
 
     def add_watch(self, name, pfile, **kwargs):
-        """"""
+        """Override the abstract method."""
         pfile = super().add_watch(name, pfile, **kwargs)
         self.watches[name] = ImpacttWatch(name, pfile, self.charge, **kwargs)
 
     def add_line(self, name, rootname, **kwargs):
-        """"""
+        """Override the abstract method."""
         rootname = super().add_line(name, rootname, **kwargs)
         self.lines[name] = ImpacttLine(name, rootname, **kwargs)
 
 
 class ImpactzBeamline(Beamline):
-    """Beamline simulated by IMPACT-Z."""
+    """Beamline simulated by IMPACT-Z.
+
+    Inherit from Beamline class.
+    """
     exec_s = None
     exec_p = None
     pass
 
 
 class GenesisBeamline(Beamline):
-    """Beamline simulated by GENESIS."""
+    """Beamline simulated by GENESIS.
+
+    Inherit from Beamline class.
+    """
     exec_s = None
     exec_p = None
     pass

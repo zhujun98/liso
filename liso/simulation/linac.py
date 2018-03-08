@@ -51,7 +51,17 @@ class Linac(object):
         self.beamlines[beamline.name] = beamline
 
     def add_watch(self, *, beamline=None, name=None, pfile=None, **kwargs):
-        """"""
+        """Add a Watch object to a Beamline of the Linac.
+
+        :param beamline: string
+            Name of the Beamline object.
+        :param name: string
+            Name of the Watch object.
+        :param pfile: string
+
+        :param kwargs: keyword arguments.
+            Pass to add_watch() method of the Beamline class.
+        """
         if not isinstance(beamline, str):
             raise TypeError("beamline must be a string!")
         if not isinstance(name, str):
@@ -62,7 +72,17 @@ class Linac(object):
         self.beamlines[beamline].add_watch(name, pfile, **kwargs)
 
     def add_line(self, *, beamline=None, name=None, rootname=None, **kwargs):
-        """"""
+        """Add a Line object to a Beamline of the Linac.
+
+        :param beamline: string
+            Name of the Beamline object.
+        :param name: string
+            Name of the Line object.
+        :param rootname: string
+            Name
+        :param kwargs: keyword arguments
+            Pass to add_line() method of the Beamline class.
+        """
         if not isinstance(beamline, str):
             raise TypeError("beamline must be a string!")
         if not isinstance(name, str):
@@ -72,10 +92,15 @@ class Linac(object):
 
         self.beamlines[beamline].add_line(name, rootname, **kwargs)
 
-    def update(self, mapping, threads=1):
+    def update(self, mapping, workers=1):
         """Update the linac.
 
         Re-simulate the beamlines and update all FitPoints and FitLines.
+
+        :param: mapping
+
+        :param workers: int
+            Number of threads.
 
         :return: A bool value indicates whether the output files have
                  been produced correctly.
@@ -105,7 +130,7 @@ class Linac(object):
         # Run simulations.
         # Raise SimulationNotFinishedProperlyError
         for beamline in self.beamlines.values():
-            beamline.simulate(threads)
+            beamline.simulate(workers)
 
         # Recalculate the parameters at each FitPoint and FitLine.
         # Raise FileNotFoundError

@@ -65,7 +65,7 @@ class LinacOptimization(object):
         self.e_constraints = OrderedDict()
         self.i_constraints = OrderedDict()
 
-        self.threads = 1
+        self.walkers = 1
         self.time_out = time_out
 
         self._nf = 0
@@ -73,12 +73,12 @@ class LinacOptimization(object):
 
         self.start_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-    def solve(self, optimizer, *, threads=1):
+    def solve(self, optimizer, *, workers=1):
         """Run the optimization and print the result.
 
         :param optimizer: Optimizer object.
             Optimizer.
-        :param threads: int
+        :param workers: int
             Number of threads.
         """
         self.threads = threads
@@ -108,7 +108,7 @@ class LinacOptimization(object):
         is_update_failed = True
 
         try:
-            self.linac.update(x_mapping, self.threads)
+            self.linac.update(x_mapping, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
