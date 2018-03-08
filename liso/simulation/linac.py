@@ -10,7 +10,12 @@ from ..exceptions import *
 
 
 class Linac(object):
-    """"""
+    """Linac class.
+
+    The linac class is the abstraction of a linear accelerator. It
+    consists of one or multiple beamlines. These beamlines can be
+    simulated using different codes.
+    """
     def __init__(self):
         """Initialization."""
         self.beamlines = defaultdict()
