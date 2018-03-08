@@ -1,16 +1,18 @@
 #!/usr/bin/python
 """
-This is a basic example showing how to optimize the emittance in ASTRA
-with a local search optimizer.
-
-The solution is 0.1543 at laser_spot = 0.040 and main_sole_b = 0.2750.
+This is an example showing how to simulate different part of a linac
+using different code.
 """
-from linacopt import Linac
-from linacopt import LinacOptimization
-from linacopt import ALPSO
+from liso import Linac
 
-# from pyOpt import SDPEN
-# from linacopt import PyoptLinacOptimization as LinacOptimization
+USE_PYOPT = True
+
+if USE_PYOPT:
+    from pyOpt import SDPEN
+    from liso import PyoptLinacOptimization as LinacOptimization
+else:
+    from liso import LinacOptimization
+    from liso import ALPSO
 
 #######################################################################
 # setup the optimization problem
@@ -18,6 +20,7 @@ from linacopt import ALPSO
 
 # Instantiate the optimization
 linac = Linac()
+
 linac.add_beamline(code='astra',
                    name='gun',
                    input_file='astra_basic/injector.in',
@@ -42,7 +45,7 @@ def obj_func(linac):
 
     # define constraint
     g = list()
-    g.append(linac['gun'].gun_out.n)
+    g.append(linac['gun'].gun_out.emitx*1e-6 - 0.1)
     g.append(linac['chicane'].chicane_out.St*1e-12 - 10)
 
     print(f)
@@ -50,16 +53,20 @@ def obj_func(linac):
 
 
 # set the optimizer
-optimizer = ALPSO()
+if USE_PYOPT:
+    optimizer = SDPEN()
+    optimizer.setOption('alfa_stop', 1e-2)
+else:
+    optimizer = ALPSO()
 
 opt = LinacOptimization(linac, obj_func)
 
 opt.add_obj('emitx_um')  # objective
-opt.add_econ('g1')  # equality constraint
+opt.add_icon('g1')  # equality constraint
 opt.add_icon('g2')  # inequality constraint
 opt.add_var('laser_spot', value=0.1, lower=0.04, upper=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lower=0.0, upper=0.4)  # variable
 opt.add_var('MQZM1_G', value=0.0, lower=-2.0, upper=2.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lower=-2.0, upper=2.0)  # variable
 
-opt.solve(optimizer, threads=1)  # Run the optimization
+opt.solve(optimizer, workers=1)  # Run the optimization
