@@ -13,9 +13,8 @@ import matplotlib.ticker as ticker
 
 from ..data_processing import parse_astra_phasespace
 from ..data_processing import parse_impactt_phasespace
-from ..data_processing import parse_impactz_phasespace
-from ..data_processing import parse_genesis_phasespace
-from ..simulation.beam_parameters import BeamParameters
+from ..data_processing import analyze_beam
+from liso.data_processing.beam_parameters import BeamParameters
 from .vis_utils import get_default_unit
 from .vis_utils import get_unit_scale
 from .vis_utils import get_label
@@ -34,16 +33,20 @@ AX_MARGIN = 0.05
 
 class PhaseSpacePlot(object):
     """Plot the beam phase-space."""
-    def __init__(self, pfile, **kwargs):
+    def __init__(self, pfile, charge=None, **kwargs):
         """Initialization
 
         :param pfile: string
             Path name of the particle file.
         """
         self.pfile = pfile
-        self.charge = None
+        self.charge = charge
+        # Even if the charge is given in the __init__ function of an
+        # class like AstraPhaseSpacePlot, self.charge will be override
+        # by the _load_data() method.
         self.data = self._load_data()
-        self.params = BeamParameters()
+
+        self.params = analyze_beam(self.data, self.charge, **kwargs)
         self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p']
 
     @abstractmethod
@@ -174,6 +177,7 @@ class PhaseSpacePlot(object):
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
 
+        plt.title(' ', fontsize=TITLE_FONT_SIZE, y=1.02)  # placeholder
         if show_parameters is True:
             # show parameters in the title for several plots
             if (var_x, var_y) == ('x', 'xp'):
@@ -181,19 +185,17 @@ class PhaseSpacePlot(object):
                           float("%.2g" % (self.params.emitx*1e6)),
                           fontsize=TITLE_FONT_SIZE, y=1.02)
 
-            if (var_x, var_y) == ('y', 'yp'):
+            elif (var_x, var_y) == ('y', 'yp'):
                 plt.title(r'$\varepsilon_y$ = %s $\mu$m' %
                           float("%.2g" % (self.params.emity*1e6)),
                           fontsize=TITLE_FONT_SIZE, y=1.02)
 
-            if (var_x, var_y) == ('t', 'p'):
+            elif (var_x, var_y) == ('t', 'p'):
                 plt.title(r"$\sigma_t$ = %s " % float("%.2g" % (self.params.St*x_scale))
                           + x_unit_label.replace('(', '').replace(')', '')
                           + r", $\sigma_\delta$ = %s " % float("%.2g" % self.params.Sdelta)
                           + r", $Q$ = %s pC" % float("%.2g" % (self.params.charge*1e12)),
                           fontsize=TITLE_FONT_SIZE, y=1.02)
-        else:
-            plt.title(' ', fontsize=TITLE_FONT_SIZE, y=1.02)  # placeholder
 
         plt.tight_layout()
 
@@ -225,9 +227,6 @@ class PhaseSpacePlot(object):
 
 class AstraPhaseSpacePlot(PhaseSpacePlot):
     """Plot phase-spaces from ASTRA simulations."""
-    def __init__(self, pfile, **kwargs):
-        super().__init__(pfile, **kwargs)
-
     def _load_data(self):
         """Read data from file."""
         data, self.charge = parse_astra_phasespace(self.pfile)
@@ -236,10 +235,11 @@ class AstraPhaseSpacePlot(PhaseSpacePlot):
 
 class ImpacttPhaseSpacePlot(PhaseSpacePlot):
     """Plot phase-spaces from IMPACT-T simulations."""
-    def __init__(self, pfile, charge, **kwargs):
-        """"""
-        super().__init__(pfile, **kwargs)
-        self.charge = charge
+    def __init__(self, *args, **kwargs):
+        """Initialization."""
+        super().__init__(*args, **kwargs)
+        if self.charge is None:
+            raise ValueError("Bunch charge is required for Impact-T simulation!")
 
     def _load_data(self):
         """Read data from file."""
