@@ -1,10 +1,5 @@
 """
-Note: In the calculation (except the canonical emittance), the
-particles are drifted back to the center of the bunch without
-considering the collective effects!!!
-
 Author: Jun Zhu
-
 """
 from abc import abstractmethod
 from abc import ABC
@@ -27,8 +22,9 @@ CONST_E = M_E*V_LIGHT**2/Q_E
 class Watch(ABC):
     """Watch abstract class.
 
-    The class has a method get_data() which returns a BeamParameter
-    object.
+    This class has a method load_data() which reads data from the
+    particle file. One can image that the DAQ system reads data
+    from a camera which takes pictures from a screen.
     """
     def __init__(self, name, pfile, *,
                  cut_halo=0.0,

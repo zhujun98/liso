@@ -30,6 +30,10 @@ def compute_canonical_emit(x, px):
 def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
     """ Calculate the Twiss parameters
 
+    Note: In the calculation (except the canonical emittance), the
+    particles are drifted back to the center of the bunch without
+    considering the collective effects!!!
+
     :param x: pandas.Series object
         Position coordinates.
     :param dz: pandas.Series object

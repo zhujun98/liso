@@ -1,6 +1,5 @@
 """
 Author: Jun Zhu
-
 """
 from abc import abstractmethod
 from abc import ABC
@@ -23,8 +22,8 @@ CONST_E = M_E*V_LIGHT**2/Q_E
 class Line(ABC):
     """Line abstract class.
 
-    The class has a method get_data() which returns a LineParameter
-    object.
+    This class has a method load_data() which reads data from the
+    files which record the evolutions of beam parameters.
     """
     def __init__(self, name, rootname, zlim=(-INF, INF)):
         """Initialize BeamStats object
@@ -51,7 +50,7 @@ class Line(ABC):
 
         The rootname of these files is self.rootname.
         """
-        raise NotImplemented
+        pass
 
     def __str__(self):
         text = 'Name: %s\n' % self.name
@@ -60,24 +59,28 @@ class Line(ABC):
 
 
 class AstraLine(Line):
+    """Line for Astra simulation."""
     def load_data(self):
         """Override the abstract method."""
         return parse_astra_line(self.rootname)
 
 
 class ImpacttLine(Line):
+    """Line for Impact-T simulation."""
     def load_data(self):
         """Override the abstract method."""
         return parse_impactt_line(self.rootname)
 
 
 class ImpactzLine(Line):
+    """Line for Impact-Z simulation."""
     def load_data(self):
         """Override the abstract method."""
         return parse_impactz_line(self.rootname)
 
 
 class GenesisLine(Line):
+    """Line for Genesis simulation."""
     def load_data(self):
         """Override the abstract method."""
         return parse_genesis_line(self.rootname)
