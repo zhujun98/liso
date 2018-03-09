@@ -21,17 +21,18 @@ else:
 # Instantiate the optimization
 linac = Linac()
 
-linac.add_beamline(code='astra',
+linac.add_beamline('astra',
                    name='gun',
-                   input_file='astra_basic/injector.in',
+                   fin='astra_basic/injector.in',
                    template='astra_basic/injector.in.000')
 linac.add_watch(beamline='gun', name='gun_out', pfile='injector.0400.001')
 linac.add_line(beamline='gun', name='gun_all', rootname='injector')
 
-linac.add_beamline(code='impactt',
+linac.add_beamline('impactt',
                    name='chicane',
-                   input_file='impactt_basic/ImpactT.in',
-                   template='impactt_basic/ImpactT.in.000')
+                   fin='impactt_basic/ImpactT.in',
+                   template='impactt_basic/ImpactT.in.000',
+                   charge=0.0)
 linac.add_watch(beamline='chicane', name='chicane_out', pfile='fort.107')
 linac.add_line(beamline='chicane', name='chicane_all', rootname='fort')
 

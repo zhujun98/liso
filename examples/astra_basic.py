@@ -22,9 +22,9 @@ else:
 
 # Instantiate the optimization
 linac = Linac()
-linac.add_beamline(code='astra',
+linac.add_beamline('astra',
                    name='gun',
-                   input_file='astra_basic/injector.in',
+                   fin='astra_basic/injector.in',
                    template='astra_basic/injector.in.000')
 linac.add_watch(beamline='gun', name='out', pfile='injector.0400.001')
 linac.add_line(beamline='gun', name='all', rootname='injector')

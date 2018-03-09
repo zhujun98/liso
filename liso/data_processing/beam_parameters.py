@@ -2,7 +2,7 @@
 """
 Author: Jun Zhu
 """
-from ..exceptions import *
+from liso.exceptions import *
 
 
 class BeamParameters(object):

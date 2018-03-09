@@ -27,7 +27,7 @@ def generate_input(beamline, mapping):
         raise TypeError("beamline should be a Beamline object!")
 
     # delete the existing input file
-    input_file = os.path.join(beamline.dirname, beamline.input_file)
+    input_file = os.path.join(beamline.dirname, beamline.fin)
     try:
         os.remove(input_file)
     except OSError:

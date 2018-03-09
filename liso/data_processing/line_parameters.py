@@ -12,7 +12,7 @@ get the very-close Twiss parameters even in extreme conditions.
 """
 import numpy as np
 
-from ..backend import config
+from liso.backend import config
 
 V_LIGHT = config['vLight']
 M_E = config['me']

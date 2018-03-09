@@ -31,3 +31,8 @@ class BeamParametersInconsistentError(Exception):
 class BeamlineMonitorError(Exception):
     """"""
     pass
+
+
+class TooFewOutputParticlesError(Exception):
+    """Raised when there are not enough particles in the output."""
+    pass
