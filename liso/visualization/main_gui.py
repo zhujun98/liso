@@ -21,7 +21,11 @@ BUTTON_HEIGHT = 60
 
 
 def get_style_sheet(bg_color):
-    """"""
+    """Return the string for setStyleSheet().
+
+    :param bg_color: string
+        Color Hex Color Codes.
+    """
     style_sheet = 'QPushButton {color: white; font: bold; padding: 5px; ' \
                   + 'background-color: ' + bg_color + '}'
     return style_sheet
@@ -41,7 +45,7 @@ class MainGUI(QWidget):
     It contains buttons for opening child GUIs with different
     functionality.
     """
-    def __init__(self):
+    def __init__(self, screen_size=None):
         """Initialization."""
         super().__init__()
 
@@ -51,6 +55,12 @@ class MainGUI(QWidget):
         # self.statusBar().showMessage('Ready')
 
         self.create_button_layout()
+
+        if screen_size is None:
+            self.move(0, 0)
+        else:
+            self.move(screen_size.width()/2 - WINDOW_WIDTH/2,
+                      screen_size.height()/20)
 
     def create_button_layout(self):
         """Create buttons."""
@@ -108,5 +118,6 @@ class MainGUI(QWidget):
 
 def main_gui():
     app = QApplication(sys.argv)
-    ex = MainGUI()
+    screen_size = app.primaryScreen().size()
+    ex = MainGUI(screen_size=screen_size)
     sys.exit(app.exec_())
