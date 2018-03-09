@@ -15,6 +15,26 @@ from .line_plot_gui import LinePlotGUI
 from .optimizer_gui import OptimizerGUI
 
 
+WINDOW_HEIGHT = 80
+WINDOW_WIDTH = 800
+BUTTON_HEIGHT = 60
+
+
+def get_style_sheet(bg_color):
+    """"""
+    style_sheet = 'QPushButton {color: white; font: bold; padding: 5px; ' \
+                  + 'background-color: ' + bg_color + '}'
+    return style_sheet
+
+
+class MainGUIButton(QPushButton):
+    """Inherited from QPushButton."""
+    def __init__(self, name, parent=None):
+        """Initialization."""
+        super().__init__(name, parent)
+        self.setMinimumHeight(BUTTON_HEIGHT)
+
+
 class MainGUI(QWidget):
     """The main GUI.
 
@@ -26,7 +46,7 @@ class MainGUI(QWidget):
         super().__init__()
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setFixedSize(800, 60)
+        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setWindowTitle('LISO Visualization GUI')
         # self.statusBar().showMessage('Ready')
 
@@ -35,24 +55,30 @@ class MainGUI(QWidget):
     def create_button_layout(self):
         """Create buttons."""
         # BUtton for linac layout plot.
-        layout_btn = QPushButton('Linac\n Layout', self)
+        layout_btn = MainGUIButton('Linac Layout', self)
+        layout_btn.setStyleSheet(get_style_sheet("#0288CF"))
 
         # Button for phasespace plot.
-        ps_btn = QPushButton('Phasespace\n Plot', self)
+        ps_btn = MainGUIButton('Phasespace\n Plot', self)
+        ps_btn.setStyleSheet(get_style_sheet("#832E01"))
         ps_btn.clicked.connect(self.open_new_phasespace_plot)
 
         # Button for line plot.
-        line_btn = QPushButton('Line\n Plot', self)
+        line_btn = MainGUIButton('Line Plot', self)
+        line_btn.setStyleSheet(get_style_sheet("#CA5504"))
         line_btn.clicked.connect(self.open_new_line_plot)
 
         # Button for optimization visualization.
-        optmization_btn = QPushButton('Optimization\n Tracker', self)
+        optmization_btn = MainGUIButton('Optimization\n Tracker', self)
+        optmization_btn.setStyleSheet(get_style_sheet("#7DB039"))
 
         # Button for jitter study visualization
-        jitter_btn = QPushButton('Jitter\n Tracker', self)
+        jitter_btn = MainGUIButton('Jitter Tracker', self)
+        jitter_btn.setStyleSheet(get_style_sheet("#222760"))
 
         # Button for visualizing optimizer testing
-        optimizer_btn = QPushButton('Optimizer\n Visualization', self)
+        optimizer_btn = MainGUIButton('Optimizer\n Visualization', self)
+        optimizer_btn.setStyleSheet(get_style_sheet("#C4A464"))
         optimizer_btn.clicked.connect(self.open_new_optimizer_visualizer)
 
         hbox = QHBoxLayout()
