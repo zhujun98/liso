@@ -31,7 +31,7 @@ class Linac(object):
         else:
             if val.lower() in ('astra', 'a'):
                 bl = AstraBeamline(*args, **kwargs)
-            elif val.lower() in ('impactt', 'i'):
+            elif val.lower() in ('impactt', 't'):
                 bl = ImpacttBeamline(*args, **kwargs)
             elif val.lower() in ('impactz', 'z'):
                 bl = ImpactzBeamline(*args, **kwargs)
