@@ -71,6 +71,7 @@ class PhaseSpacePlot(object):
     def _plot(self, var_x, var_y, *,
               x_unit=None,
               y_unit=None,
+              y1_unit=None,
               xlim=None,
               ylim=None,
               cloud_plot=True,
@@ -96,6 +97,8 @@ class PhaseSpacePlot(object):
             Unit for x axis.
         :param y_unit: string
             Unit for y axis.
+        :param y1_unit: string
+            Unit for twin-y axis.
         :param xlim: tuple, (x_min, x_max)
             Range of the x axis.
         :param ylim: tuple, (y_min, y_max)
@@ -162,10 +165,32 @@ class PhaseSpacePlot(object):
         ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
-        if cloud_plot is False:
+        if cloud_plot is True:
             cb = ax.scatter(x_sample*x_scale, y_sample*y_scale, c=density_color,
                             edgecolor='', s=ms, alpha=alpha, cmap='jet')
-            cbar = plt.colorbar(cb, shrink=0.5)
+
+            if (var_x, var_y) == ('t', 'p'):
+                y1_unit = get_default_unit('i') if y1_unit is None else y1_unit.lower()
+                y1_unit_label, y1_scale = get_unit_label_and_scale(y1_unit)
+
+                ax1 = ax.twinx()
+                ax1.margins(AX_MARGIN)
+                ax1.yaxis.set_major_locator(ticker.MaxNLocator(nbins=MAX_LOCATOR))
+                ax1.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+
+                ax1.plot(self.params.current_dist[0] * x_scale,
+                         self.params.current_dist[1] * y1_scale,
+                         ls='--',
+                         lw=2,
+                         color='indigo')
+                ax1.set_ylabel("$I$ " + y1_unit_label, fontsize=LABEL_FONT_SIZE, labelpad=LABEL_PAD)
+                ax1.tick_params(labelsize=TICK_FONT_SIZE)
+
+                cbaxes = fig.add_axes([0.75, 0.07, 0.2, 0.02])
+                cbar = plt.colorbar(cb, orientation='horizontal', cax=cbaxes)
+            else:
+                cbar = plt.colorbar(cb, shrink=0.5)
+
             cbar.set_ticks(np.arange(0, 1.01, 0.2))
             cbar.ax.tick_params(labelsize=14)
         else:

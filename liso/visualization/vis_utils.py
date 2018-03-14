@@ -132,6 +132,8 @@ def get_default_unit(name):
         return 'fs'
     elif name == 'p':
         return 'mc'
+    elif name == 'i':
+        return 'a'  # Amper for current I
     else:
         return ''
 
