@@ -62,13 +62,13 @@ def parse_impactt_line(root_name):
 
     xdata = pd.read_csv(
         x_file, delim_whitespace=True,
-        names=['t', 'z', 'Cx', 'Sx', 'px', 'Spx', 'x_px', 'emitx'])
+        names=['t', 'z', 'cx', 'sx', 'px', 'spx', 'x_px', 'emitx'])
     ydata = pd.read_csv(
         y_file, delim_whitespace=True,
-        names=['t', 'z', 'Cy', 'Sy', 'py', 'Spy', 'y_py', 'emity'])
+        names=['t', 'z', 'cy', 'sy', 'py', 'spy', 'y_py', 'emity'])
     zdata = pd.read_csv(
         z_file, delim_whitespace=True,
-        names=['t', 'z', 'Sz', 'pz', 'Spz', 'z_pz', 'emitz'])
+        names=['t', 'z', 'sz', 'pz', 'spz', 'z_pz', 'emitz'])
 
     data = pd.DataFrame()
 
@@ -77,12 +77,12 @@ def parse_impactt_line(root_name):
 
     data['gamma'] = np.sqrt(xdata['px'].pow(2) + ydata['py'].pow(2) +
                                  zdata['pz'].pow(2) + 1)
-    data['SdE'] = np.sqrt(xdata['Spx'].pow(2) + ydata['Spy'].pow(2) +
-                               zdata['Spz'].pow(2))*CONST_E
+    data['sde'] = np.sqrt(xdata['spx'].pow(2) + ydata['spy'].pow(2) +
+                               zdata['spz'].pow(2))*CONST_E
 
-    data['Sx'] = xdata['Sx']
-    data['Sy'] = ydata['Sy']
-    data['Sz'] = zdata['Sz']
+    data['sx'] = xdata['sx']
+    data['sy'] = ydata['sy']
+    data['sz'] = zdata['sz']
 
     data['emitx'] = xdata['emitx']
     data['emity'] = ydata['emity']
@@ -94,8 +94,8 @@ def parse_impactt_line(root_name):
 
     gamma_beta = data['gamma']*np.sqrt(1 - 1/data['gamma'].pow(2))
 
-    data['betax'] = data['Sx'].pow(2)*gamma_beta/data['emitx_tr']
-    data['betay'] = data['Sy'].pow(2)*gamma_beta/data['emity_tr']
+    data['betax'] = data['sx'].pow(2)*gamma_beta/data['emitx_tr']
+    data['betay'] = data['sy'].pow(2)*gamma_beta/data['emity_tr']
 
     data['alphax'] = xdata['x_px']/data['emitx_tr']
     data['alphay'] = ydata['y_py']/data['emity_tr']
@@ -142,15 +142,15 @@ def parse_astra_line(root_name):
     xdata = pd.read_csv(
         x_file,
         delim_whitespace=True,
-        names=['z', 't', 'Cx', 'Sx', 'Sxp', 'emitx', 'x_xp'])
+        names=['z', 't', 'cx', 'sx', 'sxp', 'emitx', 'x_xp'])
     ydata = pd.read_csv(
         y_file,
         delim_whitespace=True,
-        names=['z', 't', 'Cy', 'Sy', 'Syp', 'emity', 'y_yp'])
+        names=['z', 't', 'cy', 'sy', 'syp', 'emity', 'y_yp'])
     zdata = pd.read_csv(
         z_file,
         delim_whitespace=True,
-        names=['z', 't', 'Ek', 'Sz', 'SdE', 'emitz', 'z_dE'])
+        names=['z', 't', 'ek', 'sz', 'sde', 'emitz', 'z_de'])
 
     # ASTRA will not output .TRemit file by default
     try:
@@ -168,15 +168,15 @@ def parse_astra_line(root_name):
     data['z'] = xdata['z']
     # data['t'] = xdata['t']*1.0e-9
 
-    data['gamma'] = zdata['Ek']*1.0e6/CONST_E + 1
-    data['SdE'] = zdata['SdE']*1.0e3
+    data['gamma'] = zdata['ek']*1.0e6/CONST_E + 1
+    data['sde'] = zdata['sde']*1.0e3
 
-    data['Sx'] = xdata['Sx']*1.0e-3
-    data['Sy'] = ydata['Sy']*1.0e-3
-    data['Sz'] = zdata['Sz']*1.0e-3
+    data['sx'] = xdata['sx']*1.0e-3
+    data['sy'] = ydata['sy']*1.0e-3
+    data['sz'] = zdata['sz']*1.0e-3
 
-    # data['Sxp'] = xdata['Sxp']*1.0e-3
-    # data['Syp'] = ydata['Syp']*1.0e-3
+    # data['sxp'] = xdata['sxp']*1.0e-3
+    # data['syp'] = ydata['syp']*1.0e-3
 
     data['emitx'] = xdata['emitx']*1.0e-6
     data['emity'] = ydata['emity']*1.0e-6
@@ -184,11 +184,11 @@ def parse_astra_line(root_name):
 
     gamma_beta = data['gamma']*np.sqrt(1 - 1/data['gamma'].pow(2))
 
-    data['betax'] = data['Sx'].pow(2)*gamma_beta/data['emitx_tr']
-    data['betay'] = data['Sy'].pow(2)*gamma_beta/data['emity_tr']
+    data['betax'] = data['sx'].pow(2)*gamma_beta/data['emitx_tr']
+    data['betay'] = data['sy'].pow(2)*gamma_beta/data['emity_tr']
 
-    x_xp = xdata['Sx']*xdata['x_xp']*1.0e-6
-    y_yp = ydata['Sy']*ydata['y_yp']*1.0e-6
+    x_xp = xdata['sx']*xdata['x_xp']*1.0e-6
+    y_yp = ydata['sy']*ydata['y_yp']*1.0e-6
     data['alphax'] = -x_xp*gamma_beta/data['emitx_tr']
     data['alphay'] = -y_yp*gamma_beta/data['emity_tr']
 
