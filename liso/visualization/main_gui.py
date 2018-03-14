@@ -52,7 +52,6 @@ class MainGUI(QWidget):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setWindowTitle('LISO Visualization GUI')
-        # self.statusBar().showMessage('Ready')
 
         self.create_button_layout()
 
