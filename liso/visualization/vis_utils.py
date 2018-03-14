@@ -66,21 +66,19 @@ def get_label(name):
     """Get the label for a given variable.
 
     :param name: string
-        Variable name.
+        Variable name in lower case.
 
     :return: The label of the variable.
     """
-    name = name.lower()
-
     if name == 'gamma':
         return r"$\gamma$"
-    elif name == 'SdE':
+    elif name == 'sde':
         return r"$\sigma_E$"
-    elif name == 'Sx':
+    elif name == 'sx':
         return "$\sigma_x$"
-    elif name == 'Sy':
+    elif name == 'sy':
         return "$\sigma_y$"
-    elif name == 'Sz':
+    elif name == 'sz':
         return "$\sigma_z$"
     elif name == 'betax':
         return r"$\beta_x$"
@@ -110,10 +108,8 @@ def get_default_unit(name):
     """Get the default unit of a variable.
 
     :param name: string
-        Variable name.
+        Variable name in lower case.
     """
-    name = name.lower()
-
     if name == 'x' or name == 'y':
         return 'mm'
     elif name == 'z':
@@ -124,15 +120,15 @@ def get_default_unit(name):
         return 'fs'
     elif re.match('beta', name):
         return 'm'
-    elif name == 'SdE':
-        return 'keV'
-    elif name == 'Sx' or name == 'Sy':
+    elif name == 'sde':
+        return 'kev'
+    elif name == 'sx' or name == 'sy':
         return 'mm'
-    elif name == 'Sz':
+    elif name == 'sz':
         return 'um'
     elif re.match('emit', name):
         return 'um'
-    elif name == 'St':
+    elif name == 'st':
         return 'fs'
     elif name == 'p':
         return 'mc'
@@ -140,24 +136,34 @@ def get_default_unit(name):
         return ''
 
 
-def get_unit_scale(unit):
+def get_unit_label_and_scale(unit):
     """Obtain the label and scaling factor of the unit
 
     :param unit: string
-        Name of the unit.
+        Name of the unit in lower case.
 
     :return unit_label: string
         label of the unit
     :return scale: int/float
         Scaling factor of the unit
     """
-    unit_label = unit
-
-    if unit == 'MeV':
+    unit_label = unit  # default value
+    if unit == 'gev':
+        scale = 1.0e-9
+        unit_label = 'GeV'
+    elif unit == 'mev':
         scale = 1.0e-6
-    elif unit in ['kA', 'keV']:
+        unit_label = 'MeV'
+    elif unit == 'kev':
         scale = 1.0e-3
-    elif unit == '' or unit in ['m', 'rad', 's', 'A', 'mc']:
+        unit_label = 'KeV'
+    elif unit == 'ka':
+        scale = 1.0e-3
+        unit_label = 'kA'
+    elif unit == 'a':
+        scale = 1.0
+        unit_label = 'A'
+    elif unit == '' or unit in ['m', 'rad', 's', 'mc']:
         scale = 1.0
     elif unit in ['mm', 'mrad', 'ms']:
         scale = 1.0e3
@@ -169,6 +175,8 @@ def get_unit_scale(unit):
             unit_label = '$\mu$rad'
         elif unit == 'us':
             unit_label = '$\mu$s'
+    elif unit in ['nm', 'nrad', 'ns']:
+        scale = 1.0e9
     elif unit == 'ps':
         scale = 1.0e12
     elif unit == 'fs':

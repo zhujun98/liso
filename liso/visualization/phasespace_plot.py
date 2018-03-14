@@ -8,16 +8,16 @@ import os
 from abc import abstractmethod
 
 import numpy as np
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from ..data_processing import parse_astra_phasespace
 from ..data_processing import parse_impactt_phasespace
 from ..data_processing import analyze_beam
 from .vis_utils import get_default_unit
-from .vis_utils import get_unit_scale
+from .vis_utils import get_unit_label_and_scale
 from .vis_utils import get_label
 from .vis_utils import sample_data
 
@@ -28,23 +28,19 @@ TICK_FONT_SIZE = 20
 LEGEND_FONT_SIZE = 18
 LABEL_PAD = 8
 TICK_PAD = 8
-MAX_LOCATOR = 7
+MAX_LOCATOR = 6
 AX_MARGIN = 0.05
 
 
 class PhaseSpacePlot(object):
     """Plot the beam phase-space."""
-    def __init__(self, pfile, *, charge=None, dpi=300, ax=None, fig=None, **kwargs):
-        """Initialization
+    def __init__(self, pfile, *, charge=None, **kwargs):
+        """Initialization.
 
         :param pfile: string
             Path name of the particle file.
-
         :param charge: float
-
-        :param dpi: int
-            DPI of the plot. Default = 300.
-        :param ax:
+            Bunch charge. Only used for ImpactT and ImpactZ.
         """
         self.pfile = pfile
         self.charge = charge
@@ -55,13 +51,6 @@ class PhaseSpacePlot(object):
 
         self.params = analyze_beam(self.data, self.charge, **kwargs)
         self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p']
-
-        if ax is None or fig is None:
-            fig = Figure(figsize=(8, 6), dpi=dpi, tight_layout=True)
-            self.ax = fig.add_subplot(111)
-        else:
-            self.ax = ax
-        # super().__init__(fig)
 
     @abstractmethod
     def _load_data(self):
@@ -93,8 +82,11 @@ class PhaseSpacePlot(object):
               sample=20000,
               save_image=False,
               filename='',
-              show_parameters=True):
+              show_parameters=True,
+              dpi=300):
         """Show a phase-space on screen or in a file.
+
+        Note: for screen show the default dpi should be used.
 
         :param var_x: string
             Variable for x-axis.
@@ -130,22 +122,20 @@ class PhaseSpacePlot(object):
             The file will be saved in the same directory as the particle file.
         :param show_parameters: bool
             Show beam parameters in the title. Default = True.
+        :param dpi: int
+            DPI of the plot. Default = 300.
         """
-        self.ax.cla()
-
         var_x = var_x.lower()
         var_y = var_y.lower()
         if var_x not in self._options or var_y not in self._options:
             raise ValueError("Valid options are: {}".format(self._options))
 
-        self.ax.margins(AX_MARGIN)
-
         # Get the units for x- and y- axes
-        x_unit = get_default_unit(var_x) if x_unit is None else x_unit
-        y_unit = get_default_unit(var_y) if y_unit is None else y_unit
+        x_unit = get_default_unit(var_x) if x_unit is None else x_unit.lower()
+        y_unit = get_default_unit(var_y) if y_unit is None else y_unit.lower()
 
-        x_unit_label, x_scale = get_unit_scale(x_unit)
-        y_unit_label, y_scale = get_unit_scale(y_unit)
+        x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
+        y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
 
         x_sample, y_sample, density_color, idx_sample = sample_data(
             self._get_column(var_x),
@@ -154,54 +144,61 @@ class PhaseSpacePlot(object):
             sigma=sigma_2d,
             sample=sample)
 
+        fig = plt.figure(figsize=(8, 6), tight_layout=True)
+        ax = fig.add_subplot(111)
+
+        ax.margins(AX_MARGIN)
+
         x_symmetric = False
         y_symmetric = False
         if var_x in ('x', 'xp'):
             x_symmetric = True
         if var_y in ('y', 'yp'):
             y_symmetric = True
-        self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=MAX_LOCATOR,
-                                                           symmetric=x_symmetric))
-        self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=MAX_LOCATOR,
-                                                           symmetric=y_symmetric))
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=MAX_LOCATOR,
+                                                      ymmetric=x_symmetric))
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=MAX_LOCATOR,
+                                                      ymmetric=y_symmetric))
+        ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+        ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
         if cloud_plot is False:
-            cb = self.ax.scatter(x_sample*x_scale, y_sample*y_scale, c=density_color,
-                                 edgecolor='', s=ms, alpha=alpha, cmap='jet')
+            cb = ax.scatter(x_sample*x_scale, y_sample*y_scale, c=density_color,
+                            edgecolor='', s=ms, alpha=alpha, cmap='jet')
             cbar = plt.colorbar(cb, shrink=0.5)
             cbar.set_ticks(np.arange(0, 1.01, 0.2))
             cbar.ax.tick_params(labelsize=14)
         else:
-            self.ax.scatter(x_sample * x_scale, y_sample * y_scale,
-                            alpha=alpha, c=mc, edgecolor='', s=ms)
+            ax.scatter(x_sample * x_scale, y_sample * y_scale,
+                       alpha=alpha, c=mc, edgecolor='', s=ms)
 
-        self.ax.set_xlabel(get_label(var_x) + ' ' + x_unit_label,
-                           fontsize=LABEL_FONT_SIZE, labelpad=LABEL_PAD)
-        self.ax.set_ylabel(get_label(var_y) + ' ' + y_unit_label,
-                           fontsize=LABEL_FONT_SIZE, labelpad=LABEL_PAD)
-        self.ax.tick_params(labelsize=TICK_FONT_SIZE, pad=TICK_PAD)
+        ax.set_xlabel(get_label(var_x) + ' ' + x_unit_label,
+                      fontsize=LABEL_FONT_SIZE, labelpad=LABEL_PAD)
+        ax.set_ylabel(get_label(var_y) + ' ' + y_unit_label,
+                      fontsize=LABEL_FONT_SIZE, labelpad=LABEL_PAD)
+        ax.tick_params(labelsize=TICK_FONT_SIZE, pad=TICK_PAD)
 
         # set axis limits
-        self.ax.set_xlim(xlim)
-        self.ax.set_ylim(ylim)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
 
-        self.ax.set_title(' ', fontsize=TITLE_FONT_SIZE, y=1.02)  # placeholder
+        ax.set_title(' ', fontsize=TITLE_FONT_SIZE, y=1.02)  # placeholder
         if show_parameters is True:
             # show parameters in the title for several plots
             if (var_x, var_y) == ('x', 'xp'):
-                self.ax.set_title(
+                ax.set_title(
                     r'$\varepsilon_x$ = %s $\mu$m' %
                     float("%.2g" % (self.params.emitx*1e6)),
                     fontsize=TITLE_FONT_SIZE, y=1.02)
 
             elif (var_x, var_y) == ('y', 'yp'):
-                self.ax.set_title(
+                ax.set_title(
                     r'$\varepsilon_y$ = %s $\mu$m'
                     % float("%.2g" % (self.params.emity*1e6)),
                     fontsize=TITLE_FONT_SIZE, y=1.02)
 
             elif (var_x, var_y) == ('t', 'p'):
-                self.ax.set_title(
+                ax.set_title(
                     r"$\sigma_t$ = %s " % float("%.2g" % (self.params.St*x_scale))
                     + x_unit_label.replace('(', '').replace(')', '')
                     + r", $\sigma_\delta$ = %s " % float("%.2g" % self.params.Sdelta)
@@ -214,8 +211,12 @@ class PhaseSpacePlot(object):
                          + '_' + var_x + '-' + var_y + '.png'
             else:
                 filename = os.path.join(os.path.dirname(self.pfile), filename)
-            self.print_png(filename)
+            plt.savefig(filename, dpi=dpi)
             print('%s saved!' % os.path.abspath(filename))
+        else:
+            plt.show()
+
+        plt.close()
 
     def _get_column(self, name):
         """Get the column data by name.

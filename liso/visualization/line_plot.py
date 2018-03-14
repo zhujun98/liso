@@ -8,15 +8,15 @@ Author: Jun Zhu
 import os
 from abc import abstractmethod
 
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 from ..data_processing import parse_astra_line
 from ..data_processing import parse_impactt_line
-from ..data_processing import parse_impactz_line
-from ..data_processing import parse_genesis_line
 from .vis_utils import get_default_unit
-from .vis_utils import get_unit_scale
+from .vis_utils import get_unit_label_and_scale
 from .vis_utils import get_label
 
 LABEL_FONT_SIZE = 26
@@ -25,7 +25,7 @@ TICK_FONT_SIZE = 20
 LEGEND_FONT_SIZE = 18
 LABEL_PAD = 8
 TICK_PAD = 8
-MAX_LOCATOR = 7
+MAX_LOCATOR = 6
 AX_MARGIN = 0.05
 
 
@@ -40,7 +40,7 @@ class LinePlot(object):
         self.rootname = rootname
 
         self.data = self._load_data()
-        self._options = self.data.columns.values
+        self._options = [name.lower() for name in self.data.columns.values]
 
     def save_plot(self, var1, var2=None, **kwargs):
         kwargs['save_image'] = True
@@ -51,14 +51,16 @@ class LinePlot(object):
         self._plot(var1, var2, **kwargs)
 
     def _plot(self, var1, var2, *,
-             x_unit=None,
-             y_unit=None,
-             xlim=None,
-             ylim=None,
-             save_image=False,
-             filename='',
-             dpi=300):
+              x_unit=None,
+              y_unit=None,
+              xlim=None,
+              ylim=None,
+              save_image=False,
+              filename='',
+              dpi=300):
         """Plot parameters' evolution along the beamline.
+
+        Note: for screen show the default dpi should be used.
 
         :param var1: string
             Variable name.
@@ -84,23 +86,27 @@ class LinePlot(object):
         :param dpi: int
             DPI of the plot. Default = 300.
         """
-        if var1 not in self._options or \
-                (var2 is not None and var2 not in self._options):
+        var1 = var1.lower()
+        var2 = var2.lower() if var2 is not None else var2
+        if var1 not in self._options or (var2 is not None and var2 not in self._options):
             raise ValueError("Valid options are: {}".format(self._options))
 
-        x_unit = get_default_unit('z') if x_unit is None else x_unit
-        # var2 should have the same unit
-        y_unit = get_default_unit(var1) if y_unit is None else y_unit
+        x_unit = get_default_unit('z') if x_unit is None else x_unit.lower()
+        # var2 should have the same y_unit
+        y_unit = get_default_unit(var1) if y_unit is None else y_unit.lower()
 
-        x_unit_label, x_scale = get_unit_scale(x_unit)
-        y_unit_label, y_scale = get_unit_scale(y_unit)
+        x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
+        y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
 
-        _, ax = plt.subplots(figsize=(8, 5))
+        fig = plt.figure(figsize=(8, 5), tight_layout=True)
+        ax = fig.add_subplot(111)
+
         ax.margins(AX_MARGIN)
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(MAX_LOCATOR,
-                                                      symmetric=False))
-        ax.yaxis.set_major_locator(ticker.MaxNLocator(MAX_LOCATOR,
-                                                      symmetric=False))
+
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(MAX_LOCATOR))
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(MAX_LOCATOR))
+        ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+        ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
         colors = ['dodgerblue', 'firebrick']
         styles = ['-', '--']
@@ -123,8 +129,6 @@ class LinePlot(object):
         if var2 is not None:
             plt.legend(loc=0, fontsize=LEGEND_FONT_SIZE)
 
-        plt.tight_layout()
-
         if save_image is True:
             if not filename:
                 filename = self.rootname + '_' + var1
@@ -139,28 +143,48 @@ class LinePlot(object):
         else:
             plt.show()
 
+        plt.close()
+
     @abstractmethod
     def _load_data(self):
         raise NotImplemented
 
 
-class AstraLinePlot(LinePlot):
-    """Plot the parameter evolution along the ASTRA beamline.."""
-    def __init__(self, rootname, **kwargs):
-        """Initialization."""
-        super().__init__(rootname, **kwargs)
+def create_line_plot(code, *args, **kwargs):
+    """A LinePlot class factory.
 
-    def _load_data(self):
-        """Read data from file."""
-        return parse_astra_line(self.rootname)
+    :param code: string
+        Name of the code.
 
+    :return: A concrete LinePlot object.
+    """
+    class AstraLinePlot(LinePlot):
+        """Plot the parameter evolution along the ASTRA beamline.."""
+        def __init__(self, rootname, **kwargs):
+            """Initialization."""
+            super().__init__(rootname, **kwargs)
 
-class ImpacttLinePlot(LinePlot):
-    """Plot the parameter evolution along the IMPACT-T beamline.."""
-    def __init__(self, rootname, **kwargs):
-        """Initialization."""
-        super().__init__(rootname, **kwargs)
+        def _load_data(self):
+            """Read data from file."""
+            return parse_astra_line(self.rootname)
 
-    def _load_data(self):
-        """Read data from file."""
-        return parse_impactt_line(self.rootname)
+    class ImpacttLinePlot(LinePlot):
+        """Plot the parameter evolution along the IMPACT-T beamline.."""
+        def __init__(self, rootname, **kwargs):
+            """Initialization."""
+            super().__init__(rootname, **kwargs)
+
+        def _load_data(self):
+            """Read data from file."""
+            return parse_impactt_line(self.rootname)
+
+    if code.lower() in ('astra', 'a'):
+        return AstraLinePlot(*args, **kwargs)
+    if code.lower() in ('impactt', 't'):
+        return ImpacttLinePlot(*args, **kwargs)
+    if code.lower() in ('impactz', 'z'):
+        raise NotImplementedError
+    if code.lower() in ('genesis', 'g'):
+        raise NotImplementedError
+
+    raise ValueError("Unknown code!")
