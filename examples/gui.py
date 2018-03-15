@@ -1,5 +1,5 @@
-from liso import main_gui
+from liso import gui
 
 
 if __name__ == "__main__":
-    main_gui()
+    gui()
