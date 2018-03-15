@@ -4,9 +4,9 @@ Variable class
 
 Author: Jun Zhu
 """
-from ..backend import config
+from ..config import Config
 
-INF = config['INF']
+INF = Config.INF
 
 
 class Variable(object):

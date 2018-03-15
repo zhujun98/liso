@@ -7,9 +7,9 @@ Author: Jun Zhu
 from abc import ABC
 from abc import abstractmethod
 
-from ..backend import config
+from ..config import Config
 
-INF = config['INF']
+INF = Config.INF
 
 
 class Constraint(ABC):

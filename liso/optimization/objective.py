@@ -4,9 +4,9 @@ Objective class.
 
 Author: Jun Zhu
 """
-from ..backend import config
+from ..config import Config
 
-INF = config['INF']
+INF = Config.INF
 
 
 class Objective(object):

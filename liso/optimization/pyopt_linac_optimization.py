@@ -32,9 +32,9 @@ from datetime import datetime
 
 from liso.optimization.linac_optimization import LinacOptimization
 from pyOpt import Optimization
-from liso.backend import config
+from ..config import Config
 
-INF = config['INF']
+INF = Config.INF
 
 
 class PyoptLinacOptimization(LinacOptimization):

@@ -5,13 +5,13 @@ from abc import abstractmethod
 from abc import ABC
 
 from ..data_processing import parse_line
-from ..backend import config
+from ..config import Config
 
 
-V_LIGHT = config['vLight']
-M_E = config['me']
-Q_E = config['qe']
-INF = config['INF']
+V_LIGHT = Config.vLight
+M_E = Config.me
+Q_E = Config.qe
+INF = Config.INF
 
 CONST_E = M_E*V_LIGHT**2/Q_E
 

@@ -12,12 +12,12 @@ get the very-close Twiss parameters even in extreme conditions.
 """
 import numpy as np
 
-from liso.backend import config
+from ..config import Config
 
-V_LIGHT = config['vLight']
-M_E = config['me']
-Q_E = config['qe']
-INF = config['INF']
+V_LIGHT = Config.vLight
+M_E = Config.me
+Q_E = Config.qe
+INF = Config.INF
 
 CONST_E = M_E*V_LIGHT**2/Q_E
 

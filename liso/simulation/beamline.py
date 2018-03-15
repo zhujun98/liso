@@ -10,15 +10,16 @@ from collections import OrderedDict
 
 import subprocess
 
-from ..backend import config
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
 from ..data_processing import analyze_beam, analyze_line
 
 from ..exceptions import *
+from ..config import Config
 
-INF = config['INF']
+
+INF = Config.INF
 
 
 class Beamline(ABC):
@@ -221,8 +222,8 @@ class AstraBeamline(Beamline):
 
     Inherit from Beamline class.
     """
-    exec_s = config['ASTRA']
-    exec_p = config['ASTRA_P']
+    exec_s = Config.ASTRA
+    exec_p = Config.ASTRA_P
 
     def __init__(self, *args, **kwargs):
         """Initialization."""
@@ -245,8 +246,8 @@ class ImpacttBeamline(Beamline):
 
     Inherit from Beamline class.
     """
-    exec_s = config['IMPACTT']
-    exec_p = config['IMPACTT_P']
+    exec_s = Config.IMPACTT
+    exec_p = Config.IMPACTT_P
 
     def __init__(self, *args, **kwargs):
         """Initialization."""

@@ -36,10 +36,10 @@ from .covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
-from ..backend import config
+from ..config import Config
 from ..exceptions import *
 
-INF = config['INF']
+INF = Config.INF
 
 
 class LinacOptimization(object):
