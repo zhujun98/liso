@@ -13,11 +13,8 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import parse_astra_line
-from ..data_processing import parse_impactt_line
-from .vis_utils import get_default_unit
-from .vis_utils import get_unit_label_and_scale
-from .vis_utils import get_label
+from ..data_processing import parse_line
+from .vis_utils import *
 
 LABEL_FONT_SIZE = 26
 TITLE_FONT_SIZE = 18
@@ -31,15 +28,17 @@ AX_MARGIN = 0.05
 
 class LinePlot(object):
     """Inherit from BeamEvolution object"""
-    def __init__(self, rootname, **args):
+    def __init__(self, code, rootname, **args):
         """Initialization.
 
+        :param code: string
+            Name of the code.
         :param rootname: string
             Root name (including path) of the files.
         """
         self.rootname = rootname
 
-        self.data = self._load_data()
+        self.data = parse_line(code, self.rootname)
         self._options = [name.lower() for name in self.data.columns.values]
 
     def save_plot(self, var1, var2=None, **kwargs):
@@ -148,43 +147,3 @@ class LinePlot(object):
     @abstractmethod
     def _load_data(self):
         raise NotImplemented
-
-
-def create_line_plot(code, *args, **kwargs):
-    """A LinePlot class factory.
-
-    :param code: string
-        Name of the code.
-
-    :return: A concrete LinePlot object.
-    """
-    class AstraLinePlot(LinePlot):
-        """Plot the parameter evolution along the ASTRA beamline.."""
-        def __init__(self, rootname, **kwargs):
-            """Initialization."""
-            super().__init__(rootname, **kwargs)
-
-        def _load_data(self):
-            """Read data from file."""
-            return parse_astra_line(self.rootname)
-
-    class ImpacttLinePlot(LinePlot):
-        """Plot the parameter evolution along the IMPACT-T beamline.."""
-        def __init__(self, rootname, **kwargs):
-            """Initialization."""
-            super().__init__(rootname, **kwargs)
-
-        def _load_data(self):
-            """Read data from file."""
-            return parse_impactt_line(self.rootname)
-
-    if code.lower() in ('astra', 'a'):
-        return AstraLinePlot(*args, **kwargs)
-    if code.lower() in ('impactt', 't'):
-        return ImpacttLinePlot(*args, **kwargs)
-    if code.lower() in ('impactz', 'z'):
-        raise NotImplementedError
-    if code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-
-    raise ValueError("Unknown code!")

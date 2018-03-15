@@ -4,10 +4,7 @@ Author: Jun Zhu
 from abc import abstractmethod
 from abc import ABC
 
-from ..data_processing import parse_astra_line
-from ..data_processing import parse_impactt_line
-from ..data_processing import parse_impactz_line
-from ..data_processing import parse_genesis_line
+from ..data_processing import parse_line
 from ..backend import config
 
 
@@ -62,25 +59,25 @@ class AstraLine(Line):
     """Line for Astra simulation."""
     def load_data(self):
         """Override the abstract method."""
-        return parse_astra_line(self.rootname)
+        return parse_line("a", self.rootname)
 
 
 class ImpacttLine(Line):
     """Line for Impact-T simulation."""
     def load_data(self):
         """Override the abstract method."""
-        return parse_impactt_line(self.rootname)
+        return parse_line("t", self.rootname)
 
 
 class ImpactzLine(Line):
     """Line for Impact-Z simulation."""
     def load_data(self):
         """Override the abstract method."""
-        return parse_impactz_line(self.rootname)
+        return parse_line("z", self.rootname)
 
 
 class GenesisLine(Line):
     """Line for Genesis simulation."""
     def load_data(self):
         """Override the abstract method."""
-        return parse_genesis_line(self.rootname)
+        return parse_line("g", self.rootname)
