@@ -15,10 +15,7 @@ import matplotlib.ticker as ticker
 
 from ..data_processing import parse_phasespace
 from ..data_processing import analyze_beam
-from .vis_utils import get_default_unit
-from .vis_utils import get_unit_label_and_scale
-from .vis_utils import get_label
-from .vis_utils import sample_data
+from .vis_utils import *
 
 
 LABEL_FONT_SIZE = 26
@@ -144,8 +141,8 @@ class PhaseSpacePlot(object):
         y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
 
         x_sample, y_sample, density_color, idx_sample = sample_data(
-            self._get_column(var_x),
-            self._get_column(var_y),
+            get_column_by_name(self.data, var_x),
+            get_column_by_name(self.data, var_y),
             bins=bins_2d,
             sigma=sigma_2d,
             sample=sample)
@@ -245,17 +242,3 @@ class PhaseSpacePlot(object):
             plt.show()
 
         plt.close()
-
-    def _get_column(self, name):
-        """Get the column data by name.
-
-        :param name: string
-            Name of the column data.
-        """
-        if name == 'p':
-            return np.sqrt(self.data['px']**2 + self.data['py']**2 + self.data['pz']**2)
-
-        if name in ('xp', 'yp'):
-            return self.data[name[1] + name[0]] / self.data['pz']
-
-        return self.data[name]

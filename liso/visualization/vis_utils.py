@@ -190,3 +190,21 @@ def get_unit_label_and_scale(unit):
         unit_label = "(" + unit_label + ")"
 
     return unit_label, scale
+
+
+def get_column_by_name(data, name):
+    """Get the column data by name.
+
+    :param name: string
+        Name of the column data.
+    """
+    if name == 'p':
+        return np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
+
+    if name == 'xp':
+        return data['px'] / data['pz']
+
+    if name == 'yp':
+        return data['py'] / data['pz']
+
+    return data[name]
