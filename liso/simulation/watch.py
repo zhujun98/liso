@@ -4,10 +4,7 @@ Author: Jun Zhu
 from abc import abstractmethod
 from abc import ABC
 
-from ..data_processing import parse_astra_phasespace
-from ..data_processing import parse_impactt_phasespace
-from ..data_processing import parse_impactz_phasespace
-from ..data_processing import parse_genesis_phasespace
+from ..data_processing import parse_phasespace
 from ..backend import config
 
 
@@ -122,7 +119,7 @@ class AstraWatch(Watch):
     """Watch for Astra simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data, charge = parse_astra_phasespace(self.pfile)
+        data, charge = parse_phasespace("a", self.pfile)
         return data, charge
 
 
@@ -130,7 +127,7 @@ class ImpacttWatch(Watch):
     """Watch for Impact-T simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_impactt_phasespace(self.pfile)
+        data = parse_phasespace("t", self.pfile)
         return data, None
 
 
@@ -138,7 +135,7 @@ class ImpactzWatch(Watch):
     """Watch for Impact-Z simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_impactz_phasespace(self.pfile)
+        data = parse_phasespace("z", self.pfile)
         return data, None
 
 
@@ -146,5 +143,5 @@ class GenesisWatch(Watch):
     """Watch for Genesis simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_genesis_phasespace(self.pfile)
+        data = parse_phasespace("g", self.pfile)
         return data, None

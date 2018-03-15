@@ -13,8 +13,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import parse_astra_phasespace
-from ..data_processing import parse_impactt_phasespace
+from ..data_processing import parse_phasespace
 from ..data_processing import analyze_beam
 from .vis_utils import get_default_unit
 from .vis_utils import get_unit_label_and_scale
@@ -34,20 +33,24 @@ AX_MARGIN = 0.05
 
 class PhaseSpacePlot(object):
     """Plot the beam phase-space."""
-    def __init__(self, pfile, *, charge=None, **kwargs):
+    def __init__(self, code, pfile, *, charge=None, **kwargs):
         """Initialization.
 
+        :param code: string
+            Name of the code.
         :param pfile: string
             Path name of the particle file.
         :param charge: float
             Bunch charge. Only used for ImpactT and ImpactZ.
         """
         self.pfile = pfile
-        self.charge = charge
-        # Even if the charge is given in the __init__ function of an
-        # class like AstraPhaseSpacePlot, self.charge will be override
-        # by the _load_data() method.
-        self.data = self._load_data()
+
+        self.data, self.charge = parse_phasespace(code, pfile)
+        if self.charge is None and charge is None:
+            raise ValueError("Bunch charge is required!")
+        else:
+            if self.charge is None:
+                self.charge = charge
 
         self.params = analyze_beam(self.data, self.charge, **kwargs)
         self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p']
@@ -256,43 +259,3 @@ class PhaseSpacePlot(object):
             return self.data[name[1] + name[0]] / self.data['pz']
 
         return self.data[name]
-
-
-def create_phasespace_plot(code, *args, **kwargs):
-    """A PhaseSpacePlot class factory.
-
-    :param code: string
-        Name of the code.
-
-    :return: A concrete PhaseSpacePlot object.
-    """
-    class AstraPhaseSpacePlot(PhaseSpacePlot):
-        """Plot phase-spaces from ASTRA simulations."""
-        def _load_data(self):
-            """Read data from file."""
-            data, self.charge = parse_astra_phasespace(self.pfile)
-            return data
-
-    class ImpacttPhaseSpacePlot(PhaseSpacePlot):
-        """Plot phase-spaces from IMPACT-T simulations."""
-        def __init__(self, *args, **kwargs):
-            """Initialization."""
-            super().__init__(*args, **kwargs)
-            if self.charge is None:
-                raise ValueError("Bunch charge is required for Impact-T simulation!")
-
-        def _load_data(self):
-            """Read data from file."""
-            data = parse_impactt_phasespace(self.pfile)
-            return data
-
-    if code.lower() in ('astra', 'a'):
-        return AstraPhaseSpacePlot(*args, **kwargs)
-    if code.lower() in ('impactt', 't'):
-        return ImpacttPhaseSpacePlot(*args, **kwargs)
-    if code.lower() in ('impactz', 'z'):
-        raise NotImplementedError
-    if code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-
-    raise ValueError("Unknown code!")

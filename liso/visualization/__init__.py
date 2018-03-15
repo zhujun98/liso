@@ -1,9 +1,9 @@
-from .phasespace_plot import create_phasespace_plot
+from .phasespace_plot import PhaseSpacePlot
 from .line_plot import create_line_plot
 from .main_gui import main_gui
 
 __all__ = [
-    'create_phasespace_plot',
+    'PhaseSpacePlot',
     'create_line_plot',
     'main_gui'
 ]
