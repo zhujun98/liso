@@ -127,7 +127,7 @@ class ImpacttWatch(Watch):
     """Watch for Impact-T simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_phasespace("t", self.pfile)
+        data, _ = parse_phasespace("t", self.pfile)
         return data, None
 
 
@@ -135,7 +135,7 @@ class ImpactzWatch(Watch):
     """Watch for Impact-Z simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_phasespace("z", self.pfile)
+        data, _ = parse_phasespace("z", self.pfile)
         return data, None
 
 
@@ -143,5 +143,5 @@ class GenesisWatch(Watch):
     """Watch for Genesis simulation."""
     def load_data(self):
         """Override the abstract method."""
-        data = parse_phasespace("g", self.pfile)
+        data, _ = parse_phasespace("g", self.pfile)
         return data, None

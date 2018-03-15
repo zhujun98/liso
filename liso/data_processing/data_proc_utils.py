@@ -271,6 +271,6 @@ def analyze_line(data, zlim):
     params = LineParameters()
     for key, value in params.__dict__.items():
         if isinstance(value, Stats):
-            value.update(data[key])
+            value.update(data[key.lower()])
 
     return params
