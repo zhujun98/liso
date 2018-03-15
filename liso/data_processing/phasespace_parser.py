@@ -27,35 +27,6 @@ Q_E = config['qe']
 CONST_E = M_E*V_LIGHT**2/Q_E
 
 
-def parse_phasespace(code, particle_file):
-    """Parse a particle file from different code.
-
-    :param code: string
-        Name of the code.
-    :param particle_file: string
-        Pathname of the particle file.
-
-    :return data: pandas.dataframe
-        Data for each particle.
-    :return charge: float / None
-        Charge (C) of the bunch.
-    """
-    if code.lower() in ("astra", "a"):
-        data, charge = parse_astra_phasespace(particle_file)
-    elif code.lower() in ('impactt', 't'):
-        data = parse_impactt_phasespace(particle_file)
-        charge = None
-    elif code.lower() in ('impactz', 'z'):
-        data = parse_impactz_phasespace(particle_file)
-        charge = None
-    elif code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-    else:
-        raise ValueError("Unknown code!")
-
-    return data, charge
-
-
 def parse_astra_phasespace(particle_file):
     """Parse the ASTRA particle file.
 
@@ -142,3 +113,32 @@ def parse_impactz_phasespace(particle_file):
 
 def parse_genesis_phasespace(particle_file):
     raise NotImplemented
+
+
+def parse_phasespace(code, particle_file):
+    """Parse a particle file from different code.
+
+    :param code: string
+        Name of the code.
+    :param particle_file: string
+        Pathname of the particle file.
+
+    :return data: pandas.dataframe
+        Data for each particle.
+    :return charge: float / None
+        Charge (C) of the bunch.
+    """
+    if code.lower() in ("astra", "a"):
+        data, charge = parse_astra_phasespace(particle_file)
+    elif code.lower() in ('impactt', 't'):
+        data = parse_impactt_phasespace(particle_file)
+        charge = None
+    elif code.lower() in ('impactz', 'z'):
+        data = parse_impactz_phasespace(particle_file)
+        charge = None
+    elif code.lower() in ('genesis', 'g'):
+        raise NotImplementedError
+    else:
+        raise ValueError("Unknown code!")
+
+    return data, charge
