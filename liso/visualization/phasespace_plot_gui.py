@@ -31,7 +31,7 @@ from ..data_processing import analyze_beam
 from .vis_utils import *
 
 
-WINDOW_WIDTH = 600
+WINDOW_WIDTH = 450
 WINDOW_HEIGHT = 450
 
 
@@ -130,6 +130,7 @@ class PhaseSpacePlotGUI(QMainWindow):
             charge = 0.0
 
         self.fname_label.setText(filename)
+        self.update_plot()
 
     def set_control_panel(self):
         """"""
@@ -149,19 +150,25 @@ class PhaseSpacePlotGUI(QMainWindow):
 
         self.cb_cloudplot = QCheckBox('Cloud plot', self)
 
-        gp1 = QGroupBox()
-        self.rb_markersize = QRadioButton('Marker size')
-        self.sl_markersize = QSlider(Qt.Horizontal)
-        self.sl_markersize.setTickPosition(QSlider.TicksBothSides)
-        self.sl_markersize.setMinimum(1)
-        self.sl_markersize.setMaximum(15)
-        self.sl_markersize.setTickInterval(1)
-        self.sl_markersize.setSingleStep(1)
-
+        # =============================================================
+        # A slider which adjusts the marker size and a radiobutton which
+        # controls the slider.
+        group_ms = QGroupBox(self.control_panel)
+        radiobutton_ms = QRadioButton('Marker size')
+        radiobutton_ms.setChecked(True)
+        radiobutton_ms.toggled.connect(self._on_radiobutton_ms_toggled)
+        self.slider_ms = QSlider(Qt.Horizontal)
+        self.slider_ms.setTickPosition(QSlider.TicksBothSides)
+        self.slider_ms.setMinimum(1)
+        self.slider_ms.setMaximum(15)
+        self.slider_ms.setTickInterval(1)
+        self.slider_ms.setSingleStep(1)
+        self.slider_ms.valueChanged.connect(self.update_plot)
         vbox = QVBoxLayout()
-        vbox.addWidget(self.rb_markersize)
-        vbox.addWidget(self.sl_markersize)
-        gp1.setLayout(vbox)
+        vbox.addWidget(radiobutton_ms)
+        vbox.addWidget(self.slider_ms)
+        group_ms.setLayout(vbox)
+        group_ms.setAlignment(Qt.AlignCenter)
 
         layout = QGridLayout()
         layout.addWidget(x_label, 0, 0, 1, 1)
@@ -169,8 +176,9 @@ class PhaseSpacePlotGUI(QMainWindow):
         layout.addWidget(y_label, 0, 1, 1, 1)
         layout.addWidget(self.ylist, 1, 1, 1, 1)
         layout.addWidget(self.cb_cloudplot, 2, 0, 1, 1)
-        layout.addWidget(gp1, 3, 0, 1, 2)
+        layout.addWidget(group_ms, 3, 0, 1, 2)
         layout.setRowStretch(4, 1)
+        # layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.control_panel.setLayout(layout)
 
     def update_plot(self):
@@ -184,10 +192,14 @@ class PhaseSpacePlotGUI(QMainWindow):
             x = get_column_by_name(self.data, var_x)
             y = get_column_by_name(self.data, var_y)
 
-            self.psplot.plot(x, y, pen=None, symbol='o', clear=True)
+            self.psplot.plot(x, y,
+                             pen=None,
+                             symbol='o',
+                             symbolSize=self.slider_ms.value(),
+                             clear=True)
 
-            self.psplot.setLabel('left', var_x)
-            self.psplot.setLabel('bottom', var_y)
+            self.psplot.setLabel('left', var_y)
+            self.psplot.setLabel('bottom', var_x)
 
     def _add_actions(self, target, actions):
         """"""
@@ -196,3 +208,11 @@ class PhaseSpacePlotGUI(QMainWindow):
                 target.addSeparator()
             else:
                 target.addAction(action)
+
+    def _on_radiobutton_ms_toggled(self):
+        """"""
+        if self.slider_ms.isEnabled():
+            self.slider_ms.setDisabled(True)
+        else:
+            self.slider_ms.setEnabled(True)
+
