@@ -136,15 +136,15 @@ class PhaseSpacePlotGUI(QMainWindow):
         """"""
         self.control_panel.setFixedWidth(150)
 
-        phasespace_options = ["x", "xp", "y", "yp", "t", "p"]
+        phasespace_options = ["x", "xp", "y", "yp", "z", "t", "p", "delta"]
 
         x_label = QLabel('x-axis', self)
-        self.xlist.setFixedSize(60, 150)
+        self.xlist.setFixedSize(60, 180)
         self.xlist.addItems(phasespace_options)
         self.xlist.itemClicked.connect(self.update_plot)
 
         y_label = QLabel('y-axis', self)
-        self.ylist.setFixedSize(60, 150)
+        self.ylist.setFixedSize(60, 180)
         self.ylist.addItems(phasespace_options)
         self.ylist.itemClicked.connect(self.update_plot)
 

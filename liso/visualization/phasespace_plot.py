@@ -50,7 +50,7 @@ class PhaseSpacePlot(object):
                 self.charge = charge
 
         self.params = analyze_beam(self.data, self.charge, **kwargs)
-        self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p']
+        self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p', 'delta']
 
     @abstractmethod
     def _load_data(self):

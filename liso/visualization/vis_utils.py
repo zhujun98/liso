@@ -74,6 +74,8 @@ def get_label(name):
         return r"$\gamma$"
     elif name == 'sde':
         return r"$\sigma_E$"
+    elif name == 'delta':
+        return r"$\delta$ (%)"
     elif name == 'sx':
         return "$\sigma_x$"
     elif name == 'sy':
@@ -206,5 +208,10 @@ def get_column_by_name(data, name):
 
     if name == 'yp':
         return data['py'] / data['pz']
+
+    if name == 'delta':
+        p = np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
+        p_ave = p.mean()
+        return 100. * (p - p_ave) / p
 
     return data[name]
