@@ -2,32 +2,24 @@
 """
 Author: Jun Zhu
 """
-import numpy as np
-
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QDesktopWidget
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QListWidget
-from PyQt5.QtWidgets import QCheckBox
 from PyQt5.QtWidgets import QGroupBox
 from PyQt5.QtWidgets import QRadioButton
 from PyQt5.QtWidgets import QSlider
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import qApp
-from PyQt5.QtGui import QIcon
 
 from .. import pyqtgraph as pg
 
 from ..data_processing import parse_phasespace
-from ..data_processing import analyze_beam
 from .vis_utils import *
 
 
@@ -43,17 +35,27 @@ class PhaseSpacePlotGUI(QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle('Phase Space Plot')
 
-        self.file_menu = self.menuBar().addMenu("&File")
+        # Maximum number of particles to show.
+        self._max_display_particle = 10000
+
+        self.file_menu = self.menuBar().addMenu("File")
         self.set_file_menu()
+        self.style_menu = self.menuBar().addMenu("Style")
+        self.set_style_menu()
+        self.setting_menu = self.menuBar().addMenu("Settings")
+        self.set_setting_menu()
 
         self.code = "a"
         self.data = None
+
+        self.slider_ms = None
+        self.slider_sample = None
 
         self.main_frame = QWidget()
 
         self.fname_label = QLabel()
         self.view = pg.GraphicsLayoutWidget()
-        self.psplot = self.view.addPlot()
+        self.psplot = self.view.addPlot(title=" ")  # title is a placeholder
 
         self.control_panel = QWidget()
         self.xlist = QListWidget(self)
@@ -72,7 +74,7 @@ class PhaseSpacePlotGUI(QMainWindow):
         self.move(x0, y0)
 
     def set_file_menu(self):
-        """Create menu bar."""
+        """Set file menu."""
         load_astra_file = QAction("Open ASTRA File", self)
         load_astra_file.triggered.connect(lambda: self.open_file("a"))
         load_astra_file.setToolTip("Open particle file")
@@ -99,6 +101,13 @@ class PhaseSpacePlotGUI(QMainWindow):
                                            load_genesis_file,
                                            quit_action))
 
+    def set_setting_menu(self):
+        """Set settings menu."""
+        pass
+
+    def set_style_menu(self):
+        pass
+
     def set_main_frame(self):
         """"""
         self.view.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -113,15 +122,7 @@ class PhaseSpacePlotGUI(QMainWindow):
 
     def open_file(self, code):
         """Initialize a PhaseSpacePlot object."""
-        # filename, _ = QFileDialog.getOpenFileName(self, 'Open file', '/home')
-
-        # For test
-        if code == "a":
-            filename = "/home/jun/Projects/LISO/examples/astra_basic/injector.0400.001"
-        elif code == "t":
-            filename = "/home/jun/Projects/LISO/examples/impactt_basic/fort.107"
-        else:
-            return
+        filename, _ = QFileDialog.getOpenFileName(self, 'Open file', '/home')
 
         if not filename:
             return
@@ -129,38 +130,43 @@ class PhaseSpacePlotGUI(QMainWindow):
         if charge is None:
             charge = 0.0
 
+        # update the slider properties
+        self._set_sample_slider(min(self.data.shape[0], self._max_display_particle))
+        QApplication.processEvents()
+
         self.fname_label.setText(filename)
         self.update_plot()
 
     def set_control_panel(self):
         """"""
-        self.control_panel.setFixedWidth(150)
+        self.control_panel.setFixedWidth(180)
 
+        # =============================================================
+        # Two lists which allows to select the variables for x- and y-
+        # axes respectively.
         phasespace_options = ["x", "xp", "y", "yp", "z", "t", "p", "delta"]
 
         x_label = QLabel('x-axis', self)
-        self.xlist.setFixedSize(60, 180)
+        self.xlist.setFixedSize(80, 180)
         self.xlist.addItems(phasespace_options)
         self.xlist.itemClicked.connect(self.update_plot)
 
         y_label = QLabel('y-axis', self)
-        self.ylist.setFixedSize(60, 180)
+        self.ylist.setFixedSize(80, 180)
         self.ylist.addItems(phasespace_options)
         self.ylist.itemClicked.connect(self.update_plot)
 
-        self.cb_cloudplot = QCheckBox('Cloud plot', self)
-
         # =============================================================
         # A slider which adjusts the marker size and a radiobutton which
-        # controls the slider.
+        # toggles the slider.
         group_ms = QGroupBox(self.control_panel)
         radiobutton_ms = QRadioButton('Marker size')
         radiobutton_ms.setChecked(True)
-        radiobutton_ms.toggled.connect(self._on_radiobutton_ms_toggled)
+        radiobutton_ms.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_ms))
         self.slider_ms = QSlider(Qt.Horizontal)
-        self.slider_ms.setTickPosition(QSlider.TicksBothSides)
-        self.slider_ms.setMinimum(1)
-        self.slider_ms.setMaximum(15)
+        self.slider_ms.setTickPosition(QSlider.TicksBelow)
+        self.slider_ms.setRange(1, 15)
+        self.slider_ms.setValue(5)
         self.slider_ms.setTickInterval(1)
         self.slider_ms.setSingleStep(1)
         self.slider_ms.valueChanged.connect(self.update_plot)
@@ -168,17 +174,32 @@ class PhaseSpacePlotGUI(QMainWindow):
         vbox.addWidget(radiobutton_ms)
         vbox.addWidget(self.slider_ms)
         group_ms.setLayout(vbox)
-        group_ms.setAlignment(Qt.AlignCenter)
+
+        # =============================================================
+        # A slider which adjusts the No. of particle shown on the screen
+        # and a radiobutton which toggles the slider.
+        group_sample = QGroupBox(self.control_panel)
+        radiobutton_sample = QRadioButton('No. of particles')
+        radiobutton_sample.setChecked(True)
+        radiobutton_sample.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_sample))
+        self.slider_sample = QSlider(Qt.Horizontal)
+        self.slider_sample.setTickPosition(QSlider.TicksBelow)
+        self._set_sample_slider(self._max_display_particle)
+        self.slider_sample.valueChanged.connect(self.update_plot)
+        vbox = QVBoxLayout()
+        vbox.addWidget(radiobutton_sample)
+        vbox.addWidget(self.slider_sample)
+        group_sample.setLayout(vbox)
 
         layout = QGridLayout()
         layout.addWidget(x_label, 0, 0, 1, 1)
         layout.addWidget(self.xlist, 1, 0, 1, 1)
         layout.addWidget(y_label, 0, 1, 1, 1)
         layout.addWidget(self.ylist, 1, 1, 1, 1)
-        layout.addWidget(self.cb_cloudplot, 2, 0, 1, 1)
-        layout.addWidget(group_ms, 3, 0, 1, 2)
+        layout.addWidget(group_ms, 2, 0, 1, 2)
+        layout.addWidget(group_sample, 3, 0, 1, 2)
         layout.setRowStretch(4, 1)
-        # layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
         self.control_panel.setLayout(layout)
 
     def update_plot(self):
@@ -191,7 +212,7 @@ class PhaseSpacePlotGUI(QMainWindow):
             var_y = self.ylist.currentItem().text()
             x = get_column_by_name(self.data, var_x)
             y = get_column_by_name(self.data, var_y)
-
+            x, y = fast_sample_data(x, y, n=self.slider_sample.value())
             self.psplot.plot(x, y,
                              pen=None,
                              symbol='o',
@@ -209,10 +230,29 @@ class PhaseSpacePlotGUI(QMainWindow):
             else:
                 target.addAction(action)
 
-    def _on_radiobutton_ms_toggled(self):
-        """"""
-        if self.slider_ms.isEnabled():
-            self.slider_ms.setDisabled(True)
-        else:
-            self.slider_ms.setEnabled(True)
+    @staticmethod
+    def _on_radiobutton_toggled(widget):
+        """Toggle a Widget with a radio button.
 
+        :param widget: QWidget object
+            Target widget.
+        """
+        if widget.isEnabled():
+            widget.setDisabled(True)
+        else:
+            widget.setEnabled(True)
+
+    def _set_sample_slider(self, v_max, *, tick_intervals=10):
+        """Set properties of a QSlider object.
+
+        Those properties are allowed to change dynamically.
+
+        :param v_max: int
+            Maximum value.
+        :param tick_intervals:
+            Number of tick intervals.
+        """
+        self.slider_sample.setRange(0, v_max)
+        self.slider_sample.setValue(v_max)
+        self.slider_sample.setTickInterval(round(v_max/tick_intervals))
+        self.slider_sample.setSingleStep(round(v_max/tick_intervals))

@@ -80,7 +80,7 @@ class PhaseSpacePlot(object):
               alpha=1.0,
               bins_2d=500,
               sigma_2d=5,
-              sample=20000,
+              samples=20000,
               save_image=False,
               filename='',
               show_parameters=True,
@@ -115,9 +115,8 @@ class PhaseSpacePlot(object):
             No. of bins used in numpy.histogram2d.
         :param sigma_2d: int/float
             Standard deviation of Gaussian kernel of the Gaussian filter.
-        :param sample: non-negative int/float
-            If sample < 1.0, sample by fraction else sample by count
-            (round to integer).
+        :param samples: int
+            No. of data to be sampled.
         :param save_image: bool
             Save image to file. Default = False.
         :param filename: string
@@ -140,13 +139,6 @@ class PhaseSpacePlot(object):
         x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
         y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
 
-        x_sample, y_sample, density_color, idx_sample = sample_data(
-            get_column_by_name(self.data, var_x),
-            get_column_by_name(self.data, var_y),
-            bins=bins_2d,
-            sigma=sigma_2d,
-            sample=sample)
-
         fig = plt.figure(figsize=(8, 6), tight_layout=True)
         ax = fig.add_subplot(111)
 
@@ -166,6 +158,13 @@ class PhaseSpacePlot(object):
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
         if cloud_plot is True:
+            x_sample, y_sample, density_color = sample_data(
+                get_column_by_name(self.data, var_x),
+                get_column_by_name(self.data, var_y),
+                n=samples,
+                bins=bins_2d,
+                sigma=sigma_2d)
+
             cb = ax.scatter(x_sample*x_scale, y_sample*y_scale, c=density_color,
                             edgecolor='', s=ms, alpha=alpha, cmap='jet')
 
@@ -194,6 +193,9 @@ class PhaseSpacePlot(object):
             cbar.set_ticks(np.arange(0, 1.01, 0.2))
             cbar.ax.tick_params(labelsize=14)
         else:
+            x_sample, y_sample = fast_sample_data(get_column_by_name(self.data, var_x),
+                                                  get_column_by_name(self.data, var_y),
+                                                  n=samples)
             ax.scatter(x_sample * x_scale, y_sample * y_scale,
                        alpha=alpha, c=mc, edgecolor='', s=ms)
 

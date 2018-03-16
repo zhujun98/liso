@@ -11,20 +11,41 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
 
-def sample_data(x, y, *, bins=None, sigma=None, sample=20000):
+def fast_sample_data(x, y, n=1):
+    """Sample a fraction of data from x and y.
+
+    :param x: Pandas.Series
+        Data series.
+    :param y: Pandas.Series
+        Data series.
+    :param n: int
+        No. of data to be sampled.
+
+    :return: a tuple (x_sample, y_sample) where x_sample and y_sample
+             are both numpy.array
+    """
+    if n >= x.size:
+        return x, y
+
+    seed = random.randint(0, 1000)
+    fraction = n / x.size
+    return x.sample(frac=fraction, random_state=seed).values, \
+           y.sample(frac=fraction, random_state=seed).values
+
+
+def sample_data(x, y, *, n=20000, bins=None, sigma=None):
     """Sample the data and calculate the density map.
 
     :param x: pandas.Series
         x data.
     :param y: pandas.Series
         y data.
+    :param n: int
+        No. of data points to be sampled.
     :param bins: int or (int, int)
         No. of bins used in numpy.histogram2d().
     :param sigma: numeric
         Standard deviation of Gaussian kernel of the Gaussian filter.
-    :param sample: scalar >=0
-        If sample < 1.0, sample by fraction;
-        else, sample by count (round to integer).
 
     :returns x_sample: pandas.Series
         sampled x data.
@@ -33,33 +54,19 @@ def sample_data(x, y, *, bins=None, sigma=None, sample=20000):
     :returns z: numpy.ndarray.
         Normalized density at each sample point.
     """
-    if int(sample) > 0:
-        n = int(sample)
-    elif sample > 0:
-        n = int(sample * len(x))
-    else:
-        raise ValueError("Negative sample value!")
-
     H, x_edges, y_edges = np.histogram2d(x, y, bins=bins)
     x_center = (x_edges[1:] + x_edges[0:-1]) / 2
     y_center = (y_edges[1:] + y_edges[0:-1]) / 2
     H_blurred = gaussian_filter(H, sigma=sigma)
 
-    if len(x) > n:
-        i_sample = random.sample(list(range(len(x))), n)
-        x_sample = x.iloc[i_sample]
-        y_sample = y.iloc[i_sample]
-    else:
-        i_sample = np.array(list(range(len(x))))
-        x_sample = x
-        y_sample = y
+    x_sample, y_sample = fast_sample_data(x, y, n)
 
     posx = np.digitize(x_sample, x_center)
     posy = np.digitize(y_sample, y_center)
     z = H_blurred[posx - 1, posy - 1]
-    z = z / z.max()
+    z /= z.max()
 
-    return x_sample, y_sample, z, i_sample
+    return x_sample, y_sample, z
 
 
 def get_label(name):
