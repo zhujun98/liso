@@ -209,6 +209,10 @@ def get_column_by_name(data, name):
     if name == 'yp':
         return data['py'] / data['pz']
 
+    if name == 'z':
+        z_ave = data['z'].mean()
+        return data['z'] - z_ave
+
     if name == 'delta':
         p = np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
         p_ave = p.mean()
