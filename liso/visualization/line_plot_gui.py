@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QSlider
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QLabel
+from PyQt5.QtGui import QPen, QBrush, QColor
 
 import pyqtgraph as pg
 
@@ -48,8 +49,7 @@ class LinePlotGUI(QMainWindow):
         self.code = "a"
         self.data = None
 
-        self.slider_ms = None
-        self.slider_sample = None
+        self.slider_lw = None
 
         self.main_frame = QWidget()
 
@@ -141,34 +141,34 @@ class LinePlotGUI(QMainWindow):
         var_options = ['gamma', 'Sx', 'Sy', 'Sz', 'St',
                        'betax', 'betay', 'alphax', 'alphay',
                        'emitx', 'emity', 'emitz',
-                       'sde', 'emitx_tr', 'emity_tr']
+                       'SdE', 'emitx_tr', 'emity_tr']
 
         self.var_list.setFixedSize(80, 200)
         self.var_list.addItems(var_options)
         self.var_list.itemClicked.connect(self.update_plot)
 
         # =============================================================
-        # A slider which adjusts the marker size and a radiobutton which
+        # A slider which adjusts the line width and a radiobutton which
         # toggles the slider.
-        group_ms = QGroupBox(self.control_panel)
-        radiobutton_ms = QRadioButton('Line width')
-        radiobutton_ms.setChecked(True)
-        radiobutton_ms.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_ms))
-        self.slider_ms = QSlider(Qt.Horizontal)
-        self.slider_ms.setTickPosition(QSlider.TicksBelow)
-        self.slider_ms.setRange(1, 5)
-        self.slider_ms.setValue(2)
-        self.slider_ms.setTickInterval(1)
-        self.slider_ms.setSingleStep(1)
-        self.slider_ms.valueChanged.connect(self.update_plot)
+        group_lw = QGroupBox(self.control_panel)
+        radiobutton_lw = QRadioButton('Line width')
+        radiobutton_lw.setChecked(True)
+        radiobutton_lw.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_lw))
+        self.slider_lw = QSlider(Qt.Horizontal)
+        self.slider_lw.setTickPosition(QSlider.TicksBelow)
+        self.slider_lw.setRange(1, 5)
+        self.slider_lw.setValue(2)
+        self.slider_lw.setTickInterval(1)
+        self.slider_lw.setSingleStep(1)
+        self.slider_lw.valueChanged.connect(self.update_plot)
         vbox = QVBoxLayout()
-        vbox.addWidget(radiobutton_ms)
-        vbox.addWidget(self.slider_ms)
-        group_ms.setLayout(vbox)
+        vbox.addWidget(radiobutton_lw)
+        vbox.addWidget(self.slider_lw)
+        group_lw.setLayout(vbox)
 
         layout = QGridLayout()
         layout.addWidget(self.var_list, 0, 0, 1, 1)
-        layout.addWidget(group_ms, 1, 0, 1, 1)
+        layout.addWidget(group_lw, 1, 0, 1, 1)
         layout.setRowStretch(2, 1)
 
         self.control_panel.setLayout(layout)
@@ -190,7 +190,9 @@ class LinePlotGUI(QMainWindow):
             x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
             y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
 
-            self.psplot.plot(x*x_scale, y*y_scale, pen='r', clear=True)
+            width = self.slider_lw.value()
+            self.psplot.plot(x*x_scale, y*y_scale, clear=True,
+                             pen=pg.mkPen('y', width=width, style=Qt.SolidLine))
 
             self.psplot.setLabel('left', get_html_label(var_y) + " " + y_unit_label)
             self.psplot.setLabel('bottom', get_html_label(var_x) + " " + x_unit_label)
