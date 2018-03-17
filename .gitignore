@@ -1,6 +1,7 @@
 build
 dist
 .cache
+__pycache__
 .idea
 *.pyc
 *.egg-info

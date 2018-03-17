@@ -23,6 +23,9 @@ Python3 >= 3.5
 ####External optimizers:
 - [pyOpt](http://www.pyopt.org/) > 1.2.0 (optional)
 
+####Visualization GUI:
+- [pyqtgraph](http://www.pyqtgraph.org/)
+
 ## Installation
 
 - Download and install LinacOpt
