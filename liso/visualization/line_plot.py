@@ -93,9 +93,9 @@ class LinePlot(object):
         if var1 not in self._options or (var2 is not None and var2 not in self._options):
             raise ValueError("Valid options are: {}".format(self._options))
 
-        x_unit = get_default_unit('z') if x_unit is None else x_unit.lower()
+        x_unit = get_default_unit('z') if x_unit is None else x_unit
         # var2 should have the same y_unit
-        y_unit = get_default_unit(var1) if y_unit is None else y_unit.lower()
+        y_unit = get_default_unit(var1) if y_unit is None else y_unit
 
         x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
         y_unit_label, y_scale = get_unit_label_and_scale(y_unit)

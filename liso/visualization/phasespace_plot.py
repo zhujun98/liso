@@ -133,8 +133,8 @@ class PhaseSpacePlot(object):
             raise ValueError("Valid options are: {}".format(self._options))
 
         # Get the units for x- and y- axes
-        x_unit = get_default_unit(var_x) if x_unit is None else x_unit.lower()
-        y_unit = get_default_unit(var_y) if y_unit is None else y_unit.lower()
+        x_unit = get_default_unit(var_x) if x_unit is None else x_unit
+        y_unit = get_default_unit(var_y) if y_unit is None else y_unit
 
         x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
         y_unit_label, y_scale = get_unit_label_and_scale(y_unit)

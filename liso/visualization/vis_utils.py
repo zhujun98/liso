@@ -80,6 +80,8 @@ def get_label(name):
 
     :return: The label of the variable.
     """
+    name = name.lower()
+
     if name == 'gamma':
         return r"$\gamma$"
     elif name == 'sde':
@@ -126,6 +128,8 @@ def get_html_label(name):
 
     :return: The label of the variable.
     """
+    name = name.lower()
+
     if name == 'gamma':
         return "<span>&gamma;</span>"
     elif name == 'sde':
@@ -172,6 +176,8 @@ def get_default_unit(name):
     :param name: string
         Variable name in lower case.
     """
+    name = name.lower()
+
     if name == 'x' or name == 'y':
         return 'mm'
     elif name == 'z':
@@ -211,22 +217,23 @@ def get_unit_label_and_scale(unit):
     :return scale: int/float
         Scaling factor of the unit
     """
-    unit_label = unit  # default value
+    unit = unit.lower()
+
     if unit == 'gev':
         scale = 1.0e-9
-        unit_label = 'GeV'
+        unit = 'GeV'
     elif unit == 'mev':
         scale = 1.0e-6
-        unit_label = 'MeV'
+        unit = 'MeV'
     elif unit == 'kev':
         scale = 1.0e-3
-        unit_label = 'KeV'
+        unit = 'KeV'
     elif unit == 'ka':
         scale = 1.0e-3
-        unit_label = 'kA'
+        unit = 'kA'
     elif unit == 'a':
         scale = 1.0
-        unit_label = 'A'
+        unit = 'A'
     elif unit == '' or unit in ['m', 'rad', 's', 'mc']:
         scale = 1.0
     elif unit in ['mm', 'mrad', 'ms']:
@@ -234,11 +241,11 @@ def get_unit_label_and_scale(unit):
     elif unit in ['um', 'urad', 'us']:
         scale = 1.0e6
         if unit == 'um':
-            unit_label = '$\mu$m'
+            unit = '$\mu$m'
         elif unit == 'urad':
-            unit_label = '$\mu$rad'
+            unit = '$\mu$rad'
         elif unit == 'us':
-            unit_label = '$\mu$s'
+            unit = '$\mu$s'
     elif unit in ['nm', 'nrad', 'ns']:
         scale = 1.0e9
     elif unit == 'ps':
@@ -248,10 +255,10 @@ def get_unit_label_and_scale(unit):
     else:
         raise ValueError("\nUnknown unit!")
 
-    if unit_label:
-        unit_label = "(" + unit_label + ")"
+    if unit:
+        unit = "(" + unit + ")"
 
-    return unit_label, scale
+    return unit, scale
 
 
 def get_phasespace_column_by_name(data, name):
@@ -262,6 +269,8 @@ def get_phasespace_column_by_name(data, name):
     :param name: string
         Name of the column data.
     """
+    name = name.lower()
+
     if name == 'p':
         return np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
 
@@ -289,6 +298,8 @@ def get_line_column_by_name(data, name):
     :param name: string
         Name of the column data.
     """
+    name = name.lower()
+
     if name == 'st':
         return data['sz'] / V_LIGHT
 
