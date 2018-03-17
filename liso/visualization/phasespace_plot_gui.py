@@ -28,7 +28,7 @@ WINDOW_HEIGHT = 450
 
 
 class PhaseSpacePlotGUI(QMainWindow):
-    """"""
+    """GUI for phasespace plot."""
     def __init__(self, parent=None):
         """Initialization."""
         super().__init__(parent=parent)
@@ -48,21 +48,22 @@ class PhaseSpacePlotGUI(QMainWindow):
         self.code = "a"
         self.data = None
 
+        self.main_frame = QWidget()
+        self.view = QWidget(self.main_frame)
+        self.control_panel = QWidget(self.main_frame)
+        self.set_main_frame()
+
+        # Set the graph window
+        self.fname_label = None
+        self.psplot = None
+        self.set_view()
+
+        # Set the control panel
+        self.xlist = None
+        self.ylist = None
         self.slider_ms = None
         self.slider_sample = None
-
-        self.main_frame = QWidget()
-
-        self.fname_label = QLabel()
-        self.view = pg.GraphicsLayoutWidget()
-        self.psplot = self.view.addPlot(title=" ")  # title is a placeholder
-
-        self.control_panel = QWidget()
-        self.xlist = QListWidget(self)
-        self.ylist = QListWidget(self)
         self.set_control_panel()
-
-        self.set_main_frame()
 
         self.show()
 
@@ -108,18 +109,6 @@ class PhaseSpacePlotGUI(QMainWindow):
     def set_style_menu(self):
         pass
 
-    def set_main_frame(self):
-        """"""
-        self.view.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        layout = QGridLayout()
-
-        layout.addWidget(self.fname_label, 0, 0, 1, 1)
-        layout.addWidget(self.view, 1, 0, 1, 1)
-        layout.addWidget(self.control_panel, 0, 1, 2, 1)
-
-        self.main_frame.setLayout(layout)
-        self.setCentralWidget(self.main_frame)
-
     def open_file(self, code):
         """Initialize a PhaseSpacePlot object."""
         filename, _ = QFileDialog.getOpenFileName(self, 'Open file', '/home')
@@ -137,6 +126,31 @@ class PhaseSpacePlotGUI(QMainWindow):
         self.fname_label.setText(filename)
         self.update_plot()
 
+    def set_main_frame(self):
+        """Set the layout of the main window."""
+        layout = QHBoxLayout()
+        layout.addWidget(self.view)
+        layout.addWidget(self.control_panel)
+
+        self.main_frame.setLayout(layout)
+        self.setCentralWidget(self.main_frame)
+
+    def set_view(self):
+        """"""
+        # QLabel to show the current filename
+        self.fname_label = QLabel(self.view)
+
+        # pyqtgraph.GraphicsLayoutWidget to show the plot
+        graph = pg.GraphicsLayoutWidget(self.view)
+        graph.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.psplot = graph.addPlot(title=" ")  # title is a placeholder
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.fname_label)
+        layout.addWidget(graph)
+
+        self.view.setLayout(layout)
+
     def set_control_panel(self):
         """"""
         self.control_panel.setFixedWidth(180)
@@ -144,32 +158,45 @@ class PhaseSpacePlotGUI(QMainWindow):
         # =============================================================
         # Two lists which allows to select the variables for x- and y-
         # axes respectively.
-        phasespace_options = ["x", "xp", "y", "yp", "z", "t", "p", "delta"]
+        phasespace_options = ["x", "xp", "y", "yp", "dz", "t", "p", "delta"]
 
-        x_label = QLabel('x-axis', self)
-        self.xlist.setFixedSize(80, 180)
+        group_lst = QGroupBox(self.control_panel)
+        x_label = QLabel('x-axis', group_lst)
+        self.xlist = QListWidget(group_lst)
+        self.xlist.setFixedSize(60, 180)
         self.xlist.addItems(phasespace_options)
         self.xlist.itemClicked.connect(self.update_plot)
 
-        y_label = QLabel('y-axis', self)
-        self.ylist.setFixedSize(80, 180)
+        y_label = QLabel('y-axis', group_lst)
+        self.ylist = QListWidget(group_lst)
+        self.ylist.setFixedSize(60, 180)
         self.ylist.addItems(phasespace_options)
         self.ylist.itemClicked.connect(self.update_plot)
+
+        layout = QGridLayout()
+        layout.addWidget(x_label, 0, 0, 1, 1)
+        layout.addWidget(self.xlist, 1, 0, 1, 1)
+        layout.addWidget(y_label, 0, 1, 1, 1)
+        layout.addWidget(self.ylist, 1, 1, 1, 1)
+        group_lst.setLayout(layout)
 
         # =============================================================
         # A slider which adjusts the marker size and a radiobutton which
         # toggles the slider.
         group_ms = QGroupBox(self.control_panel)
-        radiobutton_ms = QRadioButton('Marker size')
+
+        radiobutton_ms = QRadioButton('Marker size', group_ms)
         radiobutton_ms.setChecked(True)
         radiobutton_ms.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_ms))
-        self.slider_ms = QSlider(Qt.Horizontal)
+
+        self.slider_ms = QSlider(Qt.Horizontal, group_ms)
         self.slider_ms.setTickPosition(QSlider.TicksBelow)
         self.slider_ms.setRange(1, 15)
         self.slider_ms.setValue(5)
         self.slider_ms.setTickInterval(1)
         self.slider_ms.setSingleStep(1)
         self.slider_ms.valueChanged.connect(self.update_plot)
+
         vbox = QVBoxLayout()
         vbox.addWidget(radiobutton_ms)
         vbox.addWidget(self.slider_ms)
@@ -179,26 +206,26 @@ class PhaseSpacePlotGUI(QMainWindow):
         # A slider which adjusts the No. of particle shown on the screen
         # and a radiobutton which toggles the slider.
         group_sample = QGroupBox(self.control_panel)
-        radiobutton_sample = QRadioButton('No. of particles')
+
+        radiobutton_sample = QRadioButton('No. of particles', group_sample)
         radiobutton_sample.setChecked(True)
         radiobutton_sample.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_sample))
-        self.slider_sample = QSlider(Qt.Horizontal)
+
+        self.slider_sample = QSlider(Qt.Horizontal, group_sample)
         self.slider_sample.setTickPosition(QSlider.TicksBelow)
         self._set_sample_slider(self._max_display_particle)
         self.slider_sample.valueChanged.connect(self.update_plot)
+
         vbox = QVBoxLayout()
         vbox.addWidget(radiobutton_sample)
         vbox.addWidget(self.slider_sample)
         group_sample.setLayout(vbox)
 
-        layout = QGridLayout()
-        layout.addWidget(x_label, 0, 0, 1, 1)
-        layout.addWidget(self.xlist, 1, 0, 1, 1)
-        layout.addWidget(y_label, 0, 1, 1, 1)
-        layout.addWidget(self.ylist, 1, 1, 1, 1)
-        layout.addWidget(group_ms, 2, 0, 1, 2)
-        layout.addWidget(group_sample, 3, 0, 1, 2)
-        layout.setRowStretch(4, 1)
+        layout = QVBoxLayout()
+        layout.addWidget(group_lst)
+        layout.addWidget(group_ms)
+        layout.addWidget(group_sample)
+        layout.addStretch(1)
 
         self.control_panel.setLayout(layout)
 

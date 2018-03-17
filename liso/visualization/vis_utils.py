@@ -178,7 +178,7 @@ def get_default_unit(name):
     """
     name = name.lower()
 
-    if name == 'x' or name == 'y':
+    if name == 'x' or name == 'y' or name == 'dz':
         return 'mm'
     elif name == 'z':
         return 'm'
