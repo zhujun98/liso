@@ -10,6 +10,9 @@ import re
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
+from ..config import Config
+V_LIGHT = Config.vLight
+
 
 def fast_sample_data(x, y, n=1):
     """Sample a fraction of data from x and y.
@@ -89,6 +92,8 @@ def get_label(name):
         return "$\sigma_y$"
     elif name == 'sz':
         return "$\sigma_z$"
+    elif name == 'st':
+        return "$\sigma_t$"
     elif name == 'betax':
         return r"$\beta_x$"
     elif name == 'betay':
@@ -111,6 +116,54 @@ def get_label(name):
         return r"$y^\prime$"
     else:
         return r"${}$".format(name)
+
+
+def get_html_label(name):
+    """Get the label for a given variable.
+
+    :param name: string
+        Variable name in lower case.
+
+    :return: The label of the variable.
+    """
+    if name == 'gamma':
+        return "<span>&gamma;</span>"
+    elif name == 'sde':
+        return "<span>&sigma;<sub>&delta;</sub></span>"
+    elif name == 'delta':
+        return "<span>&delta; (%)</span>"
+    elif name == 'sx':
+        return "<span>&sigma;<sub>x</sub></span>"
+    elif name == 'sy':
+        return "<span>&sigma;<sub>y</sub></span>"
+    elif name == 'sz':
+        return "<span>&sigma;<sub>z</sub></span>"
+    elif name == 'st':
+        return "<span>&sigma;<sub>t</sub></span>"
+    elif name == 'betax':
+        return "<span>&beta;<sub>x</sub></span>"
+    elif name == 'betay':
+        return "<span>&beta;<sub>y</sub></span>"
+    elif name == 'alphax':
+        return "<span>&alpha;<sub>x</sub></span>"
+    elif name == 'alphay':
+        return "<span>&alpha;<sub>y</sub></span>"
+    elif name == 'emitx':
+        return "<span>&epsilon;<sub>x</sub></span>"
+    elif name == 'emity':
+        return "<span>&epsilon;<sub>y</sub></span>"
+    elif name == 'emitz':
+        return "<span>&epsilon;<sub>z</sub></span>"
+    elif name == 'emitx_tr':
+        return "<span>&epsilon;<sub>x</sub></span>"
+    elif name == 'emity_tr':
+        return "<span>&epsilon;<sub>y</sub></span>"
+    elif name == 'xp':
+        return "<span>x'</span>"
+    elif name == 'yp':
+        return "<span>y'</span>"
+    else:
+        return "<span>{}</span>".format(name)
 
 
 def get_default_unit(name):
@@ -201,9 +254,11 @@ def get_unit_label_and_scale(unit):
     return unit_label, scale
 
 
-def get_column_by_name(data, name):
-    """Get the column data by name.
+def get_phasespace_column_by_name(data, name):
+    """Get the Phase-space column data by name.
 
+    :param data: Pandas.DataFrame
+        Particle data.
     :param name: string
         Name of the column data.
     """
@@ -216,7 +271,7 @@ def get_column_by_name(data, name):
     if name == 'yp':
         return data['py'] / data['pz']
 
-    if name == 'z':
+    if name == 'dz':
         z_ave = data['z'].mean()
         return data['z'] - z_ave
 
@@ -224,5 +279,17 @@ def get_column_by_name(data, name):
         p = np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
         p_ave = p.mean()
         return 100. * (p - p_ave) / p
+
+    return data[name]
+
+
+def get_line_column_by_name(data, name):
+    """Get the Line column data by name.
+
+    :param name: string
+        Name of the column data.
+    """
+    if name == 'st':
+        return data['sz'] / V_LIGHT
 
     return data[name]

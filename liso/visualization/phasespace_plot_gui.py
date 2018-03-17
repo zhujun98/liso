@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QLabel
 
-from .. import pyqtgraph as pg
+import pyqtgraph as pg
 
 from ..data_processing import parse_phasespace
 from .vis_utils import *
@@ -210,17 +210,24 @@ class PhaseSpacePlotGUI(QMainWindow):
         if self.data is not None:
             var_x = self.xlist.currentItem().text()
             var_y = self.ylist.currentItem().text()
-            x = get_column_by_name(self.data, var_x)
-            y = get_column_by_name(self.data, var_y)
+
+            x_unit = get_default_unit(var_x)
+            y_unit = get_default_unit(var_y)
+
+            x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
+            y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
+
+            x = get_phasespace_column_by_name(self.data, var_x)
+            y = get_phasespace_column_by_name(self.data, var_y)
             x, y = fast_sample_data(x, y, n=self.slider_sample.value())
-            self.psplot.plot(x, y,
+            self.psplot.plot(x*x_scale, y*y_scale,
                              pen=None,
                              symbol='o',
                              symbolSize=self.slider_ms.value(),
                              clear=True)
 
-            self.psplot.setLabel('left', var_y)
-            self.psplot.setLabel('bottom', var_x)
+            self.psplot.setLabel('left', get_html_label(var_y) + " " + y_unit_label)
+            self.psplot.setLabel('bottom', get_html_label(var_x) + " " + x_unit_label)
 
     def _add_actions(self, target, actions):
         """"""

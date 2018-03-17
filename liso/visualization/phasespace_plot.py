@@ -50,7 +50,7 @@ class PhaseSpacePlot(object):
                 self.charge = charge
 
         self.params = analyze_beam(self.data, self.charge, **kwargs)
-        self._options = ['x', 'y', 'z', 'xp', 'yp', 't', 'p', 'delta']
+        self._options = ['x', 'y', 'dz', 'xp', 'yp', 't', 'p', 'delta']
 
     @abstractmethod
     def _load_data(self):
@@ -159,8 +159,8 @@ class PhaseSpacePlot(object):
 
         if cloud_plot is True:
             x_sample, y_sample, density_color = sample_data(
-                get_column_by_name(self.data, var_x),
-                get_column_by_name(self.data, var_y),
+                get_phasespace_column_by_name(self.data, var_x),
+                get_phasespace_column_by_name(self.data, var_y),
                 n=samples,
                 bins=bins_2d,
                 sigma=sigma_2d)
@@ -169,7 +169,7 @@ class PhaseSpacePlot(object):
                             edgecolor='', s=ms, alpha=alpha, cmap='jet')
 
             if (var_x, var_y) == ('t', 'p'):
-                y1_unit = get_default_unit('i') if y1_unit is None else y1_unit.lower()
+                y1_unit = get_default_unit('i') if y1_unit is None else y1_unit
                 y1_unit_label, y1_scale = get_unit_label_and_scale(y1_unit)
 
                 ax1 = ax.twinx()
@@ -193,9 +193,10 @@ class PhaseSpacePlot(object):
             cbar.set_ticks(np.arange(0, 1.01, 0.2))
             cbar.ax.tick_params(labelsize=14)
         else:
-            x_sample, y_sample = fast_sample_data(get_column_by_name(self.data, var_x),
-                                                  get_column_by_name(self.data, var_y),
-                                                  n=samples)
+            x_sample, y_sample = fast_sample_data(
+                get_phasespace_column_by_name(self.data, var_x),
+                get_phasespace_column_by_name(self.data, var_y),
+                n=samples)
             ax.scatter(x_sample * x_scale, y_sample * y_scale,
                        alpha=alpha, c=mc, edgecolor='', s=ms)
 

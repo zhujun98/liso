@@ -39,7 +39,10 @@ class LinePlot(object):
         self.rootname = rootname
 
         self.data = parse_line(code, self.rootname)
-        self._options = [name.lower() for name in self.data.columns.values]
+        self._options = ['gamma', 'sx', 'sy', 'sz', 'st',
+                         'betax', 'betay', 'alphax', 'alphay',
+                         'emitx', 'emity', 'emitz',
+                         'sde', 'emitx_tr', 'emity_tr']
 
     def save_plot(self, var1, var2=None, **kwargs):
         kwargs['save_image'] = True
@@ -112,7 +115,9 @@ class LinePlot(object):
         vars = [var1, var2]
         for i, var in enumerate(vars):
             if var is not None:
-                ax.plot(self.data['z']*x_scale, self.data[var]*y_scale,
+                x = get_line_column_by_name(self.data, 'z')
+                y = get_line_column_by_name(self.data, var)
+                ax.plot(x*x_scale, y*y_scale,
                         c=colors[i], ls=styles[i], lw=2, label=get_label(var))
 
         ax.set_xlabel("$z$ " + x_unit_label,
