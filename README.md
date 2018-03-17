@@ -20,10 +20,10 @@ Python3 >= 3.5
 - [IMPACT-Z]
 - [GENESIS]
 
-####External optimizers:
+#### External optimizers:
 - [pyOpt](http://www.pyopt.org/) > 1.2.0 (optional)
 
-####Visualization GUI:
+#### Visualization GUI:
 - [pyqtgraph](http://www.pyqtgraph.org/)
 
 ## Installation
@@ -47,6 +47,17 @@ $ python setup.py install
 $ python setup.py install --record files.txt
 $ cat files.txt | xargs rm -rf
 ```
+
+## GUI
+
+```py
+from liso import gui
+
+gui()
+```
+
+![alt text](misc/GUI_v1.png)
+
 
 ## Optimization
 
