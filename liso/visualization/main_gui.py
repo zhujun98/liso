@@ -104,19 +104,21 @@ class MainGUI(QWidget):
 
     def open_new_phasespace_plot(self):
         """Open a new window for phase-space plot."""
-        PhaseSpacePlotGUI(parent=self).show()
+        PhaseSpacePlotGUI().show()  # Do not assign parent which causes memory leak
 
     def open_new_line_plot(self):
         """Open a new window for line plot."""
-        LinePlotGUI(parent=self).show()
+        LinePlotGUI().show()
 
     def open_new_optimizer_visualizer(self):
         """Open a new window for line plot."""
-        OptimizerGUI(parent=self).show()
+        OptimizerGUI().show()
 
 
 def main_gui():
     app = QApplication(sys.argv)
     screen_size = app.primaryScreen().size()
     ex = MainGUI(screen_size=screen_size)
-    sys.exit(app.exec_())
+    app.exec_()
+    # print('\n'.join(repr(w) for w in app.allWidgets()))
+

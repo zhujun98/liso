@@ -55,8 +55,8 @@ class LinePlotGUI(QMainWindow):
         self.data = None
 
         self.main_frame = QWidget()
-        self.view = QWidget(self.main_frame)
-        self.control_panel = QWidget(self.main_frame)
+        self.view = QWidget()
+        self.control_panel = QWidget()
         self.set_main_frame()
 
         self.fname_label = None

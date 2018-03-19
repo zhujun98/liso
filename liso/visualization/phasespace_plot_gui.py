@@ -49,8 +49,8 @@ class PhaseSpacePlotGUI(QMainWindow):
         self.data = None
 
         self.main_frame = QWidget()
-        self.view = QWidget(self.main_frame)
-        self.control_panel = QWidget(self.main_frame)
+        self.view = QWidget()
+        self.control_panel = QWidget()
         self.set_main_frame()
 
         # Set the graph window
@@ -138,10 +138,10 @@ class PhaseSpacePlotGUI(QMainWindow):
     def set_view(self):
         """"""
         # QLabel to show the current filename
-        self.fname_label = QLabel(self.view)
+        self.fname_label = QLabel()
 
         # pyqtgraph.GraphicsLayoutWidget to show the plot
-        graph = pg.GraphicsLayoutWidget(self.view)
+        graph = pg.GraphicsLayoutWidget()
         graph.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.psplot = graph.addPlot(title=" ")  # title is a placeholder
 
@@ -160,15 +160,16 @@ class PhaseSpacePlotGUI(QMainWindow):
         # axes respectively.
         phasespace_options = ["x", "xp", "y", "yp", "dz", "t", "p", "delta"]
 
-        group_lst = QGroupBox(self.control_panel)
-        x_label = QLabel('x-axis', group_lst)
-        self.xlist = QListWidget(group_lst)
+        group_lst = QGroupBox()
+
+        x_label = QLabel('x-axis')
+        self.xlist = QListWidget()
         self.xlist.setFixedSize(60, 180)
         self.xlist.addItems(phasespace_options)
         self.xlist.itemClicked.connect(self.update_plot)
 
-        y_label = QLabel('y-axis', group_lst)
-        self.ylist = QListWidget(group_lst)
+        y_label = QLabel('y-axis')
+        self.ylist = QListWidget()
         self.ylist.setFixedSize(60, 180)
         self.ylist.addItems(phasespace_options)
         self.ylist.itemClicked.connect(self.update_plot)
@@ -183,13 +184,13 @@ class PhaseSpacePlotGUI(QMainWindow):
         # =============================================================
         # A slider which adjusts the marker size and a radiobutton which
         # toggles the slider.
-        group_ms = QGroupBox(self.control_panel)
+        group_ms = QGroupBox()
 
-        radiobutton_ms = QRadioButton('Marker size', group_ms)
+        radiobutton_ms = QRadioButton('Marker size')
         radiobutton_ms.setChecked(True)
         radiobutton_ms.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_ms))
 
-        self.slider_ms = QSlider(Qt.Horizontal, group_ms)
+        self.slider_ms = QSlider(Qt.Horizontal)
         self.slider_ms.setTickPosition(QSlider.TicksBelow)
         self.slider_ms.setRange(1, 15)
         self.slider_ms.setValue(5)
@@ -205,13 +206,13 @@ class PhaseSpacePlotGUI(QMainWindow):
         # =============================================================
         # A slider which adjusts the No. of particle shown on the screen
         # and a radiobutton which toggles the slider.
-        group_sample = QGroupBox(self.control_panel)
+        group_sample = QGroupBox()
 
-        radiobutton_sample = QRadioButton('No. of particles', group_sample)
+        radiobutton_sample = QRadioButton('No. of particles')
         radiobutton_sample.setChecked(True)
         radiobutton_sample.toggled.connect(lambda: self._on_radiobutton_toggled(self.slider_sample))
 
-        self.slider_sample = QSlider(Qt.Horizontal, group_sample)
+        self.slider_sample = QSlider(Qt.Horizontal)
         self.slider_sample.setTickPosition(QSlider.TicksBelow)
         self._set_sample_slider(self._max_display_particle)
         self.slider_sample.valueChanged.connect(self.update_plot)
