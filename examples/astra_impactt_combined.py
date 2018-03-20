@@ -24,7 +24,8 @@ linac = Linac()
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_basic/injector.in',
-                   template='astra_basic/injector.in.000')
+                   template='astra_basic/injector.in.000',
+                   pout='injector.0400.001')
 linac.add_watch(beamline='gun', name='gun_out', pfile='injector.0400.001')
 linac.add_line(beamline='gun', name='gun_all', rootname='injector')
 
@@ -32,7 +33,8 @@ linac.add_beamline('impactt',
                    name='chicane',
                    fin='impactt_basic/ImpactT.in',
                    template='impactt_basic/ImpactT.in.000',
-                   charge=0.0)
+                   charge=0.0001,
+                   z0=0.0)
 linac.add_watch(beamline='chicane', name='chicane_out', pfile='fort.107')
 linac.add_line(beamline='chicane', name='chicane_all', rootname='fort')
 
@@ -42,7 +44,7 @@ print(linac)
 def obj_func(linac):
     """Define objective and constraint functions."""
     # define objective
-    f = linac['gun'].gun_out.emitx*1.e6
+    f = (linac['chicane'].chicane_out.Sx + linac['chicane'].chicane_out.Sy)*1.e3
 
     # define constraint
     g = list()

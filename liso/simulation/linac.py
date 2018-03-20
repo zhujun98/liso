@@ -40,6 +40,15 @@ class Linac(object):
             else:
                 raise ValueError("Unknown code!")
 
+        # connect the new Beamline to the last added Beamline
+        if len(self.beamlines) != 0:
+            bl.predecessor = list(self.beamlines.values())[-1]
+
+            if bl.pin is None or bl.predecessor.pout is None:
+                raise ValueError("Input particle of the new Beamline and output "
+                                 "particle file of the predecessor Beamline must "
+                                 "be specified for a concatenated simulation!")
+
         self.beamlines[bl.name] = bl
 
     def add_watch(self, beamline, *args, **kwargs):
@@ -95,7 +104,9 @@ class Linac(object):
 
         # Run simulations.
         # Raise SimulationNotFinishedProperlyError
-        for beamline in self.beamlines.values():
+        for (i, beamline) in enumerate(self.beamlines.values()):
+            if i != 0:
+                beamline.update_pin()
             beamline.simulate(workers)
 
         # Recalculate the parameters at each FitPoint and FitLine.

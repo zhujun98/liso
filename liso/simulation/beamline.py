@@ -14,6 +14,7 @@ from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
 from ..data_processing import analyze_beam, analyze_line
+from ..data_processing import convert_particle_file
 
 from ..exceptions import *
 from ..config import Config
@@ -24,6 +25,7 @@ INF = Config.INF
 
 class Beamline(ABC):
     """Beamline abstraction class."""
+    code = None  # code name
     exec_s = None  # series simulation exec
     exec_p = None  # parallel simulation exec
 
@@ -33,14 +35,15 @@ class Beamline(ABC):
                  template=None,
                  pin=None,
                  pout=None,
-                 charge=None):
+                 charge=None,
+                 z0=0.0):
         """Initialization.
 
         :param name: string
             Name of the beamline.
         :param gin: InputGenerator object
-            An input generator. If given, all the other keyword arguments
-            are omitted.
+            An input generator. If given, all the other keyword
+            arguments are omitted.
         :param fin: string
             The path of the input file.
         :param template: string
@@ -52,6 +55,11 @@ class Beamline(ABC):
         :param charge: float
             Bunch charge at the beginning of the beamline. Only used
             for certain codes (e.g. Impact-T).
+        :param z0: float
+            Starting z coordinate in meter. Used for concatenated
+            simulation, e.g. Suppose the second beamline is defined
+            from z0 = 0.0, when doing the particle file conversion,
+            z0 is required.
         """
         self.name = name
         if isinstance(gin, InputGenerator):
@@ -62,9 +70,12 @@ class Beamline(ABC):
         # Read the template file only once.
         with open(template) as fp:
             self.template = tuple(fp.readlines())
+        self.charge = charge
+
+        self.predecessor = None  # the beamline upstream
         self.pin = pin
         self.pout = pout
-        self.charge = charge
+        self.z0 = z0  # starting z coordinate (m)
 
         self.watches = OrderedDict()
         self.lines = OrderedDict()
@@ -154,6 +165,20 @@ class Beamline(ABC):
             finally:
                 super().__setattr__(line.name, params)
 
+    def update_pin(self):
+        """Update the input particle file."""
+        if self.predecessor is None:
+            return
+
+        pout = os.path.join(self.predecessor.dirname, os.path.basename(self.predecessor.pout))
+        pin = os.path.join(self.dirname, os.path.basename(self.pin))
+
+        os.remove(pin)
+        convert_particle_file(pout, pin,
+                              code_pout=self.predecessor.code,
+                              code_pin=self.code,
+                              z0=self.z0)
+
     def simulate(self, workers=1, time_out=300):
         """Simulate the beamline.
 
@@ -197,6 +222,10 @@ class Beamline(ABC):
         text += '=' * 80 + '\n'
         text += 'Directory: %s\n' % self.dirname
         text += 'Input file: %s\n' % self.fin
+        if self.pin is not None:
+            text += 'Input particle file: %s\n' % self.pin
+        if self.pout is not None:
+            text += 'Output particle file: %s\n' % self.pout
 
         text += '\nWatch points:\n'
         if not self.watches:
@@ -212,8 +241,6 @@ class Beamline(ABC):
             for line in self.lines.values():
                 text += line.__str__()
 
-        text += '\n' + '=' * 80
-
         return text
 
 
@@ -222,6 +249,7 @@ class AstraBeamline(Beamline):
 
     Inherit from Beamline class.
     """
+    code = 'a'
     exec_s = Config.ASTRA
     exec_p = Config.ASTRA_P
 
@@ -246,12 +274,17 @@ class ImpacttBeamline(Beamline):
 
     Inherit from Beamline class.
     """
+    code = 't'
     exec_s = Config.IMPACTT
     exec_p = Config.IMPACTT_P
 
     def __init__(self, *args, **kwargs):
         """Initialization."""
         super().__init__(*args, **kwargs)
+        if self.pin is not None and self.pin != 'partcl.data':
+            print("Warning: input particle file for Impact-T must be 'partcl.data'!")
+        self.pin = 'partcl.data'
+
         if self.charge is None:
             raise ValueError("Bunch charge is required for Impact-T simulation!")
         self._output_suffixes = ['.18', '.24', '.25', '.26']
@@ -272,6 +305,7 @@ class ImpactzBeamline(Beamline):
 
     Inherit from Beamline class.
     """
+    code = 'z'
     exec_s = None
     exec_p = None
     pass
@@ -282,6 +316,7 @@ class GenesisBeamline(Beamline):
 
     Inherit from Beamline class.
     """
+    code = 'g'
     exec_s = None
     exec_p = None
     pass
