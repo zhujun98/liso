@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import Config
+from .data_proc_utils import cut_tail, cut_halo
 
 
 V_LIGHT = Config.vLight
@@ -41,7 +42,6 @@ def parse_astra_phasespace(particle_file):
     # Units: m, m, m, eV/c, eV/c, eV/c, ns, nC, NA, NA
     col_names = ['x', 'y', 'z', 'px', 'py', 'pz',
                  't', 'charge', 'index', 'flag']
-
     data = pd.read_csv(particle_file, delim_whitespace=True, names=col_names)
 
     pz_ref = data['pz'].iloc[0]
@@ -68,13 +68,8 @@ def parse_astra_phasespace(particle_file):
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     # At this step, the timing can be used for timing jitter study.
-    data['t'] = data['t'].iloc[0]/1e9 - (data['z'] - z_ref)\
-        / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
-
-    # The bunch is centered for the convenience of the longitudinal
-    # phase-space plot.
-    data['t'] = data['t'] - data['t'].mean()
-
+    t_ref = data['t'].iloc[0]/1.e9
+    data['t'] = t_ref - (data['z'] - z_ref)/(V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
     charge = -1e-9 * data['charge'].sum()
 
     data.drop(['charge', 'index', 'flag'], inplace=True, axis=1)
@@ -101,8 +96,8 @@ def parse_impactt_phasespace(particle_file):
 
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
-    data['t'] = -(data['z'] - data['z'].mean()) \
-        / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
+    # Impact-T does not support timing, here 't' is the relative number
+    data['t'] = (data['z'].mean() - data['z']) / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
 
     return data
 

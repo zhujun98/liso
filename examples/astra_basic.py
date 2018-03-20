@@ -25,9 +25,8 @@ linac = Linac()
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_basic/injector.in',
-                   template='astra_basic/injector.in.000')
-linac.add_watch(beamline='gun', name='out', pfile='injector.0400.001')
-linac.add_line(beamline='gun', name='all', rootname='injector')
+                   template='astra_basic/injector.in.000',
+                   pout='injector.0400.001')
 
 print(linac)
 
@@ -39,7 +38,20 @@ def obj_func(linac):
 
     # define constraint
     g = list()
+
+    # After initializing the Beamline Object, it will automatically add
+    # an attribute which is a Watch object (name='out'). 'Watch' is an
+    # abstraction for a location where the code dumps particle file, one
+    # can retrieve the beam parameters at this location by, for instance,
+    # linac[beamline name].out.Sx (rms beam size),
+    # linac[beamline name].out.emitx (horizontal emittance).
     g.append(linac['gun'].out.St - 5e-12)
+    # After initializing the Beamline Object, it will automatically add
+    # an attribute which is a Line object (name='all'). 'Line' is an
+    # abstraction for beam statistic along the whole or a section of the
+    # beamline, one can retrieve the beam statistics by, for instance,
+    # linac[beamline name].all.Sx.max (max rms beam size),
+    # linac[beamline name].all.betax.ave (average beta function).
     g.append(linac['gun'].all.Sx.max - 0.2e-3)
 
     print(f, g)

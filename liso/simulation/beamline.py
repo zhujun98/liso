@@ -13,7 +13,7 @@ import subprocess
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
-from ..data_processing import analyze_beam, analyze_line
+from ..data_processing import analyze_beam, analyze_line, tailor_beam
 from ..data_processing import convert_particle_file
 
 from ..exceptions import *
@@ -74,6 +74,8 @@ class Beamline(ABC):
 
         self.predecessor = None  # the beamline upstream
         self.pin = pin
+        if pout is None:
+            raise ValueError("Please specify the output particle file!")
         self.pout = pout
         self.z0 = z0  # starting z coordinate (m)
 
@@ -137,9 +139,16 @@ class Beamline(ABC):
                 # Even if charge is given for a AstraBeamline, it will still use
                 # the charge returned from watch.load_data().
                 charge = self.charge if charge is None else charge
-                params = analyze_beam(data, charge,
-                                      cut_halo=watch.cut_halo,
-                                      cut_tail=watch.cut_tail,
+
+                n0 = len(data)
+                data = tailor_beam(data,
+                                   tail=watch.tail,
+                                   halo=watch.halo,
+                                   rotation=watch.rotation)
+                charge *= len(data) / n0
+
+                params = analyze_beam(data,
+                                      charge,
                                       current_bins=watch.current_bins,
                                       filter_size=watch.filter_size,
                                       slice_percent=watch.slice_percent,
@@ -256,6 +265,11 @@ class AstraBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         """Initialization."""
         super().__init__(*args, **kwargs)
+
+        # default watch and line
+        self.add_watch('out', self.pout)
+        self.add_line('all', self.pout.split('.')[0])
+
         self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001']
 
     def add_watch(self, name, pfile, **kwargs):
@@ -287,6 +301,11 @@ class ImpacttBeamline(Beamline):
 
         if self.charge is None:
             raise ValueError("Bunch charge is required for Impact-T simulation!")
+
+        # default watch and line
+        self.add_watch('out', self.pout)
+        self.add_line('all', 'fort')
+
         self._output_suffixes = ['.18', '.24', '.25', '.26']
 
     def add_watch(self, name, pfile, **kwargs):

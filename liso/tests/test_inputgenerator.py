@@ -3,8 +3,8 @@ Unittest for InputGenerator
 """
 import unittest
 
-from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
-from liso.simulation.smlt_utils import generate_input
+from ..simulation.beamline import AstraBeamline, ImpacttBeamline
+from ..simulation.smlt_utils import generate_input
 
 
 TEMPLATE_FILE1 = "../examples/astra_basic/injector.in.000"
@@ -15,8 +15,8 @@ INPUT_FILE2 = "../examples/impactt_basic/ImpactT.in"
 
 class TestGenerateInput(unittest.TestCase):
     def setUp(self):
-        self.b1 = AstraBeamline('astra', INPUT_FILE1, template=TEMPLATE_FILE1)
-        self.b2 = ImpacttBeamline('impact', INPUT_FILE2, template=TEMPLATE_FILE2, charge=0)
+        self.b1 = AstraBeamline('astra', INPUT_FILE1, template=TEMPLATE_FILE1, pout=' ')
+        self.b2 = ImpacttBeamline('impact', INPUT_FILE2, template=TEMPLATE_FILE2, charge=0, pout=' ')
 
     def test_raises(self):
         mapping = 'laser'

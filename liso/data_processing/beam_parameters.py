@@ -12,10 +12,11 @@ class BeamParameters(object):
     """
     def __init__(self):
         """Initialization."""
-        self.n = 0
+        self._n = 0
         self._q = 0.0
-        self.q = 0.0
         self._charge = 0.0
+        self.n = 0
+        self.q = 0.0
         self.charge = 0.0
 
         self.p = 0.0
@@ -50,6 +51,17 @@ class BeamParameters(object):
         self.Cxp = 0.0
         self.Cyp = 0.0
         self.Ct = 0.0
+
+    @property
+    def n(self):
+        return self._n
+
+    @n.setter
+    def n(self, value):
+        if not isinstance(value, int):
+            raise TypeError("The number of particles must be an integer!")
+        self._n = value
+        self._charge = self._n * self._q
 
     @property
     def q(self):

@@ -2,8 +2,11 @@ from liso import PhaseSpacePlot
 
 
 if __name__ == "__main__":
-    psplot2 = PhaseSpacePlot('astra', 'astra_basic/injector.0400.001', filter_size=2)
-    psplot2.cloud('x', 'Y')
+    psplot2 = PhaseSpacePlot('astra', 'astra_basic/injector.0400.001',
+                             filter_size=2,
+                             tail=0.1,
+                             halo=0.2)
+    psplot2.cloud('x', 'Y', ms=10)
     psplot2.cloud('y', 'yp', ms=5)
     psplot2.cloud('T', 'delta', x_unit='ps', y1_unit='kA', ms=5)
     psplot2.save_cloud('x', 'xp', ms=5, x_unit='uM', y_unit='urAd')

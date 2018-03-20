@@ -5,9 +5,7 @@ Author: Jun Zhu
 
 """
 import os
-from abc import abstractmethod
 
-import numpy as np
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -15,6 +13,7 @@ import matplotlib.ticker as ticker
 
 from ..data_processing import parse_phasespace
 from ..data_processing import analyze_beam
+from ..data_processing import tailor_beam
 from .vis_utils import *
 
 
@@ -30,7 +29,12 @@ AX_MARGIN = 0.05
 
 class PhaseSpacePlot(object):
     """Plot the beam phase-space."""
-    def __init__(self, code, pfile, *, charge=None, **kwargs):
+    def __init__(self, code, pfile, *,
+                 charge=None,
+                 halo=0.0,
+                 tail=0.0,
+                 rotation=0.0,
+                 **kwargs):
         """Initialization.
 
         :param code: string
@@ -39,6 +43,14 @@ class PhaseSpacePlot(object):
             Path name of the particle file.
         :param charge: float
             Bunch charge. Only used for ImpactT and ImpactZ.
+        :param halo: float
+            Percentage of particles to be removed based on their
+            transverse distance to the bunch centroid. Applied
+            before tail cutting.
+        :param tail: float
+            Percentage of particles to be removed in the tail.
+        :param rotation: float
+            Angle of the rotation in rad.
         """
         self.pfile = pfile
 
@@ -49,12 +61,12 @@ class PhaseSpacePlot(object):
             if self.charge is None:
                 self.charge = charge
 
+        n0 = len(self.data)
+        self.data = tailor_beam(self.data, tail=tail, halo=halo, rotation=rotation)
+        self.charge *= len(self.data) / n0
+
         self.params = analyze_beam(self.data, self.charge, **kwargs)
         self._options = ['x', 'y', 'dz', 'xp', 'yp', 't', 'p', 'delta']
-
-    @abstractmethod
-    def _load_data(self):
-        raise NotImplemented
 
     def cloud(self, var_x, var_y, **kwargs):
         self._plot(var_x, var_y, **kwargs)
@@ -225,7 +237,7 @@ class PhaseSpacePlot(object):
                     % float("%.2g" % (self.params.emity*1e6)),
                     fontsize=TITLE_FONT_SIZE, y=1.02)
 
-            elif (var_x, var_y) == ('t', 'p'):
+            elif var_x == 't' and (var_y == 'p' or var_y == 'delta'):
                 ax.set_title(
                     r"$\sigma_t$ = %s " % float("%.2g" % (self.params.St*x_scale))
                     + x_unit_label.replace('(', '').replace(')', '')

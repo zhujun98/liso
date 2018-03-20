@@ -106,9 +106,120 @@ def gaussian_filter1d(x, sigma):
     return np.convolve(x, weights, 'same')
 
 
+def cut_halo(data, value):
+    """Remove halo from a phase-space distribution.
+
+    :param data: Pandas.DataFrame
+        Particle data.
+    :param value: float
+        Percentage of particles to be removed based on their
+        transverse distance to the bunch centroid. Applied
+        before tail cutting.
+
+    :return: Pandas.DataFrame
+        Truncated data.
+    """
+    if isinstance(value, float) and 1.0 > value > 0.0:
+        n = int(len(data) * (1 - value))
+        # TODO: avoid creating a column and then deleting it
+        data['r'] = np.sqrt(data['x'] ** 2 + data['y'] ** 2)
+        data = data.reindex(data['r'].sort_values(ascending=True).index)
+        data = data[:n]
+        del data['r']
+
+    return data
+
+
+def cut_tail(data, value):
+    """Remove tail from a phase-space distribution.
+
+    :param data: Pandas.DataFrame
+        Particle data.
+    :param value: float
+        Percentage of particles to be removed in the tail.
+
+    :return: Pandas.DataFrame
+        Truncated data.
+    """
+    if isinstance(value, float) and 1.0 > value > 0.0:
+        n = int(len(data) * (1 - value))
+        # TODO: avoid creating a column and then deleting it
+        data['t_'] = data['t'] - data['t'].median()  # User median() to deal with extreme outliers
+        data = data.reindex(data['t_'].abs().sort_values(ascending=True).index)
+        data = data[:n]
+        del data['t_']
+
+    return data
+
+
+def rotate(data, angle):
+    """Rotate the phasespace.
+
+    :param data: Pandas.DataFrame
+        Particle data.
+    :param angle: float
+        Angle of the rotation in rad.
+
+    :return: Pandas.DataFrame
+        Rotated data.
+    """
+    if angle != 0.0:
+        theta = angle * np.pi / 180.0  # Convert to rad
+
+        # x(m), px(mc), y(m), py(mc), t(s), p(mc), z(m).
+
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+
+        def transformation(r, cm):
+            x = r[0]
+            y = r[1]
+            z = r[2]
+            cx = cm[0]
+            cy = cm[1]
+            cz = cm[2]
+
+            x_new = cx - cx*cos_theta + x*cos_theta - cz*sin_theta + z*sin_theta
+            y_new = y
+            z_new = cz - cz*cos_theta + z*cos_theta + cx*sin_theta - x*sin_theta
+
+            return [x_new, y_new, z_new]
+
+        pos = [data['x'], data['y'], data['z']]
+        cm_pos = [np.mean(data['x']), np.mean(data['y']), np.mean(data['z'])]
+        mom = [data['px'], data['py'], data['pz']]
+        cm_mom = [np.mean(data['px']), np.mean(data['py']),
+                  np.mean(data['pz'])]
+
+        [data['x'], data['y'], data['z']] = transformation(pos, cm_pos)
+        [data['px'], data['py'], data['pz']] = transformation(mom, cm_mom)
+
+    return data
+
+
+def tailor_beam(data, *, halo=0.0, tail=0.0, rotation=0.0):
+    """Tailor the beam.
+
+    :param data: Pandas.DataFrame
+        Particle data.
+    :param halo: float
+        Percentage of particles to be removed based on their
+        transverse distance to the bunch centroid. Applied
+        before tail cutting.
+    :param halo: float
+        Percentage of particles to be removed based on their
+        transverse distance to the bunch centroid. Applied
+        before tail cutting.
+    :param rotation: float
+        Angle of the rotation in rad.
+
+    :return: Pandas.DataFrame
+        Tailored data.
+    """
+    return cut_halo(cut_tail(rotate(data, rotation), tail), halo)
+
+
 def analyze_beam(data, charge, *,
-                 cut_halo=0.0,
-                 cut_tail=0.0,
                  current_bins='auto',
                  filter_size=1,
                  slice_percent=0.1,
@@ -118,12 +229,6 @@ def analyze_beam(data, charge, *,
 
     :param data: Pandas.DataFrame
         Particle data.
-    :param cut_halo: None/float
-        Percentage of particles to be removed based on their
-        transverse distance to the bunch centroid. Applied
-        before tail cutting.
-    :param cut_tail: None/float
-        Percentage of particles to be removed in the tail.
     :param current_bins: int/'auto'
         No. of bins to calculate the current profile.
     :param filter_size: int/float
@@ -147,22 +252,6 @@ def analyze_beam(data, charge, *,
     n0 = len(data)
     params.n = n0  # Number of particles after processing
     params.q = charge / n0  # charge per particle
-
-    # Cut the halo of the bunch
-    params.n = int(params.n * (1 - cut_halo))
-
-    # TODO: avoid creating a column and then deleting it
-    data['r'] = np.sqrt(data['x'] ** 2 + data['y'] ** 2)
-    data = data.reindex(data['r'].sort_values(ascending=True).index)
-    data = data[:params.n]
-    del data['r']
-
-    # Cut the tail of the bunch
-    params.n = int(params.n * (1 - cut_tail))
-    data['t'] -= data['t'].median()  # User median() to deal with extreme outliers
-    data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
-    data = data[:params.n]
-    data['t'] -= data['t'].mean()
 
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
@@ -190,10 +279,11 @@ def analyze_beam(data, charge, *,
     counts, edges = np.histogram(data['t'], bins=current_bins)
     step_size = edges[1] - edges[0]
     centers = edges[:-1] + step_size / 2
-    current = counts / float(len(data)) * params.charge / step_size
-    current = gaussian_filter1d(current, sigma=filter_size)
-    params.I_peak = current.max()
-    params.current_dist = [centers, current]
+
+    filtered_counts = gaussian_filter1d(counts, sigma=filter_size)
+    currents = counts / len(data) * params.charge / step_size
+    params.I_peak = currents.max()
+    params.current_dist = [centers, currents]
 
     params.emitx = compute_canonical_emit(data['x'], data['px'])
 
@@ -214,8 +304,8 @@ def analyze_beam(data, charge, *,
     # Calculate the slice parameters
     sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
 
-    if slice_with_peak_current is True:
-        Ct_slice = centers[np.argmax(current)]
+    if slice_with_peak_current is True and params.charge != 0.0:
+        Ct_slice = centers[np.argmax(filtered_counts)]  # currents could be all 0
     else:
         Ct_slice = params.Ct
 

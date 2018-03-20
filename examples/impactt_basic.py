@@ -27,9 +27,8 @@ linac.add_beamline('impactt',
                    name='matching',
                    fin='impactt_basic/ImpactT.in',
                    template='impactt_basic/ImpactT.in.000',
+                   pout='fort.107',
                    charge=0.0)
-linac.add_watch(beamline='matching', name='out', pfile='fort.107')
-linac.add_line(beamline='matching', name='all', rootname='fort')
 
 print(linac)
 
@@ -48,7 +47,20 @@ def obj_func(linac):
 
     # define constraint
     g = list()
+
+    # After initializing the Beamline Object, it will automatically add
+    # an attribute which is a Watch object (name='out'). 'Watch' is an
+    # abstraction for a location where the code dumps particle file, one
+    # can retrieve the beam parameters at this location by, for instance,
+    # linac[beamline name].out.Sx (rms beam size),
+    # linac[beamline name].out.emitx (horizontal emittance).
     g.append(linac['matching'].out.Sy*1.e3 - 0.15)
+    # After initializing the Beamline Object, it will automatically add
+    # an attribute which is a Line object (name='all'). 'Line' is an
+    # abstraction for beam statistic along the whole or a section of the
+    # beamline, one can retrieve the beam statistics by, for instance,
+    # linac[beamline name].all.Sx.max (max rms beam size),
+    # linac[beamline name].all.betax.ave (average beta function).
     g.append(linac['matching'].all.Sx.max*1.e3 - 0.20)
 
     print(f, g)

@@ -271,6 +271,9 @@ def get_phasespace_column_by_name(data, name):
     """
     name = name.lower()
 
+    if name == 't':
+        return data['t'] - data['t'].mean()
+
     if name == 'p':
         return np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
 

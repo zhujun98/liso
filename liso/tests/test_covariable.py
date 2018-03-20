@@ -3,7 +3,7 @@ Unittest for InputGenerator
 """
 import unittest
 
-from liso.optimization.covariable import Covariable
+from ..optimization.covariable import Covariable
 
 
 class TestCovariable(unittest.TestCase):
