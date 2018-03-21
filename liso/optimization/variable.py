@@ -21,35 +21,35 @@ class Variable(object):
             ('c' - continuous, 'i' - integer, 'd' - discrete), default = 'c'
         :param value: int / float
             Variable Value, default = 0.0
-        :param lower: int / float
-            Variable lower value.
-        :param upper: int / float
-            Variable upper value.
+        :param lb: int / float
+            Lower boundary.
+        :param ub: int / float
+            Upper boundary.
         """
         self.name = name
         self.type_ = type_[0].lower()
         if self.type_ == 'c':
             self.value = float(value)
-            self.lower = -INF
-            self.upper = INF
+            self.lb = -INF
+            self.ub = INF
             for key in kwargs.keys():
                 if key.lower() == 'lower':
-                    self.lower = float(kwargs[key])
+                    self.lb = float(kwargs[key])
                 if key.lower() == 'upper':
-                    self.upper = float(kwargs[key])
+                    self.lb = float(kwargs[key])
 
         elif type_[0].lower() == 'i':
             self.value = int(value)
-            self.lower = None
-            self.upper = None
+            self.lb = None
+            self.ub = None
             for key in kwargs.keys():
                 if key.lower() == 'lower':
-                    self.lower = int(kwargs[key])
+                    self.lb = int(kwargs[key])
 
                 if key.lower() == 'upper':
-                    self.upper = int(kwargs[key])
+                    self.lb = int(kwargs[key])
 
-            if self.lower is None or self.upper is None:
+            if self.lb is None or self.ub is None:
                 raise ValueError('An integer variable requires both '
                                  'lower and upper boundaries')
 
@@ -70,13 +70,13 @@ class Variable(object):
             else:
                 self.value = self.choices[int(value)]
 
-            self.lower = 0
-            self.upper = len(self.choices) - 1
+            self.lb = 0
+            self.ub = len(self.choices) - 1
         else:
             raise ValueError('Unknown variable types: should be '
                              'either c(ontinuous), i(nteger) or d(iscrete)')
 
-        if self.upper < self.lower:
+        if self.ub < self.lb:
             raise ValueError("Upper bound is smaller than lower bound!")
 
     def __repr__(self):
@@ -86,7 +86,7 @@ class Variable(object):
                 min(self.choices), max(self.choices))
 
         return '{:^12}  {:^6}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name[:12], self.type_, self.value, self.lower, self.upper)
+            self.name[:12], self.type_, self.value, self.lb, self.ub)
 
     def __str__(self):
         return '{:^12}  {:^6}  {:^12}  {:^12}  {:^12}\n'.format(

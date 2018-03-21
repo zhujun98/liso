@@ -72,8 +72,8 @@ opt = LinacOptimization(linac, obj_func)
 opt.add_obj('Sx')  # objective
 opt.add_icon('g1')  # inequality constraint
 opt.add_icon('g2')  # inequality constraint
-opt.add_var('MQZM1_G', value=0.0, lower=-12.0, upper=12.0)  # variable
-opt.add_var('MQZM2_G', value=0.0, lower=-12.0, upper=12.0)  # variable
+opt.add_var('MQZM1_G', value=0.0, lb=-12.0, ub=12.0)  # variable
+opt.add_var('MQZM2_G', value=0.0, lb=-12.0, ub=12.0)  # variable
 
 opt.workers = 2
 opt.solve(optimizer)  # Run the optimization

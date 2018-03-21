@@ -60,8 +60,7 @@ class PyoptLinacOptimization(LinacOptimization):
         # pyOpt relies on the str(int) type key for variables, constraints,
         # so that inside the dictionary the items are sorted by key.
         for var in self.variables.values():
-            opt_prob.addVar(var.name, var.type_,
-                            lower=var.lower, upper=var.upper, value=var.value)
+            opt_prob.addVar(var.name, var.type_, lower=var.lb, upper=var.ub, value=var.value)
 
         for obj in self.objectives.values():
             opt_prob.addObj(obj.name)
