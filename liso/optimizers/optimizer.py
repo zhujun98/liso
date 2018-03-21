@@ -19,7 +19,6 @@ class Optimizer(ABC):
             Optimizer name.
         """
         self.name = name
-        self.rank = 0  # for parallel run
 
     @abstractmethod
     def __call__(self, opt_problem):
@@ -27,5 +26,7 @@ class Optimizer(ABC):
 
         :param opt_problem: Optimization object
             Optimization problem instance.
+        :param workers: int
+            Number of threads.
         """
         raise NotImplemented

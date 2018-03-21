@@ -31,6 +31,7 @@ Author: Jun Zhu
 from collections import OrderedDict
 from datetime import datetime
 
+from ..simulation import Linac
 from .variable import Variable
 from .covariable import Covariable
 from .constraint import EConstraint
@@ -44,44 +45,61 @@ INF = Config.INF
 
 class LinacOptimization(object):
     """LinacOpt class."""
-    def __init__(self, linac, obj_func, *, name=None, time_out=INF,
-                 max_successive_failure_allowed=20):
+    def __init__(self, linac, obj_func, *,
+                 name='Not specified',
+                 time_out=INF,
+                 max_successive_failure_allowed=20,
+                 workers=1):
         """Initialization.
 
+        :param linac: Linac object
+            Linac instance.
+        :param obj_func: function
+            Objective / constraint function.
+        :param time_out: float
+            Maximum time for killing the simulation.
         :param max_successive_failure_allowed: int
             Max number of allowed successive failures.
+        :param workers: int
+            Number of threads.
         """
-        self.linac = linac
-        self.obj_func = obj_func
-
-        if name is None:
-            self.name = 'Not specified'
+        if isinstance(linac, Linac):
+            self._linac = linac
         else:
-            self.name = name
+            raise TypeError("{} is not a Linac instance!".format(linac))
+
+        self.obj_func = obj_func
+        self.name = name
+        self._workers = 1
+        self.workers = workers
 
         self.variables = OrderedDict()
-        self.covariables = dict()
+        self.covariables = OrderedDict()
         self.objectives = OrderedDict()
         self.e_constraints = OrderedDict()
         self.i_constraints = OrderedDict()
 
-        self.walkers = 1
         self.time_out = time_out
-
         self._nf = 0
         self._max_successive_failure_allowed = max_successive_failure_allowed
 
         self.start_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-    def solve(self, optimizer, *, workers=1):
+    @property
+    def workers(self):
+        return self._workers
+
+    @workers.setter
+    def workers(self, value):
+        if isinstance(value, int) and value > 0:
+            self._workers = value
+
+    def solve(self, optimizer):
         """Run the optimization and print the result.
 
         :param optimizer: Optimizer object.
             Optimizer.
-        :param workers: int
-            Number of threads.
         """
-        self.threads = threads
         print(self.__str__())
 
         t0 = datetime.now()
@@ -99,16 +117,16 @@ class LinacOptimization(object):
             Variables updated after each iteration.
         """
         # generate the variable mapping - {name: value}
-        x_mapping = {key: value for key, value in zip(self.variables.keys(), x)}
+        x_dict = {key: value for key, value in zip(self.variables.keys(), x)}
         for covar in self.covariables:
-            x_mapping[covar.name] = covar.value
+            x_dict[covar.name] = covar.value
 
         # Run simulations with the new input files
 
         is_update_failed = True
 
         try:
-            self.linac.update(x_mapping, self.workers)
+            self._linac.update(x_dict, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
@@ -218,26 +236,26 @@ class LinacOptimization(object):
         except KeyError:
             raise KeyError("{} is not an equality constraint!".format(name))
 
-    @staticmethod
-    def _add_instance(instance_set, instance_type, *args, **kwargs):
-        """Add an instance_type to instance_set.
-
-        :param instance_set: OrderedDict
-            Should be either self.objectives, self.constraints or
-            self.variables.
-        :param instance_type: object
-            Should be either Objective, Constraint or Variable.
-        """
-        if len(args) > 0:
-            if isinstance(args[0], instance_type):
-                instance = args[0]
-                instance_set[instance.name] = instance
-            else:
-                name = args[0]
-                try:
-                    instance_set[name] = instance_type(*args, **kwargs)
-                except ValueError:
-                    raise
+    # @staticmethod
+    # def _add_instance(instance_set, instance_type, *args, **kwargs):
+    #     """Add an instance_type to instance_set.
+    #
+    #     :param instance_set: OrderedDict
+    #         Should be either self.objectives, self.constraints or
+    #         self.variables.
+    #     :param instance_type: object
+    #         Should be either Objective, Constraint or Variable.
+    #     """
+    #     if len(args) > 0:
+    #         if isinstance(args[0], instance_type):
+    #             instance = args[0]
+    #             instance_set[instance.name] = instance
+    #         else:
+    #             name = args[0]
+    #             try:
+    #                 instance_set[name] = instance_type(*args, **kwargs)
+    #             except ValueError:
+    #                 raise
 
     def __str__(self):
         text = '\nOptimization Problem: %s\n' % self.name

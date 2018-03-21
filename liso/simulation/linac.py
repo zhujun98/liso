@@ -67,13 +67,13 @@ class Linac(object):
         """
         self.beamlines[beamline].add_line(*args, **kwargs)
 
-    def update(self, mapping, workers=1):
+    def update(self, var_dict, workers=1):
         """Update the linac.
 
         Re-simulate the beamlines and update all FitPoints and FitLines.
 
-        :param: mapping
-
+        :param: var_dict: dict
+            A dictionary for variables with key=name and value=value.
         :param workers: int
             Number of threads.
 
@@ -87,15 +87,15 @@ class Linac(object):
                 os.remove(os.path.join(bl.dirname, bl.fin))
             except OSError:
                 pass
-            found = found.union(generate_input(bl, mapping))
+            found = found.union(generate_input(bl, var_dict))
 
             fin = os.path.join(bl.dirname, bl.fin)
             if not os.path.exists(fin):
                 raise BeamlineInputFileNotGeneratedError("Not found: %s" % fin)
 
-        if found != mapping.keys():
+        if found != var_dict.keys():
             raise ValueError("Variables %s not found in the templates!" %
-                             (mapping.keys() - found))
+                             (var_dict.keys() - found))
 
         # Remove files generated in the last simulation.
         # Not raise.
