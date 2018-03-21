@@ -149,7 +149,7 @@ class LinacOptimization(object):
 
         if is_update_failed is False:
             try:
-                f, g = self.obj_func(self.linac.beamlines)
+                f, g = self.obj_func(self._linac.beamlines)
                 self._nf = 0
             except AttributeError:
                 raise AttributeError("Tried to access a non-existed beamline "

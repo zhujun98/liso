@@ -72,4 +72,5 @@ opt.add_var('main_sole_b', value=0.1, lower=0.0, upper=0.4)  # variable
 opt.add_var('MQZM1_G', value=0.0, lower=-2.0, upper=2.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lower=-2.0, upper=2.0)  # variable
 
-opt.solve(optimizer, workers=1)  # Run the optimization
+opt.workers = 1
+opt.solve(optimizer)  # Run the optimization

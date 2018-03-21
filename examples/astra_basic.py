@@ -73,4 +73,5 @@ opt.add_icon('g2')  # inequality constraint
 opt.add_var('laser_spot', value=0.1, lower=0.04, upper=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lower=0.0, upper=0.4)  # variable
 
-opt.solve(optimizer, workers=2)  # Run the optimization
+opt.workers = 2
+opt.solve(optimizer)  # Run the optimization

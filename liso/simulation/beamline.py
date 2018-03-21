@@ -83,6 +83,10 @@ class Beamline(ABC):
         self.lines = OrderedDict()
         self._output_suffixes = []
 
+        # default watch and line
+        self.add_watch('out', self.pout)
+        self.add_line('all', self.pout.split('.')[0])
+
     @abstractmethod
     def add_watch(self, name, pfile, **kwargs):
         """Add a Watch object to the beamline.
@@ -182,7 +186,11 @@ class Beamline(ABC):
         pout = os.path.join(self.predecessor.dirname, os.path.basename(self.predecessor.pout))
         pin = os.path.join(self.dirname, os.path.basename(self.pin))
 
-        os.remove(pin)
+        try:
+            os.remove(pin)
+        except FileNotFoundError:
+            pass
+
         convert_particle_file(pout, pin,
                               code_pout=self.predecessor.code,
                               code_pin=self.code,
@@ -265,11 +273,6 @@ class AstraBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         """Initialization."""
         super().__init__(*args, **kwargs)
-
-        # default watch and line
-        self.add_watch('out', self.pout)
-        self.add_line('all', self.pout.split('.')[0])
-
         self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001']
 
     def add_watch(self, name, pfile, **kwargs):
@@ -301,10 +304,6 @@ class ImpacttBeamline(Beamline):
 
         if self.charge is None:
             raise ValueError("Bunch charge is required for Impact-T simulation!")
-
-        # default watch and line
-        self.add_watch('out', self.pout)
-        self.add_line('all', 'fort')
 
         self._output_suffixes = ['.18', '.24', '.25', '.26']
 

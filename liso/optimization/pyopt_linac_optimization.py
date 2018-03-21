@@ -42,7 +42,7 @@ class PyoptLinacOptimization(LinacOptimization):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def solve(self, optimizer, *, workers=1):
+    def solve(self, optimizer):
         """Run the optimization and print the result.
 
         Override the method in the parent class.
@@ -52,7 +52,6 @@ class PyoptLinacOptimization(LinacOptimization):
         :param workers: int
             Number of threads.
         """
-        self.workers = workers
         print(self.__str__())
 
         opt_prob = Optimization("opt_prob", self.eval_obj_func)

@@ -75,4 +75,5 @@ opt.add_icon('g2')  # inequality constraint
 opt.add_var('MQZM1_G', value=0.0, lower=-12.0, upper=12.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lower=-12.0, upper=12.0)  # variable
 
-opt.solve(optimizer, workers=2)  # Run the optimization
+opt.workers = 2
+opt.solve(optimizer)  # Run the optimization
