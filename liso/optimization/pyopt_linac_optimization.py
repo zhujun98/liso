@@ -49,8 +49,6 @@ class PyoptLinacOptimization(LinacOptimization):
 
         :param optimizer: Optimizer object.
             Optimizer.
-        :param workers: int
-            Number of threads.
         """
         print(self.__str__())
 
@@ -60,11 +58,12 @@ class PyoptLinacOptimization(LinacOptimization):
         # pyOpt relies on the str(int) type key for variables, constraints,
         # so that inside the dictionary the items are sorted by key.
         for var in self.variables.values():
-            opt_prob.addVar(var.name, var.type_, lower=var.lb, upper=var.ub, value=var.value)
-
+            opt_prob.addVar(var.name, var.type_,
+                            lower=var.lb,
+                            upper=var.ub,
+                            value=var.value)
         for obj in self.objectives.values():
             opt_prob.addObj(obj.name)
-
         for ec in self.e_constraints.values():
             opt_prob.addCon(ec.name, 'e')
         for ic in self.i_constraints.values():

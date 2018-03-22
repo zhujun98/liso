@@ -131,14 +131,12 @@ class LinacOptimization(object):
             self._nf = 0
         # exception propagates from Beamline.simulate() method
         except SimulationNotFinishedProperlyError as e:
-            print("Simulate did not start or finish normally!")
+            print(e)
             self._nf += 1
         # exception propagates from BeamParameters.update() method
         except FileNotFoundError as e:
-            print("file not found")
+            print(e)
             self._nf += 1
-        except BeamlineMonitorError:
-            raise
         except Exception as e:
             print("Unknown bug detected!")
             raise
@@ -153,8 +151,7 @@ class LinacOptimization(object):
                 self._nf = 0
             except AttributeError:
                 raise AttributeError("Tried to access a non-existed beamline "
-                                     "monitor in the user-defined obj_func: "
-                                     "%s!" % e)
+                                     "monitor in the user-defined obj_func!")
         else:
             f = INF
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))

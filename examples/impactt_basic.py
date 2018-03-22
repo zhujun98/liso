@@ -3,12 +3,10 @@
 """
 This is a basic example showing how to optimize the beam size
 in IMPACT-T with a local search optimizer.
-
-It should end up with Sx = 0.0486 mm, Sy = 0.2998 mm.
 """
 from liso import Linac
 
-USE_PYOPT = True
+USE_PYOPT = False
 
 if USE_PYOPT:
     from pyOpt import SDPEN
@@ -38,6 +36,10 @@ if USE_PYOPT:
     optimizer.setOption('alfa_stop', 1e-2)
 else:
     optimizer = ALPSO()
+    optimizer.swarm_size = 20
+    optimizer.max_inner_iter = 3
+    optimizer.min_inner_iter = 1
+    optimizer.max_outer_iter = 10
 
 
 def obj_func(linac):

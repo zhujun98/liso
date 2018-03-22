@@ -77,8 +77,8 @@ class ALPSO(Optimizer):
         x_max = np.zeros(n_vars, float)
         i = 0
         for key in opt_prob.variables.keys():
-            x_min[i] = opt_prob.variables[key].lower
-            x_max[i] = opt_prob.variables[key].upper
+            x_min[i] = opt_prob.variables[key].lb
+            x_max[i] = opt_prob.variables[key].ub
             i += 1
 
         def f_obj_con(x):

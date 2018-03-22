@@ -33,21 +33,20 @@ class Variable(object):
             self.lb = -INF
             self.ub = INF
             for key in kwargs.keys():
-                if key.lower() == 'lower':
+                if key.lower() == 'lb':
                     self.lb = float(kwargs[key])
-                if key.lower() == 'upper':
-                    self.lb = float(kwargs[key])
+                if key.lower() == 'ub':
+                    self.ub = float(kwargs[key])
 
         elif type_[0].lower() == 'i':
             self.value = int(value)
             self.lb = None
             self.ub = None
             for key in kwargs.keys():
-                if key.lower() == 'lower':
+                if key.lower() == 'lb':
                     self.lb = int(kwargs[key])
-
-                if key.lower() == 'upper':
-                    self.lb = int(kwargs[key])
+                if key.lower() == 'ub':
+                    self.ub = int(kwargs[key])
 
             if self.lb is None or self.ub is None:
                 raise ValueError('An integer variable requires both '

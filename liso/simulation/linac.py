@@ -85,13 +85,14 @@ class Linac(object):
         for bl in self.beamlines.values():
             try:
                 os.remove(os.path.join(bl.dirname, bl.fin))
-            except OSError:
+            except FileNotFoundError:
                 pass
             found = found.union(generate_input(bl, var_dict))
 
             fin = os.path.join(bl.dirname, bl.fin)
             if not os.path.exists(fin):
-                raise BeamlineInputFileNotGeneratedError("Not found: %s" % fin)
+                raise BeamlineInputFileNotFoundError(
+                    "The input file %s has not been generated!" % fin)
 
         if found != var_dict.keys():
             raise ValueError("Variables %s not found in the templates!" %

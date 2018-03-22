@@ -26,7 +26,5 @@ class Optimizer(ABC):
 
         :param opt_problem: Optimization object
             Optimization problem instance.
-        :param workers: int
-            Number of threads.
         """
         raise NotImplemented

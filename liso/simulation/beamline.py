@@ -157,8 +157,8 @@ class Beamline(ABC):
                                       filter_size=watch.filter_size,
                                       slice_percent=watch.slice_percent,
                                       slice_with_peak_current=watch.slice_with_peak_current)
-            except FileNotFoundError:
-                raise
+            except FileNotFoundError as e:
+                raise WatchFileNotFoundError(e)
             except Exception as e:
                 print(e)
                 raise
@@ -170,8 +170,8 @@ class Beamline(ABC):
             try:
                 data = line.load_data()
                 params = analyze_line(data, line.zlim)
-            except FileNotFoundError:
-                raise
+            except FileNotFoundError as e:
+                raise LineFileNotFoundError(e)
             except Exception as e:
                 print(e)
                 raise
@@ -231,6 +231,7 @@ class Beamline(ABC):
             raise SimulationNotFinishedProperlyError(e)
         except Exception as e:
             print(e)
+            raise
         finally:
             time.sleep(1)
 
