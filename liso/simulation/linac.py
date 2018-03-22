@@ -23,22 +23,22 @@ class Linac(object):
     def add_beamline(self, val, *args, **kwargs):
         """Add a beamline.
 
-        :param val: string or Beamline object.
-            Code used to simulate the beamline or an existing beamline.
+        :param val: string.
+            Code used to simulate the beamline.
         """
-        if isinstance(val, Beamline):
-            bl = val
+        if val.lower() in ('astra', 'a'):
+            bl = AstraBeamline(*args, **kwargs)
+        elif val.lower() in ('impactt', 't'):
+            bl = ImpacttBeamline(*args, **kwargs)
+        elif val.lower() in ('impactz', 'z'):
+            bl = ImpactzBeamline(*args, **kwargs)
+        elif val.lower() in ('genesis', 'g'):
+            bl = GenesisBeamline(*args, **kwargs)
         else:
-            if val.lower() in ('astra', 'a'):
-                bl = AstraBeamline(*args, **kwargs)
-            elif val.lower() in ('impactt', 't'):
-                bl = ImpacttBeamline(*args, **kwargs)
-            elif val.lower() in ('impactz', 'z'):
-                bl = ImpactzBeamline(*args, **kwargs)
-            elif val.lower() in ('genesis', 'g'):
-                bl = GenesisBeamline(*args, **kwargs)
-            else:
-                raise ValueError("Unknown code!")
+            raise ValueError("Unknown code!")
+
+        if bl.name in self.beamlines.keys():
+            raise ValueError("Beamline named {} already exists!".format(bl.name))
 
         # connect the new Beamline to the last added Beamline
         if len(self.beamlines) != 0:
