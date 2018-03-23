@@ -28,9 +28,7 @@ where:
 Author: Jun Zhu
 
 """
-from datetime import datetime
-
-from liso.optimization.linac_optimization import LinacOptimization
+from .linac_optimization import LinacOptimization
 from pyOpt import Optimization
 from ..config import Config
 
@@ -71,9 +69,7 @@ class PyoptLinacOptimization(LinacOptimization):
 
         # TODO::check whether the optimizer and opt_prob match?
         # Run optimization
-        t0 = datetime.now()
         optimizer(opt_prob)
-        dt = datetime.now() - t0
 
         # Paste the solution in pyOpt to this API
         for var in opt_prob.solution(0).getVarSet().values():

@@ -29,7 +29,6 @@ Author: Jun Zhu
 
 """
 from collections import OrderedDict
-from datetime import datetime
 
 from ..simulation import Linac
 from .variable import Variable
@@ -46,17 +45,16 @@ INF = Config.INF
 class LinacOptimization(object):
     """LinacOpt class."""
     def __init__(self, linac, *,
-                 name='Not specified',
-                 time_out=INF,
-                 max_successive_failure_allowed=20,
+                 name='',
+                 max_successive_failures=20,
                  workers=1):
         """Initialization.
 
         :param linac: Linac object
             Linac instance.
-        :param time_out: float
-            Maximum time for killing the simulation.
-        :param max_successive_failure_allowed: int
+        :param name: str
+            Name of the optimization problem (arbitrary).
+        :param max_successive_failures: int
             Max number of allowed successive failures.
         :param workers: int
             Number of threads.
@@ -76,11 +74,11 @@ class LinacOptimization(object):
         self.e_constraints = OrderedDict()
         self.i_constraints = OrderedDict()
 
-        self.time_out = time_out
         self._nf = 0
-        self._max_successive_failure_allowed = max_successive_failure_allowed
+        self._max_successive_failures = max_successive_failures
 
-        self.start_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        self._start_time = None
+        self._end_time = None
 
         self._DEBUG = False
 
@@ -100,11 +98,7 @@ class LinacOptimization(object):
             Optimizer.
         """
         print(self.__str__())
-
-        t0 = datetime.now()
         optimizer(self)
-        dt = datetime.now() - t0
-
         print(self.__str__())
 
     def eval_obj_cons(self, x):
@@ -139,7 +133,7 @@ class LinacOptimization(object):
             print("Unknown bug detected!")
             raise
         finally:
-            if self._nf > self._max_successive_failure_allowed:
+            if self._nf > self._max_successive_failures:
                 raise SimulationSuccessiveFailureError(
                     "Maximum allowed number of successive failures reached!")
 
@@ -150,12 +144,14 @@ class LinacOptimization(object):
                 self._update_obj_con(obj)
                 f = obj.value
 
+            # The optimizer must see a e-constraint with eq = 0.0
             count = 0
             for e_con in self.e_constraints.values():
                 self._update_obj_con(e_con)
                 g[count] = e_con.value - e_con.eq
                 count += 1
 
+            # The optimizer must see a i-constraint with lb = -INF, ub = 0.0
             for i_con in self.i_constraints.values():
                 self._update_obj_con(i_con)
                 if abs(i_con.lb) > abs(i_con.ub):
@@ -265,13 +261,15 @@ class LinacOptimization(object):
             raise KeyError("{} is not an equality constraint!".format(name))
 
     def __str__(self):
-        text = '\nOptimization Problem: %s\n' % self.name
-        text += 'Started at: ' + self.start_time
-        text += "\n" + '='*80
-        text += self._format_output(self.objectives, 'Objectives')
-        text += self._format_output(self.e_constraints, 'Equality constraints')
-        text += self._format_output(self.i_constraints, 'Inequality constraints')
-        text += self._format_output(self.variables, 'Variables')
+        text = '\nOptimization Problem: %s' % self.name
+        if self._start_time is not None and self._end_time is not None:
+            text += 'Started at: ' + self._start_time
+            text += 'Ended at: ' + self._end_time
+        text += '\n' + '='*80 + '\n'
+        text += self._format_output(self.objectives, 'Objective(s)')
+        text += self._format_output(self.e_constraints, 'Equality constraint(s)')
+        text += self._format_output(self.i_constraints, 'Inequality constraint(s)')
+        text += self._format_output(self.variables, 'Variable(s)')
         return text
 
     @staticmethod

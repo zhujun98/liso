@@ -37,7 +37,8 @@ class Beamline(ABC):
                  pin=None,
                  pout=None,
                  charge=None,
-                 z0=0.0):
+                 z0=0.0,
+                 timeout=300):
         """Initialization.
 
         :param name: string
@@ -61,6 +62,8 @@ class Beamline(ABC):
             simulation, e.g. Suppose the second beamline is defined
             from z0 = 0.0, when doing the particle file conversion,
             z0 is required.
+        :param timeout: float
+            Maximum allowed duration in seconds of the simulation.
         """
         self.name = name
         if isinstance(gin, InputGenerator):
@@ -105,6 +108,8 @@ class Beamline(ABC):
         self.start = None  # LineParameters
         self.end = None  # LineParameters
         self.std = None  # LineParameters
+
+        self._timeout = timeout
 
     def __getattr__(self, item):
         return self._watches[item][1]
@@ -164,13 +169,11 @@ class Beamline(ABC):
             with open(self.pin, 'w') as fp:
                 fp.truncate()
 
-    def simulate(self, workers=1, time_out=300):
+    def simulate(self, workers=1):
         """Simulate the beamline.
 
         :param workers: int
             Number of threads.
-        :param time_out: int
-            Number of seconds.
         """
         # Generate new particle file for concatenate simulation
         if self.predecessor is not None:
@@ -181,13 +184,13 @@ class Beamline(ABC):
 
         if workers > 1:
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
-                time_out,
+                self._timeout,
                 workers,
                 self.__class__.exec_p,
                 self.fin)
         else:
             command = "timeout {}s {} {}".format(
-                time_out,
+                self._timeout,
                 self.__class__.exec_s,
                 os.path.basename(self.fin))
 
@@ -246,7 +249,7 @@ class Beamline(ABC):
 
     def __str__(self):
         text = '\nBeamline: %s\n' % self.name
-        text += '=' * 80 + '\n'
+        text += '-'*20 + '\n'
         text += 'Directory: %s\n' % self.dirname
         text += 'Input file: %s\n' % self.fin
         if self.pin is not None:
@@ -254,12 +257,9 @@ class Beamline(ABC):
         if self.pout is not None:
             text += 'Output particle file: %s\n' % self.pout
 
-        text += '\nWatch points:\n'
-        if not self._watches:
-            text += 'None'
-        else:
-            for item in self._watches.values():
-                text += item[0].__str__()
+        text += '\nWatch point(s):\n'
+        for item in self._watches.values():
+            text += '* ' + item[0].__str__()
 
         return text
 

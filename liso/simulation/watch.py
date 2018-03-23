@@ -114,8 +114,7 @@ class Watch(ABC):
         pass
 
     def __str__(self):
-        text = 'Name: %s\n' % self.name
-        text += 'Particle file: %s\n' % self.pfile
+        text = '%s: %s\n' % (self.name, self.pfile)
         return text
 
 
