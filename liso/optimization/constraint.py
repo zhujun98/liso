@@ -4,8 +4,9 @@ Constraint class
 
 Author: Jun Zhu
 """
-from .passive_optimization_element import PassiveOptimizationElements
+import warnings
 
+from .passive_optimization_element import PassiveOptimizationElements
 from ..config import Config
 
 INF = Config.INF
@@ -13,11 +14,43 @@ INF = Config.INF
 
 class IConstraint(PassiveOptimizationElements):
     """Optimization inequality constraint class."""
-    def __init__(self, name, expr=None, scale=1.0, func=None, lb=-INF, ub=0.0):
+    def __init__(self, name, expr=None, scale=1.0, func=None, **kwargs):
         """Initialization."""
         super().__init__(name, expr=expr, scale=scale, func=func)
-        self.lb = lb
-        self.ub = ub
+
+        self._lb = -INF
+        self._ub = 0.0
+
+        for key in kwargs:
+            if key.lower() == 'lb':
+                self.lb = kwargs[key]
+            elif key.lower() == 'ub':
+                self.ub = kwargs[key]
+            else:
+                raise ValueError("Unknown keyword argument!")
+
+        if len(kwargs) > 1:
+            warnings.warn("'lb' is ignored since 'ub' is specified!")
+
+    @property
+    def ub(self):
+        return self._ub
+
+    @ub.setter
+    def ub(self, value):
+        self._ub = value
+        self._lb = -INF
+        self.value = INF
+
+    @property
+    def lb(self):
+        return self._lb
+
+    @lb.setter
+    def lb(self, value):
+        self._lb = value
+        self._ub = INF
+        self.value = -INF
 
     def __repr__(self):
         return '{:^12}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(

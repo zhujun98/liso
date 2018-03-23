@@ -153,12 +153,15 @@ class LinacOptimization(object):
             count = 0
             for e_con in self.e_constraints.values():
                 self._update_obj_con(e_con)
-                g[count] = e_con.value
+                g[count] = e_con.value - e_con.eq
                 count += 1
 
             for i_con in self.i_constraints.values():
                 self._update_obj_con(i_con)
-                g[count] = i_con.value
+                if abs(i_con.lb) > abs(i_con.ub):
+                    g[count] = i_con.value - i_con.ub
+                else:
+                    g[count] = i_con.lb - i_con.value
                 count += 1
 
             self._nf = 0

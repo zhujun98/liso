@@ -40,8 +40,8 @@ else:
 opt = LinacOptimization(linac)
 
 opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)  # objective
-opt.add_icon('g1', func=lambda a: a.gun.out.St*1e12 - 3)  # inequality constraint
-opt.add_icon('g2', func=lambda a: a.gun.max.Sx*1e3 - 0.1)  # inequality constraint
+opt.add_icon('g1', func=lambda a: a.gun.out.St*1e12, ub=3)  # inequality constraint
+opt.add_icon('g2', func=lambda a: a.gun.max.Sx*1e3, lb=0.4)  # inequality constraint
 opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)  # variable
 

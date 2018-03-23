@@ -49,10 +49,10 @@ else:
 opt = LinacOptimization(linac)
 
 opt.add_obj('emitx_um', expr='chicane.out.emitx', scale=1.0e6)  # objective
-opt.add_icon('g1', func=lambda a: a.chicane.out1.Sy*1e3 - 0.06)  # inequality constraint
-opt.add_icon('g2', func=lambda a: a.chicane.out1.Sx*1e3 - 0.02)  # inequality constraint
-opt.add_icon('g3', func=lambda a: max(a.gun.max.Sx, a.chicane.max.Sx)*1e3 - 0.2)  # inequality constraint
-opt.add_icon('g4', func=lambda a: max(a.gun.max.Sy, a.chicane.max.Sy)*1e3 - 0.2)  # inequality constraint
+opt.add_icon('g1', func=lambda a: a.chicane.out1.Sy*1e3, ub=0.06)  # inequality constraint
+opt.add_icon('g2', func=lambda a: a.chicane.out1.Sx*1e3, ub=0.02)  # inequality constraint
+opt.add_icon('g3', func=lambda a: max(a.gun.max.Sx, a.chicane.max.Sx)*1e3, ub=0.2)  # inequality constraint
+opt.add_icon('g4', func=lambda a: max(a.gun.max.Sy, a.chicane.max.Sy)*1e3, ub=0.2)  # inequality constraint
 
 opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)  # variable

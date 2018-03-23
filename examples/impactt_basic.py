@@ -5,7 +5,7 @@ in IMPACT-T with a local search optimizer.
 """
 from liso import Linac
 
-USE_PYOPT = True
+USE_PYOPT = False
 
 if USE_PYOPT:
     from pyOpt import SDPEN
@@ -47,14 +47,14 @@ def g2(a):
     :param a: Linac
         A Linac instance.
     """
-    return (a.matching.max.Sx + a.matching.max.Sy)*1.e3 - 0.4
+    return (a.matching.max.Sx + a.matching.max.Sy) / 2. * 1.e3
 
 
 opt = LinacOptimization(linac)
 
 opt.add_obj('Sx', expr='matching.out.Sx', scale=1e3)  # objective
-opt.add_econ('g1', func=lambda a: a.matching.out.Sy*1e3 - 0.1)  # equality constraint
-opt.add_icon('g2', func=g2)  # inequality constraint
+opt.add_econ('g1', func=lambda a: a.matching.out.Sy*1e3, eq=0.1)  # equality constraint
+opt.add_icon('g2', func=g2, ub=0.2)  # inequality constraint
 opt.add_var('MQZM1_G', value=0.0, lb=-12.0, ub=12.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lb=-12.0, ub=12.0)  # variable
 
