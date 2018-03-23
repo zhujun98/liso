@@ -99,6 +99,7 @@ class LinacOptimization(object):
         """
         print(self.__str__())
         optimizer(self)
+        self._update_optimized()
         print(self.__str__())
 
     def eval_obj_cons(self, x):
@@ -148,16 +149,13 @@ class LinacOptimization(object):
             count = 0
             for e_con in self.e_constraints.values():
                 self._update_obj_con(e_con)
-                g[count] = e_con.value - e_con.eq
+                g[count] = e_con.value
                 count += 1
 
             # The optimizer must see a i-constraint with lb = -INF, ub = 0.0
             for i_con in self.i_constraints.values():
                 self._update_obj_con(i_con)
-                if abs(i_con.lb) > abs(i_con.ub):
-                    g[count] = i_con.value - i_con.ub
-                else:
-                    g[count] = i_con.lb - i_con.value
+                g[count] = i_con.value
                 count += 1
 
             self._nf = 0
@@ -184,6 +182,10 @@ class LinacOptimization(object):
         else:
             item.value = self._linac.__getattr__(keys[0]).__getattr__(
                 keys[1]).__getattribute__(keys[2])
+
+    def _update_optimized(self):
+        """Run one simulation with optimized variables."""
+        self.eval_obj_cons([var.value for var in self.variables.values()])
 
     def add_var(self, name, **kwargs):
         """Add a variable."""

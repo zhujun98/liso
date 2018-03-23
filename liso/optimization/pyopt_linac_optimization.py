@@ -50,9 +50,21 @@ class PyoptLinacOptimization(LinacOptimization):
         """
         print(self.__str__())
 
+        # TODO::check whether the optimizer and opt_prob match?
+        opt_prob = self._adapt_optimization()
+        optimizer(opt_prob)
+
+        # Paste the solution in pyOpt to this API
+        for var in opt_prob.solution(0).getVarSet().values():
+            self.variables[var.name].value = var.value
+        self._update_optimized()
+
+        print(self.__str__())
+
+    def _adapt_optimization(self):
+        """Set an Optimization instance used by pyOpt."""
         opt_prob = Optimization("opt_prob", self.eval_obj_cons)
-        # Convert variables, constraints and object in API to pyOpt
-        #
+
         # pyOpt relies on the str(int) type key for variables, constraints,
         # so that inside the dictionary the items are sorted by key.
         for var in self.variables.values():
@@ -62,28 +74,10 @@ class PyoptLinacOptimization(LinacOptimization):
                             value=var.value)
         for obj in self.objectives.values():
             opt_prob.addObj(obj.name)
+        # all equality constraints must be added before inequality constraints.
         for ec in self.e_constraints.values():
             opt_prob.addCon(ec.name, 'e')
         for ic in self.i_constraints.values():
             opt_prob.addCon(ic.name, 'i')
 
-        # TODO::check whether the optimizer and opt_prob match?
-        # Run optimization
-        optimizer(opt_prob)
-
-        # Paste the solution in pyOpt to this API
-        for var in opt_prob.solution(0).getVarSet().values():
-            self.variables[var.name].value = var.value
-
-        for obj in opt_prob.solution(0).getObjSet().values():
-            self.objectives[obj.name].value = obj.value
-
-        count = 0
-        for con in opt_prob.solution(0).getConSet().values():
-            count += 1
-            if count <= len(self.e_constraints):
-                self.e_constraints[con.name].value = con.value
-            else:
-                self.i_constraints[con.name].value = con.value
-
-        print(self.__str__())
+        return opt_prob

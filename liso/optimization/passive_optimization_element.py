@@ -23,7 +23,6 @@ class PassiveOptimizationElements(ABC):
             Used fo update the constraint value.
         """
         self.name = name
-        self.value = INF
 
         if expr is None and func is None:
             raise ValueError("Unknown expression!")
