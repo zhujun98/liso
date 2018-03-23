@@ -4,39 +4,18 @@ Constraint class
 
 Author: Jun Zhu
 """
-from abc import ABC
-from abc import abstractmethod
+from .passive_optimization_element import PassiveOptimizationElements
 
 from ..config import Config
 
 INF = Config.INF
 
 
-class Constraint(ABC):
-    """Optimization Constraint Class"""
-    def __init__(self, name):
-        """Constraint class initialization
-
-        :param name: string
-            Variable Name.
-        """
-        self.name = name
-        self.value = 0.0
-
-    @abstractmethod
-    def __repr__(self):
-        raise NotImplemented
-
-    @abstractmethod
-    def __str__(self):
-        raise NotImplemented
-
-
-class IConstraint(Constraint):
-    """Equality constraint class."""
-    def __init__(self, name, lb=-INF, ub=0.0):
+class IConstraint(PassiveOptimizationElements):
+    """Optimization inequality constraint class."""
+    def __init__(self, name, expr=None, scale=1.0, func=None, lb=-INF, ub=0.0):
         """Initialization."""
-        super().__init__(name)
+        super().__init__(name, expr=expr, scale=scale, func=func)
         self.lb = lb
         self.ub = ub
 
@@ -50,11 +29,11 @@ class IConstraint(Constraint):
                self.__repr__()
 
 
-class EConstraint(Constraint):
-    """Equality constraint class."""
-    def __init__(self, name, eq=0.0):
+class EConstraint(PassiveOptimizationElements):
+    """Optimization equality constraint class."""
+    def __init__(self, name, expr=None, scale=1.0, func=None, eq=0.0):
         """Initialization."""
-        super().__init__(name)
+        super().__init__(name, expr=expr, scale=scale, func=func)
         self.eq = eq
 
     def __repr__(self):

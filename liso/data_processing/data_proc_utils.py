@@ -4,7 +4,7 @@ Author: Jun Zhu
 """
 import numpy as np
 from .beam_parameters import BeamParameters
-from .line_parameters import LineParameters, Stats
+from .line_parameters import LineParameters
 from ..exceptions import *
 
 
@@ -333,34 +333,31 @@ def analyze_beam(data, charge, *,
     return params
 
 
-def analyze_line(data, zlim):
+def analyze_line(data, func):
     """Calculate line parameters.
 
-    :param zlim: tuple, (z_min, z_max)
+    :param data: Pandas.DataFrame
+        Line data.
+    :param func: a functor
         Range of the z coordinate.
 
-    :return: A LineParameter object.
+    :return: A LineParameters instance.
     """
-    # Slice data in the range of self.z_lim
-    z_max = min(data['z'].max(), zlim[1])
-    z_min = max(data['z'].min(), zlim[0])
-
-    i_min = 0
-    i_max = len(data['z'])
-    for i in range(i_max):
-        if z_min <= data['z'][i]:
-            i_min = i
-            break
-
-    for i in range(i_max):
-        if z_max < data['z'][i]:
-            i_max = i - 1
-            break
-    data = data.ix[i_min:i_max]
-
     params = LineParameters()
-    for key, value in params.__dict__.items():
-        if isinstance(value, Stats):
-            value.update(data[key.lower()])
+
+    params.z = func(data['z'])
+    params.gamma = func(data['gamma'])
+    params.SdE = func(data['sde'])
+    params.Sx = func(data['sx'])
+    params.Sy = func(data['sy'])
+    params.Sz = func(data['sz'])
+    params.betax = func(data['betax'])
+    params.betay = func(data['betay'])
+    params.alphax = func(data['alphax'])
+    params.alphay = func(data['alphay'])
+    params.emitx = func(data['emitx'])
+    params.emity = func(data['emity'])
+    params.emitx_tr = func(data['emitx_tr'])
+    params.emity_tr = func(data['emity_tr'])
 
     return params

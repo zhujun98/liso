@@ -4,6 +4,15 @@ Author: Jun Zhu
 
 Line data parser for different codes.
 
+Important note:
+_______________
+The calculated Twiss parameters are based on the canonical coordinates
+of the beam. Therefore, when the beam has a large energy spread or a
+big divergence angle, the result will be quite different from the
+true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
+get the very-close Twiss parameters even in extreme conditions.
+
+
 The data is a pandas.DataFrame containing the following columns:
 
     z (m)

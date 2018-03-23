@@ -1,12 +1,11 @@
 #!/usr/bin/python
-
 """
 This is a basic example showing how to optimize the beam size
 in IMPACT-T with a local search optimizer.
 """
 from liso import Linac
 
-USE_PYOPT = False
+USE_PYOPT = True
 
 if USE_PYOPT:
     from pyOpt import SDPEN
@@ -42,40 +41,23 @@ else:
     optimizer.max_outer_iter = 10
 
 
-def obj_func(linac):
-    """Define objective and constraint functions."""
-    # define objective
-    f = linac['matching'].out.Sx*1.e3
+def g2(a):
+    """Define a constraint function.
 
-    # define constraint
-    g = list()
-
-    # After initializing the Beamline Object, it will automatically add
-    # an attribute which is a Watch object (name='out'). 'Watch' is an
-    # abstraction for a location where the code dumps particle file, one
-    # can retrieve the beam parameters at this location by, for instance,
-    # linac[beamline name].out.Sx (rms beam size),
-    # linac[beamline name].out.emitx (horizontal emittance).
-    g.append(linac['matching'].out.Sy*1.e3 - 0.15)
-    # After initializing the Beamline Object, it will automatically add
-    # an attribute which is a Line object (name='all'). 'Line' is an
-    # abstraction for beam statistic along the whole or a section of the
-    # beamline, one can retrieve the beam statistics by, for instance,
-    # linac[beamline name].all.Sx.max (max rms beam size),
-    # linac[beamline name].all.betax.ave (average beta function).
-    g.append(linac['matching'].all.Sx.max*1.e3 - 0.20)
-
-    print(f, g)
-    return f, g
+    :param a: Linac
+        A Linac instance.
+    """
+    return (a.matching.max.Sx + a.matching.max.Sy)*1.e3 - 0.4
 
 
-opt = LinacOptimization(linac, obj_func)
+opt = LinacOptimization(linac)
 
-opt.add_obj('Sx')  # objective
-opt.add_icon('g1')  # inequality constraint
-opt.add_icon('g2')  # inequality constraint
+opt.add_obj('Sx', expr='matching.out.Sx', scale=1e3)  # objective
+opt.add_econ('g1', func=lambda a: a.matching.out.Sy*1e3 - 0.1)  # equality constraint
+opt.add_icon('g2', func=g2)  # inequality constraint
 opt.add_var('MQZM1_G', value=0.0, lb=-12.0, ub=12.0)  # variable
 opt.add_var('MQZM2_G', value=0.0, lb=-12.0, ub=12.0)  # variable
 
 opt.workers = 2
+opt._DEBUG = True
 opt.solve(optimizer)  # Run the optimization

@@ -52,7 +52,7 @@ class PyoptLinacOptimization(LinacOptimization):
         """
         print(self.__str__())
 
-        opt_prob = Optimization("opt_prob", self.eval_obj_func)
+        opt_prob = Optimization("opt_prob", self.eval_obj_cons)
         # Convert variables, constraints and object in API to pyOpt
         #
         # pyOpt relies on the str(int) type key for variables, constraints,

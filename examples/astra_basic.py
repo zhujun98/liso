@@ -30,34 +30,6 @@ linac.add_beamline('astra',
 
 print(linac)
 
-
-def obj_func(linac):
-    """Define objective and constraint functions."""
-    # define objective
-    f = linac['gun'].out.emitx*1.e6
-
-    # define constraint
-    g = list()
-
-    # After initializing the Beamline Object, it will automatically add
-    # an attribute which is a Watch object (name='out'). 'Watch' is an
-    # abstraction for a location where the code dumps particle file, one
-    # can retrieve the beam parameters at this location by, for instance,
-    # linac[beamline name].out.Sx (rms beam size),
-    # linac[beamline name].out.emitx (horizontal emittance).
-    g.append(linac['gun'].out.St - 5e-12)
-    # After initializing the Beamline Object, it will automatically add
-    # an attribute which is a Line object (name='all'). 'Line' is an
-    # abstraction for beam statistic along the whole or a section of the
-    # beamline, one can retrieve the beam statistics by, for instance,
-    # linac[beamline name].all.Sx.max (max rms beam size),
-    # linac[beamline name].all.betax.ave (average beta function).
-    g.append(linac['gun'].all.Sx.max - 0.2e-3)
-
-    print(f, g)
-    return f, g
-
-
 # set the optimizer
 if USE_PYOPT:
     optimizer = SDPEN()
@@ -65,13 +37,14 @@ if USE_PYOPT:
 else:
     optimizer = ALPSO()
 
-opt = LinacOptimization(linac, obj_func)
+opt = LinacOptimization(linac)
 
-opt.add_obj('emitx_um')  # objective
-opt.add_icon('g1')  # inequality constraint
-opt.add_icon('g2')  # inequality constraint
+opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)  # objective
+opt.add_icon('g1', func=lambda a: a.gun.out.St*1e12 - 3)  # inequality constraint
+opt.add_icon('g2', func=lambda a: a.gun.max.Sx*1e3 - 0.1)  # inequality constraint
 opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)  # variable
 
 opt.workers = 2
+opt._DEBUG = True
 opt.solve(optimizer)  # Run the optimization

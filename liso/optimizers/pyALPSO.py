@@ -92,7 +92,7 @@ class ALPSO(Optimizer):
             :return: g: numpy.array
                 Constraint values.
             """
-            f, g, _ = opt_prob.eval_obj_func(x*(x_max - x_min) + x_min)
+            f, g, _ = opt_prob.eval_obj_cons(x*(x_max - x_min) + x_min)
             return f, g
 
         # =====================================================================

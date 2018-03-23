@@ -18,7 +18,10 @@ class Linac(object):
     """
     def __init__(self):
         """Initialization."""
-        self.beamlines = defaultdict()
+        self._beamlines = defaultdict()
+
+    def __getattr__(self, item):
+        return self._beamlines[item]
 
     def add_beamline(self, val, *args, **kwargs):
         """Add a beamline.
@@ -37,19 +40,19 @@ class Linac(object):
         else:
             raise ValueError("Unknown code!")
 
-        if bl.name in self.beamlines.keys():
+        if bl.name in self._beamlines.keys():
             raise ValueError("Beamline named {} already exists!".format(bl.name))
 
         # connect the new Beamline to the last added Beamline
-        if len(self.beamlines) != 0:
-            bl.predecessor = list(self.beamlines.values())[-1]
+        if len(self._beamlines) != 0:
+            bl.predecessor = list(self._beamlines.values())[-1]
 
             if bl.pin is None or bl.predecessor.pout is None:
                 raise ValueError("Input particle of the new Beamline and output "
                                  "particle file of the predecessor Beamline must "
                                  "be specified for a concatenated simulation!")
 
-        self.beamlines[bl.name] = bl
+        self._beamlines[bl.name] = bl
 
     def add_watch(self, beamline, *args, **kwargs):
         """Add a Watch object to a Beamline of the Linac.
@@ -57,20 +60,13 @@ class Linac(object):
         :param beamline: string
             Name of the Beamline object.
         """
-        self.beamlines[beamline].add_watch(*args, **kwargs)
-
-    def add_line(self, beamline, *args, **kwargs):
-        """Add a Line object to a Beamline of the Linac.
-
-        :param beamline: string
-            Name of the Beamline object.
-        """
-        self.beamlines[beamline].add_line(*args, **kwargs)
+        self._beamlines[beamline].add_watch(*args, **kwargs)
 
     def update(self, var_dict, workers=1):
         """Update the linac.
 
-        Re-simulate the beamlines and update all FitPoints and FitLines.
+        Re-simulate all beamlines and update all BeamParameters and
+        LineParameters.
 
         :param: var_dict: dict
             A dictionary for variables with key=name and value=value.
@@ -80,9 +76,13 @@ class Linac(object):
         :return: A bool value indicates whether the output files have
                  been produced correctly.
         """
+        # First clean all the previous output
+        for beamline in self._beamlines.values():
+            beamline.clean()
+
         # Generate new input files for next simulation
         found = set()
-        for bl in self.beamlines.values():
+        for bl in self._beamlines.values():
             try:
                 os.remove(os.path.join(bl.dirname, bl.fin))
             except FileNotFoundError:
@@ -98,26 +98,15 @@ class Linac(object):
             raise ValueError("Variables %s not found in the templates!" %
                              (var_dict.keys() - found))
 
-        # Remove files generated in the last simulation.
-        # Not raise.
-        for beamline in self.beamlines.values():
-            beamline.clean()
-
-        # Run simulations.
-        # Raise SimulationNotFinishedProperlyError
-        for (i, beamline) in enumerate(self.beamlines.values()):
-            if i != 0:
-                beamline.update_pin()
+        # Run simulations, and update all the BeamParameters and LineParameters
+        for (i, beamline) in enumerate(self._beamlines.values()):
+            # TODO: implement multi-threading here
             beamline.simulate(workers)
-
-        # Recalculate the parameters at each FitPoint and FitLine.
-        # Raise FileNotFoundError
-        for beamline in self.beamlines.values():
             beamline.update()
 
     def __str__(self):
         text = ''
-        for beamline in self.beamlines.values():
+        for beamline in self._beamlines.values():
             text += beamline.__str__() + '\n'
 
         return text

@@ -45,7 +45,7 @@ INF = Config.INF
 
 class LinacOptimization(object):
     """LinacOpt class."""
-    def __init__(self, linac, obj_func, *,
+    def __init__(self, linac, *,
                  name='Not specified',
                  time_out=INF,
                  max_successive_failure_allowed=20,
@@ -54,8 +54,6 @@ class LinacOptimization(object):
 
         :param linac: Linac object
             Linac instance.
-        :param obj_func: function
-            Objective / constraint function.
         :param time_out: float
             Maximum time for killing the simulation.
         :param max_successive_failure_allowed: int
@@ -68,7 +66,6 @@ class LinacOptimization(object):
         else:
             raise TypeError("{} is not a Linac instance!".format(linac))
 
-        self.obj_func = obj_func
         self.name = name
         self._workers = 1
         self.workers = workers
@@ -84,6 +81,8 @@ class LinacOptimization(object):
         self._max_successive_failure_allowed = max_successive_failure_allowed
 
         self.start_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+
+        self._DEBUG = False
 
     @property
     def workers(self):
@@ -108,7 +107,7 @@ class LinacOptimization(object):
 
         print(self.__str__())
 
-    def eval_obj_func(self, x):
+    def eval_obj_cons(self, x):
         """Objective-constraint function.
 
         This method will be called in the f_obj_con function of the optimizer.
@@ -124,7 +123,6 @@ class LinacOptimization(object):
         # Run simulations with the new input files
 
         is_update_failed = True
-
         try:
             self._linac.update(x_dict, self.workers)
             is_update_failed = False
@@ -145,18 +143,48 @@ class LinacOptimization(object):
                 raise SimulationSuccessiveFailureError(
                     "Maximum allowed number of successive failures reached!")
 
+        f = INF
+        g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
         if is_update_failed is False:
-            try:
-                f, g = self.obj_func(self._linac.beamlines)
-                self._nf = 0
-            except AttributeError:
-                raise AttributeError("Tried to access a non-existed beamline "
-                                     "monitor in the user-defined obj_func!")
-        else:
-            f = INF
-            g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
+            for obj in self.objectives.values():
+                self._update_obj_con(obj)
+                f = obj.value
+
+            count = 0
+            for e_con in self.e_constraints.values():
+                self._update_obj_con(e_con)
+                g[count] = e_con.value
+                count += 1
+
+            for i_con in self.i_constraints.values():
+                self._update_obj_con(i_con)
+                g[count] = i_con.value
+                count += 1
+
+            self._nf = 0
+
+        if self._DEBUG is True:
+            print('{:11.4e}'.format(f), ['{:11.4e}'.format(v) for v in g], is_update_failed)
 
         return f, g, is_update_failed
+
+    def _update_obj_con(self, item):
+        """Update the value of a Objective / Constraint.
+
+        item: Objective / Constraint
+            An Objective / Constraint instance.
+        """
+        if item.func is not None:
+            item.value = item.func(self._linac)
+            return
+
+        keys = item.expr
+        if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
+            item.value = self._linac.__getattr__(keys[0]).__getattribute__(
+                keys[1]).__getattribute__(keys[2])
+        else:
+            item.value = self._linac.__getattr__(keys[0]).__getattr__(
+                keys[1]).__getattribute__(keys[2])
 
     def add_var(self, name, **kwargs):
         """Add a variable."""
@@ -188,10 +216,10 @@ class LinacOptimization(object):
         except KeyError:
             raise KeyError("{} is not a covariable!".format(name))
 
-    def add_obj(self, name):
+    def add_obj(self, name, *args, **kwargs):
         """Add an objective."""
         try:
-            self.objectives[name] = Objective(name)
+            self.objectives[name] = Objective(name, *args, **kwargs)
         except (TypeError, ValueError):
             print("Input is not valid for an Objective class instance!")
             raise
@@ -232,27 +260,6 @@ class LinacOptimization(object):
             del self.e_constraints[name]
         except KeyError:
             raise KeyError("{} is not an equality constraint!".format(name))
-
-    # @staticmethod
-    # def _add_instance(instance_set, instance_type, *args, **kwargs):
-    #     """Add an instance_type to instance_set.
-    #
-    #     :param instance_set: OrderedDict
-    #         Should be either self.objectives, self.constraints or
-    #         self.variables.
-    #     :param instance_type: object
-    #         Should be either Objective, Constraint or Variable.
-    #     """
-    #     if len(args) > 0:
-    #         if isinstance(args[0], instance_type):
-    #             instance = args[0]
-    #             instance_set[instance.name] = instance
-    #         else:
-    #             name = args[0]
-    #             try:
-    #                 instance_set[name] = instance_type(*args, **kwargs)
-    #             except ValueError:
-    #                 raise
 
     def __str__(self):
         text = '\nOptimization Problem: %s\n' % self.name
