@@ -93,7 +93,8 @@ class ALPSO(Optimizer):
                 Constraint values.
             """
             f, g, _ = opt_prob.eval_obj_cons(x*(x_max - x_min) + x_min)
-            return f, g
+            # single objective problem
+            return f[0], g
 
         # =====================================================================
         name = opt_prob.name
@@ -132,14 +133,6 @@ class ALPSO(Optimizer):
                   )
         opt_x[:] = opt_x*(x_max - x_min) + x_min
         delta_t = time.time() - t0
-
-        # TODO:: Store the solution
-        # for i in range(len(opt_x)):
-        #     opt_prob.variables.values()[i].value = opt_x[i]
-        # for i in range(len(opt_g)):
-        #     if i < len(opt_prob.e_constraints):
-        #         opt_prob.e_constraints[i] =
-
 
         if self.verbose is True:
             # Print Results
@@ -186,10 +179,7 @@ class ALPSO(Optimizer):
 
             print(text + "\n" + "=" * 80 + "\n")
 
-        return opt_f, opt_x, {
-            'opt_g': opt_g,
-            'time': delta_t
-        }
+        return opt_f, opt_x, {'time': delta_t}
 
     def __str__(self):
         header = ''

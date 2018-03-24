@@ -62,14 +62,14 @@ class Linac(object):
         """
         self._beamlines[beamline].add_watch(*args, **kwargs)
 
-    def update(self, var_dict, workers=1):
+    def update(self, x_map, workers=1):
         """Update the linac.
 
         Re-simulate all beamlines and update all BeamParameters and
         LineParameters.
 
-        :param: var_dict: dict
-            A dictionary for variables with key=name and value=value.
+        :param: x_map: dict
+            A dictionary for variables and covariables- {name: value}.
         :param workers: int
             Number of threads.
 
@@ -87,16 +87,16 @@ class Linac(object):
                 os.remove(os.path.join(bl.dirname, bl.fin))
             except FileNotFoundError:
                 pass
-            found = found.union(generate_input(bl, var_dict))
+            found = found.union(generate_input(bl, x_map))
 
             fin = os.path.join(bl.dirname, bl.fin)
             if not os.path.exists(fin):
                 raise BeamlineInputFileNotFoundError(
                     "The input file %s has not been generated!" % fin)
 
-        if found != var_dict.keys():
+        if found != x_map.keys():
             raise ValueError("Variables %s not found in the templates!" %
-                             (var_dict.keys() - found))
+                             (x_map.keys() - found))
 
         # Run simulations, and update all the BeamParameters and LineParameters
         for (i, beamline) in enumerate(self._beamlines.values()):

@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 """
 A PYTHON script for optimizing linac.
 
@@ -49,16 +48,11 @@ class PyoptLinacOptimization(LinacOptimization):
             Optimizer.
         """
         print(self.__str__())
-
         # TODO::check whether the optimizer and opt_prob match?
         opt_prob = self._adapt_optimization()
-        optimizer(opt_prob)
-
-        # Paste the solution in pyOpt to this API
-        for var in opt_prob.solution(0).getVarSet().values():
-            self.variables[var.name].value = var.value
-        self._update_optimized()
-
+        opt_f, opt_x, _ = optimizer(opt_prob)
+        self._create_solution(opt_x)
+        self._verify_solution(opt_f)
         print(self.__str__())
 
     def _adapt_optimization(self):

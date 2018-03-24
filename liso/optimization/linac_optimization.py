@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
 """
-A PYTHON script for optimizing linac.
-
-Optimizers (SDPEN, ALPSO, NSGA2) in pyOpt are used in this
-script to solve general constrained nonlinear optimization problems:
+The optimization problem is define as:
 
 min f(x) w.r.t. x
 
@@ -29,6 +26,9 @@ Author: Jun Zhu
 
 """
 from collections import OrderedDict
+from itertools import chain
+
+import numpy as np
 
 from ..simulation import Linac
 from .variable import Variable
@@ -65,8 +65,6 @@ class LinacOptimization(object):
             raise TypeError("{} is not a Linac instance!".format(linac))
 
         self.name = name
-        self._workers = 1
-        self.workers = workers
 
         self.variables = OrderedDict()
         self.covariables = OrderedDict()
@@ -74,11 +72,15 @@ class LinacOptimization(object):
         self.e_constraints = OrderedDict()
         self.i_constraints = OrderedDict()
 
+        self._x_map = OrderedDict()  # Initialize the x_map dictionary
+
+        self._workers = 1
+        self.workers = workers
+
         self._nf = 0
         self._max_successive_failures = max_successive_failures
 
-        self._start_time = None
-        self._end_time = None
+        self.solution = None  # OptSolution
 
         self._DEBUG = False
 
@@ -98,8 +100,9 @@ class LinacOptimization(object):
             Optimizer.
         """
         print(self.__str__())
-        optimizer(self)
-        self._update_optimized()
+        opt_f, opt_x, _ = optimizer(self)
+        self._create_solution(opt_x)
+        self._verify_solution(opt_f)
         print(self.__str__())
 
     def eval_obj_cons(self, x):
@@ -110,16 +113,11 @@ class LinacOptimization(object):
         :param x: array-like
             Variables updated after each iteration.
         """
-        # generate the variable mapping - {name: value}
-        x_dict = {key: value for key, value in zip(self.variables.keys(), x)}
-        for covar in self.covariables:
-            x_dict[covar.name] = covar.value
-
         # Run simulations with the new input files
-
         is_update_failed = True
         try:
-            self._linac.update(x_dict, self.workers)
+            self._update_x_map(x)
+            self._linac.update(self._x_map, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
@@ -138,59 +136,76 @@ class LinacOptimization(object):
                 raise SimulationSuccessiveFailureError(
                     "Maximum allowed number of successive failures reached!")
 
-        f = INF
-        g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
         if is_update_failed is False:
+            self._update_obj_cons()
+
+            f = []
             for obj in self.objectives.values():
-                self._update_obj_con(obj)
-                f = obj.value
-
-            # The optimizer must see a e-constraint with eq = 0.0
-            count = 0
-            for e_con in self.e_constraints.values():
-                self._update_obj_con(e_con)
-                g[count] = e_con.value
-                count += 1
-
-            # The optimizer must see a i-constraint with lb = -INF, ub = 0.0
-            for i_con in self.i_constraints.values():
-                self._update_obj_con(i_con)
-                g[count] = i_con.value
-                count += 1
+                f.append(obj.value)
+            g = []
+            for con in chain(self.e_constraints.values(),
+                             self.i_constraints.values()):
+                g.append(con.value)
 
             self._nf = 0
+        else:
+            f = [INF] * len(self.objectives)
+            g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
 
         if self._DEBUG is True:
-            print('{:11.4e}'.format(f), ['{:11.4e}'.format(v) for v in g], is_update_failed)
+            print(['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
+                  ['{:9.2e}'.format(v) for v in f],
+                  ['{:9.2e}'.format(v) for v in g],
+                  is_update_failed)
 
         return f, g, is_update_failed
 
-    def _update_obj_con(self, item):
-        """Update the value of a Objective / Constraint.
+    def _create_solution(self, opt_x):
+        """Update attributes with the optimized values.
 
-        item: Objective / Constraint
-            An Objective / Constraint instance.
+        Update objectives, variables, covariables, constraints.
+
+        :param opt_x: list
+            Optimized x values.
         """
-        if item.func is not None:
-            item.value = item.func(self._linac)
-            return
+        self._update_x_map(opt_x)
+        self._linac.update(self._x_map, self.workers)
+        self._update_obj_cons()
 
-        keys = item.expr
-        if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
-            item.value = self._linac.__getattr__(keys[0]).__getattribute__(
-                keys[1]).__getattribute__(keys[2])
-        else:
-            item.value = self._linac.__getattr__(keys[0]).__getattr__(
-                keys[1]).__getattribute__(keys[2])
+    def _update_x_map(self, x):
+        """Update values in x_map."""
+        x_covar = [0] * len(self.covariables)  # placeholder
+        for key, v in zip(self._x_map.keys(), chain(x, x_covar)):
+            self._x_map[key] = v
+            try:
+                self.variables[key].value = v
+            except KeyError:
+                var = self.covariables[key].dependent
+                a = self.covariables[key].scale
+                b = self.covariables[key].shift
+                self._x_map[key] = a * self._x_map[var] + b
 
-    def _update_optimized(self):
-        """Run one simulation with optimized variables."""
-        self.eval_obj_cons([var.value for var in self.variables.values()])
+    def _update_obj_cons(self):
+        """Update all Objective and Constraints."""
+        for item in chain(self.objectives.values(),
+                          self.e_constraints.values(),
+                          self.i_constraints.values()):
+            if item.func is not None:
+                item.value = item.func(self._linac)
+            else:
+                keys = item.expr
+                if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
+                    item.value = self._linac.__getattr__(keys[0]).__getattribute__(
+                        keys[1]).__getattribute__(keys[2])
+                else:
+                    item.value = self._linac.__getattr__(keys[0]).__getattr__(
+                        keys[1]).__getattribute__(keys[2])
 
     def add_var(self, name, **kwargs):
         """Add a variable."""
         try:
             self.variables[name] = Variable(name, **kwargs)
+            self._x_map[name] = self.variables[name].value
         except (TypeError, ValueError):
             print("Input is not valid for a Variable class instance!")
             raise
@@ -199,6 +214,7 @@ class LinacOptimization(object):
         """Delete a variable by name."""
         try:
             del self.variables[name]
+            del self._x_map[name]
         except KeyError:
             raise KeyError("{} is not a variable!".format(name))
 
@@ -206,6 +222,14 @@ class LinacOptimization(object):
         """Add a covariable."""
         try:
             self.covariables[name] = Covariable(name, *args, **kwargs)
+
+            var = self.covariables[name].dependent
+            a = self.covariables[name].scale
+            b = self.covariables[name].shift
+            try:
+                self._x_map[name] = a * self._x_map[var] + b
+            except KeyError:
+                raise ValueError("The dependent variable '%s' does not exist!" % var)
         except (TypeError, ValueError):
             print("Input is not valid for a Covariable class instance!")
             raise
@@ -214,6 +238,7 @@ class LinacOptimization(object):
         """Delete a covariable by name."""
         try:
             del self.covariables[name]
+            del self._x_map[name]
         except KeyError:
             raise KeyError("{} is not a covariable!".format(name))
 
@@ -264,18 +289,16 @@ class LinacOptimization(object):
 
     def __str__(self):
         text = '\nOptimization Problem: %s' % self.name
-        if self._start_time is not None and self._end_time is not None:
-            text += 'Started at: ' + self._start_time
-            text += 'Ended at: ' + self._end_time
         text += '\n' + '='*80 + '\n'
-        text += self._format_output(self.objectives, 'Objective(s)')
-        text += self._format_output(self.e_constraints, 'Equality constraint(s)')
-        text += self._format_output(self.i_constraints, 'Inequality constraint(s)')
-        text += self._format_output(self.variables, 'Variable(s)')
+        text += self._format_item(self.objectives, 'Objective(s)')
+        text += self._format_item(self.e_constraints, 'Equality constraint(s)')
+        text += self._format_item(self.i_constraints, 'Inequality constraint(s)')
+        text += self._format_item(self.variables, 'Variable(s)')
+        text += self._format_item(self.covariables, 'Covariable(s)')
         return text
 
     @staticmethod
-    def _format_output(instance_set, title):
+    def _format_item(instance_set, title):
         """Return structured list of parameters.
 
         :param instance_set: OrderedDict
@@ -294,3 +317,13 @@ class LinacOptimization(object):
             else:
                 text += repr(ele)
         return text
+
+    def _verify_solution(self, opt_f):
+        """Verify the solution.
+
+        :param opt_f: list
+            Optimized objective value(s).
+        """
+        if self._DEBUG is True:
+            f = [item.value for item in self.objectives.values()]
+            np.testing.assert_almost_equal(f, opt_f)

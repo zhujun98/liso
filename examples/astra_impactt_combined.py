@@ -57,7 +57,7 @@ opt.add_icon('g4', func=lambda a: max(a.gun.max.Sy, a.chicane.max.Sy)*1e3, ub=0.
 opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)  # variable
 opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)  # variable
 opt.add_var('MQZM1_G', value=0.0, lb=-2.0, ub=2.0)  # variable
-opt.add_var('MQZM2_G', value=0.0, lb=-2.0, ub=2.0)  # variable
+opt.add_covar('MQZM2_G', dependent='MQZM1_G', scale=-1.0, shift=0.01)  # covariable
 
 opt.workers = 1
 opt._DEBUG = True
