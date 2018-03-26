@@ -80,8 +80,6 @@ class LinacOptimization(object):
         self._nf = 0
         self._max_successive_failures = max_successive_failures
 
-        self.solution = None  # OptSolution
-
         self._DEBUG = False
 
     @property
