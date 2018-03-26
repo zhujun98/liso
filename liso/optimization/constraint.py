@@ -16,13 +16,13 @@ Author: Jun Zhu
 """
 import warnings
 
-from .passive_optimization_element import PassiveOptimizationElements
+from .descriptive_parameter import DescriptiveParameter
 from ..config import Config
 
 INF = Config.INF
 
 
-class IConstraint(PassiveOptimizationElements):
+class IConstraint(DescriptiveParameter):
     """Optimization inequality constraint class."""
     def __init__(self, name, expr=None, scale=1.0, func=None, **kwargs):
         """Initialization."""
@@ -78,17 +78,17 @@ class IConstraint(PassiveOptimizationElements):
     def value(self, v):
         self._value = v
 
-    def __repr__(self):
-        return '{:^12}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
+    def list_item(self):
+        return '{:12}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
                self.name[:12], self._value, self.lb, self.ub)
 
     def __str__(self):
-        return '{:^12}  {:^12}  {:^12}  {:^12}\n'.format(
+        return '{:12}  {:^12}  {:^12}  {:^12}\n'.format(
                'Name', 'Value', 'Lower Bound', 'Upper Bound') + \
-               self.__repr__()
+               self.list_item()
 
 
-class EConstraint(PassiveOptimizationElements):
+class EConstraint(DescriptiveParameter):
     """Optimization equality constraint class."""
     def __init__(self, name, expr=None, scale=1.0, func=None, eq=0.0):
         """Initialization."""
@@ -106,10 +106,10 @@ class EConstraint(PassiveOptimizationElements):
     def value(self, v):
         self._value = v
 
-    def __repr__(self):
-        return '{:^12}  {:^12.4e}  {:^12.4e}\n'.format(
+    def list_item(self):
+        return '{:12}  {:^12.4e}  {:^12.4e}\n'.format(
                self.name[:12], self._value, self.eq)
 
     def __str__(self):
-        return '{:^12}  {:^12}  {:^12}\n'.format('Name', 'Value', 'Equal') + \
-               self.__repr__()
+        return '{:12}  {:^12}  {:^12}\n'.format('Name', 'Value', 'Equal') + \
+               self.list_item()

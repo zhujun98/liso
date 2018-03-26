@@ -78,16 +78,16 @@ class Variable(object):
         if self.ub < self.lb:
             raise ValueError("Upper bound is smaller than lower bound!")
 
-    def __repr__(self):
+    def list_item(self):
         if self.type_ == 'd':
-            return '{:^12}  {:^6}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
+            return '{:12}  {:^6}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
                 self.name[:12], self.type_, self.choices[int(self.value)],
                 min(self.choices), max(self.choices))
 
-        return '{:^12}  {:^6}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
+        return '{:12}  {:^6}  {:^12.4e}  {:^12.4e}  {:^12.4e}\n'.format(
             self.name[:12], self.type_, self.value, self.lb, self.ub)
 
     def __str__(self):
-        return '{:^12}  {:^6}  {:^12}  {:^12}  {:^12}\n'.format(
+        return '{:12}  {:^6}  {:^12}  {:^12}  {:^12}\n'.format(
                'Name', 'Type', 'Value', 'Lower Bound', 'Upper Bound') + \
-               self.__repr__()
+               self.list_item()

@@ -4,13 +4,13 @@ Objective class.
 
 Author: Jun Zhu
 """
-from .passive_optimization_element import PassiveOptimizationElements
+from .descriptive_parameter import DescriptiveParameter
 from ..config import Config
 
 INF = Config.INF
 
 
-class Objective(PassiveOptimizationElements):
+class Objective(DescriptiveParameter):
     """Optimization Objective Class"""
     def __init__(self, name, expr=None, scale=1.0, func=None, optimum=-INF):
         """Initialization."""
@@ -18,10 +18,10 @@ class Objective(PassiveOptimizationElements):
         self.value = INF
         self.optimum = optimum
 
-    def __repr__(self):
-        return '{:^12}  {:^12.4e}  {:^12.4e}\n'.format(
+    def list_item(self):
+        return '{:12}  {:^12.4e}  {:^12.4e}\n'.format(
             self.name[:12], self.value, self.optimum)
 
     def __str__(self):
-        return '{:^12}  {:^12}  {:^12}\n'.format(
-            'Name', 'Value', 'Optimum') + self.__repr__()
+        return '{:12}  {:^12}  {:^12}\n'.format(
+            'Name', 'Value', 'Optimum') + self.list_item()

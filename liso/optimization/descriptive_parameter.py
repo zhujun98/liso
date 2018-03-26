@@ -4,8 +4,12 @@ from ..config import Config
 INF = Config.INF
 
 
-class PassiveOptimizationElements(ABC):
-    """Abstract class for Objective and Constraint."""
+class DescriptiveParameter(ABC):
+    """Abstract class a descriptive parameter.
+
+    The value of this parameter can be either calculated by parsing
+    a given string or evaluating a given function.
+    """
     def __init__(self, name, *, expr=None, scale=1.0, func=None):
         """Initialization.
 
@@ -46,9 +50,9 @@ class PassiveOptimizationElements(ABC):
             self.func = func
 
     @abstractmethod
-    def __repr__(self):
-        raise NotImplemented
+    def list_item(self):
+        pass
 
     @abstractmethod
     def __str__(self):
-        raise NotImplemented
+        pass

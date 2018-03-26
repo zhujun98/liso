@@ -171,7 +171,11 @@ class LinacOptimization(object):
         self._update_obj_cons()
 
     def _update_x_map(self, x):
-        """Update values in x_map."""
+        """Update values in x_map.
+
+        :param x: 1D array like
+            New variable values.
+        """
         x_covar = [0] * len(self.covariables)  # placeholder
         for key, v in zip(self._x_map.keys(), chain(x, x_covar)):
             self._x_map[key] = v
@@ -296,24 +300,24 @@ class LinacOptimization(object):
         return text
 
     @staticmethod
-    def _format_item(instance_set, title):
+    def _format_item(instance_set, name):
         """Return structured list of parameters.
 
         :param instance_set: OrderedDict
             Should be either self.objectives, self.constraints or
             self.variables.
-        :param title: string
-            Title of the output.
+        :param name: string
+            Name of the instance set.
         """
         is_first = True
         text = ''
         for ele in instance_set.values():
             if is_first is True:
-                text += '\n' + title + ':\n'
+                text += '\n' + name + ':\n'
                 text += str(ele)
                 is_first = False
             else:
-                text += repr(ele)
+                text += ele.list_item()
         return text
 
     def _verify_solution(self, opt_f):

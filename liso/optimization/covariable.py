@@ -30,9 +30,11 @@ class Covariable(object):
         self.scale = scale
         self.shift = shift
 
+    def list_item(self):
+        return '{:12}  {:12}  {:^12.4e}  {:^12.4e}\n'.format(
+            self.name[:12], self.dependent[:12], self.scale, self.shift)
+
     def __str__(self):
-        text = '{:^12}  {:^12}  {:^12}  {:^12}\n'.format(
-            'Name', 'Dependent', 'scale', 'shift')
-        text += '{:^12}  {:^12}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name, self.dependent, self.scale, self.shift)
+        text = '{:12}  {:12}  {:^12}  {:^12}\n'.format(
+            'Name', 'Dependent', 'scale', 'shift') + self.list_item()
         return text
