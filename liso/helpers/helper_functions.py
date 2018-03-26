@@ -3,11 +3,29 @@
 Author: Jun Zhu
 
 """
-from ..backend import config
+from ..config import Config
 
-V_LIGHT = config['V_LIGHT']
-M_E = config['M_E']
-Q_E = config['Q_E']
+V_LIGHT = Config.vLight
+M_E = Config.me
+Q_E = Config.qe
+
+
+def get_code(text):
+    """Return the standard code representation letter.
+
+    :param text: string
+        Input string.
+    """
+    if text.lower() in ('a', 'astra'):
+        return 'a'
+    if text.lower() in ('t', 'impactt'):
+        return 't'
+    if text.lower() in ('z', 'impactz'):
+        return 'z'
+    if text.lower() in ('z', 'genesis'):
+        return 'g'
+
+    raise ValueError("Unknown code option!")
 
 
 def quad_k2g(k, p):

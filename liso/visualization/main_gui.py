@@ -10,8 +10,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QHBoxLayout
 
-from .phasespace_plot_gui import PhaseSpacePlotGUI
-from .line_plot_gui import LinePlotGUI
+from .plot_guis import PhaseSpacePlotGUI, LinePlotGUI
 from .optimizer_gui import OptimizerGUI
 
 
