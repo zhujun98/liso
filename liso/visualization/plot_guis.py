@@ -4,6 +4,7 @@ Author: Jun Zhu
 """
 import os
 from abc import abstractmethod, ABCMeta
+import warnings
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QSize
@@ -25,7 +26,7 @@ from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPen, QBrush, QColor
 
-import pyqtgraph as pg
+from .pyqtgraph import GraphicsLayoutWidget, mkPen
 
 from ..data_processing import parse_line, parse_phasespace
 from .vis_utils import *
@@ -120,7 +121,7 @@ class PlotGUI(QMainWindow):
         synchronize_btn.clicked.connect(self._reload_data)
 
         # A pyqtgraph.GraphicsLayoutWidget to show the plot
-        self._graph = pg.GraphicsLayoutWidget(self._view)
+        self._graph = GraphicsLayoutWidget(self._view)
         self._graph.setFixedSize(self._width, self._height)
         self._plot = self._graph.addPlot(title=" ")  # title is a placeholder
 
@@ -319,8 +320,8 @@ class PhaseSpacePlotGUI(PlotGUI):
             self._set_sample_slider(min(self._data.shape[0], self._max_display_particle))
 
             print("Loaded {} data from {}".format(self._code_cb.currentText(), filepath))
-        except FileNotFoundError as e:
-            print(e)
+        except Exception as e:
+            warnings.warn(str(e))
             return
 
         self._update_plot()
@@ -466,8 +467,8 @@ class LinePlotGUI(PlotGUI):
         try:
             self._data = parse_line(get_code(self._code_cb.currentText()), rootname)
             print("Loaded {} data from {}".format(self._code_cb.currentText(), rootname))
-        except FileNotFoundError as e:
-            print(e)
+        except Exception as e:
+            warnings.warn(str(e))
             return
 
         self._update_plot()
@@ -508,7 +509,7 @@ class LinePlotGUI(PlotGUI):
 
                 self._plot.plot(x*x_scale, y*y_scale,
                                 name=get_html_label(y_var),
-                                pen=pg.mkPen(CUSTOM_PEN[i]['color'],
+                                pen=mkPen(CUSTOM_PEN[i]['color'],
                                 width=lw,
                                 style=CUSTOM_PEN[i]['style']))
 
