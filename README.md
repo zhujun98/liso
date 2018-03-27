@@ -23,9 +23,6 @@ Python3 >= 3.5
 #### External optimizers:
 - [pyOpt](http://www.pyopt.org/) > 1.2.0 (optional)
 
-#### Visualization GUI:
-- [pyqtgraph](http://www.pyqtgraph.org/)
-
 ## Installation
 
 - Download and install LinacOpt
@@ -49,6 +46,8 @@ $ cat files.txt | xargs rm -rf
 ```
 
 ## GUI
+
+The GUI is based on [PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5) and [pyqtgraph](http://www.pyqtgraph.org/).
 
 ```py
 from liso import gui
