@@ -335,3 +335,24 @@ class GenesisBeamline(Beamline):
     exec_s = None
     exec_p = None
     pass
+
+
+def create_beamline(code, *args, **kwargs):
+    """Create a Beamline instance.
+
+    :param code: string
+        Code name.
+    """
+    if code.lower() in ('astra', 'a'):
+        return AstraBeamline(*args, **kwargs)
+
+    if code.lower() in ('impactt', 't'):
+        return ImpacttBeamline(*args, **kwargs)
+
+    if code.lower() in ('impactz', 'z'):
+        return ImpactzBeamline(*args, **kwargs)
+
+    if code.lower() in ('genesis', 'g'):
+        return GenesisBeamline(*args, **kwargs)
+
+    raise ValueError("Unknown code!")

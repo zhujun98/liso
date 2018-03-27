@@ -2,10 +2,11 @@
 """
 Author: Jun Zhu
 """
+import os
 from collections import defaultdict
 
 from .smlt_utils import generate_input
-from .beamline import *
+from .beamline import create_beamline
 from ..exceptions import *
 
 
@@ -23,22 +24,13 @@ class Linac(object):
     def __getattr__(self, item):
         return self._beamlines[item]
 
-    def add_beamline(self, val, *args, **kwargs):
+    def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
 
-        :param val: string.
+        :param code: string.
             Code used to simulate the beamline.
         """
-        if val.lower() in ('astra', 'a'):
-            bl = AstraBeamline(*args, **kwargs)
-        elif val.lower() in ('impactt', 't'):
-            bl = ImpacttBeamline(*args, **kwargs)
-        elif val.lower() in ('impactz', 'z'):
-            bl = ImpactzBeamline(*args, **kwargs)
-        elif val.lower() in ('genesis', 'g'):
-            bl = GenesisBeamline(*args, **kwargs)
-        else:
-            raise ValueError("Unknown code!")
+        bl = create_beamline(code, *args, **kwargs)
 
         if bl.name in self._beamlines.keys():
             raise ValueError("Beamline named {} already exists!".format(bl.name))
