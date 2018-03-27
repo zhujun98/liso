@@ -12,7 +12,6 @@ win_config.dat
 
 examples/impactt_basic/*
 !examples/impactt_basic/ImpactT.in.000
-!examples/impactt_basic/partcl.data
 
 examples/astra_basic/*
 !examples/astra_basic/gun.dat
