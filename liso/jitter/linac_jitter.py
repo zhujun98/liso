@@ -36,7 +36,7 @@ class LinacJitter(object):
         self.responses = OrderedDict()
         self._x_map = dict()
 
-        self._DEBUG = False
+        self.verbose = False
 
     def add_jitter(self, name, **kwargs):
         """Add a jitter."""
@@ -108,7 +108,7 @@ class LinacJitter(object):
         for i in range(passes):
             self._update_x_map(random_numbers[i, :])
             self._linac.update(self._x_map)
-            self._update_response()
+            self._update_response(i+1)
 
         print(self.__str__())
 
@@ -148,8 +148,12 @@ class LinacJitter(object):
                 b = self.covariables[key].shift
                 self._x_map[key] = a * self._x_map[var] + b
 
-    def _update_response(self):
-        """Update all Responses."""
+    def _update_response(self, count):
+        """Update all Responses.
+
+        :param count: int
+            Count of simulations.
+        """
         for item in self.responses.values():
             if item.func is not None:
                 item.values.append(item.func(self._linac))
@@ -162,11 +166,12 @@ class LinacJitter(object):
                     item.values.append(self._linac.__getattr__(keys[0]).__getattr__(
                         keys[1]).__getattribute__(keys[2]) * item.scale)
 
-        if self._DEBUG is True:
+        if self.verbose is True:
             out = []
             for item in self.responses.values():
                 out.append(item.values[-1])
-            print(['{:9.6e}'.format(v) for v in out])
+            print('{:04d} - '.format(count),
+                  ['{:9.6e}'.format(v) for v in out])
 
     def __str__(self):
         text = '\nJitter Problem: %s' % self.name

@@ -1,10 +1,10 @@
 &NEWRUN 
     Version = 3
-    Head='test for linac jitter'
+    Head='test for linac optimization'
     RUN = 1
     Distribution = 'Radial500_1G3ps.ini'
-    Qbunch = 0.02
-    XYrms = 0.04
+    Qbunch = 0.1
+    XYrms = <laser_spot>
     Trms = 0.003
     TRACK_ALL = .T 
     PHASE_SCAN = .F
@@ -18,7 +18,7 @@
  
 &OUTPUT
     ZSTART = 0.0 
-    ZSTOP = 4.0
+    ZSTOP = 1.0
     Zemit = 100
     Zphase = 1 
     High_res = .T
@@ -57,18 +57,14 @@
     
     File_Efield(1) = 'gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0 
     C_smooth(1) = 10, C_higher_order(1) = .T
-    MaxE(1) = <gun_gradient>, Phi(1) = <gun_phase>
-   
-    File_Efield(2) = 'tws_cavity.dat', Nue(2) = 2.998, C_pos(2) = 1.8
-    C_numb(2) = 60, C_smooth(2) = 10
-    MaxE(2) = <tws_gradient>, Phi(2) = <tws_phase>
+    MaxE(1) = 130.00, Phi(1) = 0.0
 /
-
+ 
 &SOLENOID
     Loop = .F 
     LBfield = .T
     
-    File_Bfield(1) = 'sole_gun.dat', S_pos(1) = 0.0
+    File_Bfield(1) = 'sp_gunsol.dat', S_pos(1) = 0.0
     S_smooth(1) = 5
-    MaxB(1) = 0.2
+    MaxB(1) = <main_sole_b>
 /

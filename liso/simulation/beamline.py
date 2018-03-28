@@ -37,7 +37,7 @@ class Beamline(ABC):
                  pin=None,
                  pout=None,
                  charge=None,
-                 z0=0.0,
+                 z0=None,
                  timeout=300):
         """Initialization.
 
@@ -56,12 +56,13 @@ class Beamline(ABC):
             Filename of the output particle file.
         :param charge: float
             Bunch charge at the beginning of the beamline. Only used
-            for certain codes (e.g. Impact-T).
+            for certain codes (e.g. ImpactT).
         :param z0: float
             Starting z coordinate in meter. Used for concatenated
-            simulation, e.g. Suppose the second beamline is defined
-            from z0 = 0.0, when doing the particle file conversion,
-            z0 is required.
+            simulation. Default = None, inherit z coordinate from the
+            upstream beamline. However, for instance, when the second
+            beamline is defined from z0 = 0.0, z0 is required to
+            generate a correct initial particle distribution.
         :param timeout: float
             Maximum allowed duration in seconds of the simulation.
         """
@@ -182,6 +183,8 @@ class Beamline(ABC):
                                   code_out=self.code,
                                   z0=self.z0)
 
+            #TODO: set the charge if this is a ImpactT beamline.
+
         if workers > 1:
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
                 self._timeout,
@@ -202,13 +205,13 @@ class Beamline(ABC):
                                              shell=True,
                                              cwd=self.dirname)
         except subprocess.CalledProcessError as e:
-            print(e)
             raise SimulationNotFinishedProperlyError(e)
         finally:
             time.sleep(1)
 
     def update(self):
         """Re-calculate all BeamParameters and LineParameters."""
+        # Update watches
         for item in self._watches.values():
             try:
                 watch = item[0]
@@ -232,9 +235,10 @@ class Beamline(ABC):
                                       slice_with_peak_current=watch.slice_with_peak_current)
 
                 item[1] = params
-            except FileNotFoundError as e:
-                raise WatchFileNotFoundError(e)
+            except Exception as e:
+                raise WatchUpdateFailError(e)
 
+        # update lines
         try:
             data = self._all.load_data()
 
@@ -244,8 +248,8 @@ class Beamline(ABC):
             self.max = analyze_line(data, np.max)
             self.ave = analyze_line(data, np.average)
             self.std = analyze_line(data, np.std)
-        except FileNotFoundError as e:
-            raise LineFileNotFoundError(e)
+        except Exception as e:
+            raise LineUpdateFailError(e)
 
     def __str__(self):
         text = '\nBeamline: %s\n' % self.name
@@ -300,10 +304,10 @@ class ImpacttBeamline(Beamline):
         """Initialization."""
         super().__init__(pin=pin, *args, **kwargs)
         if self.pin is not None and os.path.basename(self.pin) != 'partcl.data':
-            raise ValueError("Input particle file for Impact-T must be 'partcl.data'!")
+            raise ValueError("Input particle file for ImpactT must be 'partcl.data'!")
 
         if self.charge is None:
-            raise ValueError("Bunch charge is required for Impact-T simulation!")
+            raise ValueError("Bunch charge is required for ImpactT simulation!")
 
         rootpath = os.path.join(self.dirname, os.path.basename(self.pout.split('.')[0]))
         self._all = ImpacttLine('all', rootpath)

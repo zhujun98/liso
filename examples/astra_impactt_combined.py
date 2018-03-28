@@ -3,62 +3,44 @@
 This is an example showing how to simulate different part of a linac
 using different code.
 """
-from liso import Linac
+from liso import Linac, LinacOptimization, ALPSO
 
-USE_PYOPT = True
 
-if USE_PYOPT:
-    from pyOpt import SDPEN
-    from liso import PyoptLinacOptimization as LinacOptimization
-else:
-    from liso import LinacOptimization
-    from liso import ALPSO
-
-#######################################################################
-# setup the optimization problem
-#######################################################################
-
-# Instantiate the optimization
+# Set up the linac
 linac = Linac()
 
+# Add the first beamline
 linac.add_beamline('astra',
                    name='gun',
-                   fin='astra_basic/injector.in',
-                   template='astra_basic/injector.in.000',
+                   fin='astra_impactt_combined/astra/injector.in',
+                   template='astra_impactt_combined/astra/injector.in.000',
                    pout='injector.0400.001')
 
+# Add the second beamline
+#
+# Note: 'charge' is required for an ImpactT simulation but this argument
+# will be ignored if the code is Astra.
 linac.add_beamline('impactt',
                    name='chicane',
-                   fin='impactt_basic/ImpactT.in',
-                   template='impactt_basic/ImpactT.in.000',
+                   fin='astra_impactt_combined/impactt/ImpactT.in',
+                   template='astra_impactt_combined/impactt/ImpactT.in.000',
                    pout='fort.107',
-                   charge=0.0001,
-                   z0=0.0)
-
-linac.add_watch('chicane', 'out1', 'fort.107', halo=0.1, tail=0.2)
+                   charge=1e-12)
 
 print(linac)
 
-# set the optimizer
-if USE_PYOPT:
-    optimizer = SDPEN()
-    optimizer.setOption('alfa_stop', 1e-2)
-else:
-    optimizer = ALPSO()
-
 opt = LinacOptimization(linac)
 
-opt.add_obj('emitx_um', expr='chicane.out.emitx', scale=1.0e6)  # objective
-opt.add_icon('g1', func=lambda a: a.chicane.out1.Sy*1e3, ub=0.06)  # inequality constraint
-opt.add_icon('g2', func=lambda a: a.chicane.out1.Sx*1e3, ub=0.02)  # inequality constraint
-opt.add_icon('g3', func=lambda a: max(a.gun.max.Sx, a.chicane.max.Sx)*1e3, ub=0.2)  # inequality constraint
-opt.add_icon('g4', func=lambda a: max(a.gun.max.Sy, a.chicane.max.Sy)*1e3, ub=0.2)  # inequality constraint
+opt.add_obj('St', expr='chicane.out.St', scale=1.0e15)  # objective
+opt.add_icon('g3', func=lambda a: a.matching.out.emitx*1e6, ub=0.2)  # inequality constraint
 
-opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)  # variable
-opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)  # variable
-opt.add_var('MQZM1_G', value=0.0, lb=-2.0, ub=2.0)  # variable
-opt.add_covar('MQZM2_G', dependent='MQZM1_G', scale=-1.0, shift=0.01)  # covariable
+opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.50)  # variable
+opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)  # variable
+opt.add_var('tws_phase', value=0.1, lb=0.00, ub=0.40)  # variable
+opt.add_var('dipole_by', value=0.0, lb=0.00, ub=0.40)  # variable
 
-opt.workers = 1
-opt._DEBUG = True
-opt.solve(optimizer)  # Run the optimization
+opt.workers = 2
+opt.verbose = True
+
+optimizer = ALPSO()
+opt.solve(optimizer)

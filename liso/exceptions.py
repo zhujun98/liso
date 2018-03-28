@@ -54,17 +54,17 @@ class BeamlineInputFileNotFoundError(FileNotFoundError):
     pass
 
 
-class WatchFileNotFoundError(FileNotFoundError):
-    """Inherited from FileNotFoundError.
+class WatchUpdateFailError(Exception):
+    """Raised if watch update fails.
 
-    Raised if Watch.pfile does not exist.
+    e.g. file is missing or data format is wrong
     """
     pass
 
 
-class LineFileNotFoundError(FileNotFoundError):
-    """Inherited from FileNotFoundError.
+class LineUpdateFailError(Exception):
+    """Raise if line update fails.
 
-    Raised if any one of the Line.rootname + '.suffix' does not exit.
+    e.g file is missing or data format is wrong
     """
     pass

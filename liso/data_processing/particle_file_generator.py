@@ -42,7 +42,7 @@ def convert_particle_file(pin, pout, *, code_in=None, code_out=None, z0=None, **
 
 
 def data_to_impactt(data, fpath, *, header=True):
-    """Dump the data to an Impact-T particle file.
+    """Dump the data to an ImpactT particle file.
 
     :param data: Pandas.DataFrame
         Particle data. See data_processing/phasespace_parser for details
@@ -50,7 +50,7 @@ def data_to_impactt(data, fpath, *, header=True):
     :param fpath: string
         Path of the output particle file.
     :param header: Bool
-        True for an input file for Impact-T simulation and False for a
+        True for an input file for ImpactT simulation and False for a
         general particle file.
     """
     with open(fpath, 'w') as fp:

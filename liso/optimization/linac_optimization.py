@@ -77,10 +77,11 @@ class LinacOptimization(object):
         self._workers = 1
         self.workers = workers
 
+        self._nfeval = 0  # No. of evaluations on the objectives and constraints.
         self._nf = 0
         self._max_successive_failures = max_successive_failures
 
-        self._DEBUG = False
+        self.verbose = False
 
     @property
     def workers(self):
@@ -111,23 +112,31 @@ class LinacOptimization(object):
         :param x: array-like
             Variables updated after each iteration.
         """
+        self._update_x_map(x)
+
         # Run simulations with the new input files
         is_update_failed = True
         try:
-            self._update_x_map(x)
+            self._nfeval += 1
             self._linac.update(self._x_map, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
         except SimulationNotFinishedProperlyError as e:
             print(e)
+        # exception propagates from Beamline.update() method
+        except WatchUpdateFailError as e:
             self._nf += 1
-        # exception propagates from BeamParameters.update() method
-        except FileNotFoundError as e:
-            print(e)
+            print("Watch update failed: {}".format(e))
+        # exception propagates from Beamline.update() method
+        # Note: In practice, only WatchUpdateFailError could be raised since
+        # Watch is updated before Line!
+        except LineUpdateFailError as e:
             self._nf += 1
+            print("Line update failed: {}".format(e))
         except Exception as e:
-            print("Unknown bug detected!")
+            self._nf += 1
+            print("Unknown exceptions:\n {}".format(e))
             raise
         finally:
             if self._nf > self._max_successive_failures:
@@ -150,8 +159,9 @@ class LinacOptimization(object):
             f = [INF] * len(self.objectives)
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
 
-        if self._DEBUG is True:
-            print(['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
+        if self.verbose is True:
+            print('{:04d} - '.format(self._nfeval),
+                  ['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
                   ['{:9.2e}'.format(v) for v in f],
                   ['{:9.2e}'.format(v) for v in g],
                   is_update_failed)
@@ -172,6 +182,8 @@ class LinacOptimization(object):
 
     def _update_x_map(self, x):
         """Update values in x_map.
+
+        Not raise.
 
         :param x: 1D array like
             New variable values.
@@ -326,6 +338,5 @@ class LinacOptimization(object):
         :param opt_f: list
             Optimized objective value(s).
         """
-        if self._DEBUG is True:
-            f = [item.value for item in self.objectives.values()]
-            np.testing.assert_almost_equal(f, opt_f)
+        f = [item.value for item in self.objectives.values()]
+        np.testing.assert_almost_equal(f, opt_f)
