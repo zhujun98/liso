@@ -4,8 +4,7 @@ Author: Jun Zhu
 """
 import os
 import time
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 import subprocess
 
@@ -14,8 +13,8 @@ import numpy as np
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
-from ..data_processing import analyze_beam, analyze_line, tailor_beam
-from ..data_processing import convert_particle_file
+from ..data_processing import analyze_beam, analyze_line, tailor_beam, \
+                              convert_particle_file
 
 from ..exceptions import *
 from ..config import Config

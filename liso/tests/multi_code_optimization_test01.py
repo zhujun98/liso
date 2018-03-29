@@ -3,8 +3,7 @@
 Test optimization with two simulation codes for two different parts
 of a linac.
 """
-from liso import Linac
-from liso import PyoptLinacOptimization
+from liso import Linac, PyoptLinacOptimization
 from pyOpt import SDPEN
 
 

@@ -1,8 +1,7 @@
 """
 Author: Jun Zhu
 """
-from abc import abstractmethod
-from abc import ABC
+from abc import abstractmethod, ABC
 
 from ..data_processing import parse_phasespace
 from ..config import Config

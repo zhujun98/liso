@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 
 from ..config import Config
-from .data_proc_utils import cut_tail, cut_halo
 
 
 V_LIGHT = Config.vLight

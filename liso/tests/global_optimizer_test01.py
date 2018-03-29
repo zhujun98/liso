@@ -4,7 +4,7 @@ Wild ranges of gun gradient and phase are used in this test in order to
 make many failed simulations. The API should be able to deal with these
 cases.
 """
-from liso import Linac, LinacOptimization, ALPSO
+from liso import Linac, ALPSO, LinacOptimization
 
 
 linac = Linac()
