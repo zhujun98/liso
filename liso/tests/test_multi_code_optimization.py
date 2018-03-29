@@ -47,4 +47,5 @@ class TestMultiCodeOptimization(unittest.TestCase):
         optimizer.setOption('nf_max', 20)
 
         self.opt.workers = 1
+        self.time_monitor = True
         self.opt.solve(optimizer)

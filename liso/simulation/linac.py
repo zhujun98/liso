@@ -2,6 +2,7 @@
 """
 Author: Jun Zhu
 """
+import time
 from collections import OrderedDict
 
 from .beamline import create_beamline
@@ -39,7 +40,7 @@ class Linac(object):
             if bl.pin is None:
                 raise ValueError("Initial particle file of the new Beamline must "
                                  "be specified for a concatenated simulation!")
-        print(bl.name)
+
         self._beamlines[bl.name] = bl
 
     def add_watch(self, beamline, *args, **kwargs):
@@ -61,9 +62,11 @@ class Linac(object):
         :param workers: int
             Number of threads.
 
-        :return: A bool value indicates whether the output files have
-                 been produced correctly.
+        :return: (elapsed time, cpu time) in second.
         """
+        t0 = time.perf_counter()
+        t0_cpu = time.process_time()
+
         # First clean all the previous output
         for beamline in self._beamlines.values():
             beamline.clean()
@@ -74,6 +77,10 @@ class Linac(object):
             beamline.generate_input(mapping)
             beamline.simulate(workers)
             beamline.update_watches_and_lines()
+
+        dt = time.perf_counter() - t0
+        dt_cpu = time.process_time() - t0_cpu
+        return dt, dt_cpu
 
     def get_templates(self):
         """Get templates for all beamlines."""

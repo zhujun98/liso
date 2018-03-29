@@ -39,4 +39,5 @@ class TestGlobalOptimizer(unittest.TestCase):
         optimizer.max_outer_iter = 5
 
         self.opt.workers = 1
+        self.opt.time_monitor = True
         self.opt.solve(optimizer)

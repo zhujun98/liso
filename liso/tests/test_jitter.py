@@ -29,7 +29,6 @@ class TestJitter(unittest.TestCase):
         self.jt.add_jitter('gun_phase', value=0.0, sigma=0.01)
 
         self.jt.workers = 1
-        self.jt.verbose = True
 
     def test_not_raise(self):
         self.jt.run(5)

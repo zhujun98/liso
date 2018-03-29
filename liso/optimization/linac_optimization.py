@@ -82,6 +82,7 @@ class LinacOptimization(object):
         self._nf = 0
         self._max_successive_failures = max_successive_failures
 
+        self.time_monitor = False
         self.verbose = False
 
     @property
@@ -119,9 +120,11 @@ class LinacOptimization(object):
 
         # Run simulations with the new input files
         is_update_failed = True
+        dt = 0.0
+        dt_cpu = 0.0
         try:
             self._nfeval += 1
-            self._linac.update(self._x_map, self.workers)
+            dt, dt_cpu = self._linac.update(self._x_map, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
@@ -161,6 +164,10 @@ class LinacOptimization(object):
         else:
             f = [INF] * len(self.objectives)
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
+
+        if self.time_monitor is True:
+            print('elapsed time: {:.4f} s, '.format(dt),
+                  'cpu time: {:.4f} s, '.format(dt_cpu))
 
         if self.verbose is True:
             print('{:04d} - '.format(self._nfeval),
