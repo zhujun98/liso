@@ -8,8 +8,6 @@ Author: Jun Zhu
 import os
 from abc import abstractmethod
 
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
