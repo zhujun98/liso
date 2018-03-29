@@ -14,6 +14,8 @@ from .jitter import Jitter
 from ..optimization import Covariable
 from .response import Response
 
+from ..simulation.simulation_utils import check_templates
+
 
 class LinacJitter(object):
     def __init__(self, linac, *, name=''):
@@ -100,6 +102,8 @@ class LinacJitter(object):
         :param passes: int
             Number of independent runs.
         """
+        check_templates(self._linac.get_templates(), self._x_map)
+
         print(self.__str__())
 
         # Generate random numbers for all passes

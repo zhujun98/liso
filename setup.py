@@ -10,7 +10,7 @@ REQUIREMENTS = open('requirements.txt', encoding='utf-8').readlines()
 REQUIREMENTS = [req.rstrip() for req in REQUIREMENTS]
 
 setup(
-    name='LISO',
+    name='liso',
     version='0.1.0',
     packages=find_packages(),
     author='Jun Zhu',
@@ -18,7 +18,7 @@ setup(
     url='https://github.com/zhujun98/liso',
     download_url='https://github.com/zhujun98/liso',
     description='Python API for Linac Simulation and Optimization',
-    long_description='LISO is a Python API for linac simulation and'
+    long_description='liso is a Python API for linac simulation and'
                      'optimization using one or a combination of'
                      'different beam dynamics codes.',
     license='GNU',

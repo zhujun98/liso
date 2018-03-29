@@ -2,12 +2,9 @@
 """
 Author: Jun Zhu
 """
-import os
-from collections import defaultdict
+from collections import OrderedDict
 
-from .smlt_utils import generate_input
 from .beamline import create_beamline
-from ..exceptions import *
 
 
 class Linac(object):
@@ -19,7 +16,7 @@ class Linac(object):
     """
     def __init__(self):
         """Initialization."""
-        self._beamlines = defaultdict()
+        self._beamlines = OrderedDict()
 
     def __getattr__(self, item):
         return self._beamlines[item]
@@ -37,13 +34,12 @@ class Linac(object):
 
         # connect the new Beamline to the last added Beamline
         if len(self._beamlines) != 0:
-            bl.predecessor = list(self._beamlines.values())[-1]
+            list(self._beamlines.values())[-1].next = bl
 
-            if bl.pin is None or bl.predecessor.pout is None:
-                raise ValueError("Input particle of the new Beamline and output "
-                                 "particle file of the predecessor Beamline must "
+            if bl.pin is None:
+                raise ValueError("Initial particle file of the new Beamline must "
                                  "be specified for a concatenated simulation!")
-
+        print(bl.name)
         self._beamlines[bl.name] = bl
 
     def add_watch(self, beamline, *args, **kwargs):
@@ -54,13 +50,13 @@ class Linac(object):
         """
         self._beamlines[beamline].add_watch(*args, **kwargs)
 
-    def update(self, x_map, workers=1):
+    def update(self, mapping, workers=1):
         """Update the linac.
 
         Re-simulate all beamlines and update all BeamParameters and
         LineParameters.
 
-        :param: x_map: dict
+        :param: mapping: dict
             A dictionary for variables and covariables- {name: value}.
         :param workers: int
             Number of threads.
@@ -72,29 +68,19 @@ class Linac(object):
         for beamline in self._beamlines.values():
             beamline.clean()
 
-        # Generate new input files for next simulation
-        found = set()
-        for bl in self._beamlines.values():
-            try:
-                os.remove(os.path.join(bl.dirname, bl.fin))
-            except FileNotFoundError:
-                pass
-            found = found.union(generate_input(bl, x_map))
-
-            fin = os.path.join(bl.dirname, bl.fin)
-            if not os.path.exists(fin):
-                raise BeamlineInputFileNotFoundError(
-                    "The input file %s has not been generated!" % fin)
-
-        if found != x_map.keys():
-            raise ValueError("Variables %s not found in the templates!" %
-                             (x_map.keys() - found))
-
         # Run simulations, and update all the BeamParameters and LineParameters
         for (i, beamline) in enumerate(self._beamlines.values()):
             # TODO: implement multi-threading here
+            beamline.generate_input(mapping)
             beamline.simulate(workers)
-            beamline.update()
+            beamline.update_watches_and_lines()
+
+    def get_templates(self):
+        """Get templates for all beamlines."""
+        templates = []
+        for beamline in self._beamlines.values():
+            templates.append(beamline.template)
+        return templates
 
     def __str__(self):
         text = ''

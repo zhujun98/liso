@@ -1,4 +1,4 @@
-# LISO
+# liso
 
 Jun Zhu
 
@@ -6,9 +6,7 @@ Jun Zhu
 
 ## Introduction
 
-**Li**nac **S**imulation and **O**ptimization.
-
-An API for various beam dynamics and FEL codes like ASTRA, IMPACT-T, IMPACT-Z and GENESIS.
+'liso', **Li**nac **S**imulation and **O**ptimization, is an API for various beam dynamics and FEL codes like ASTRA, IMPACT-T, IMPACT-Z and GENESIS.
 
 ## Dependencies
 
@@ -27,7 +25,7 @@ Python3 >= 3.5
 
 - Download and install LinacOpt
 ```sh
-$ git clone https://github.com/zhujun98/LISO.git
+$ git clone https://github.com/zhujun98/liso.git
 $ cd liso
 $ python setup.py install
 ```

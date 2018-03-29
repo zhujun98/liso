@@ -38,6 +38,7 @@ from .constraint import IConstraint
 from .objective import Objective
 from ..config import Config
 from ..exceptions import *
+from ..simulation.simulation_utils import check_templates
 
 INF = Config.INF
 
@@ -98,6 +99,8 @@ class LinacOptimization(object):
         :param optimizer: Optimizer object.
             Optimizer.
         """
+        check_templates(self._linac.get_templates(), self._x_map)
+
         print(self.__str__())
         opt_f, opt_x, _ = optimizer(self)
         self._create_solution(opt_x)

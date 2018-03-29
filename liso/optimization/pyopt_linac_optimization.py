@@ -30,6 +30,7 @@ Author: Jun Zhu
 from .linac_optimization import LinacOptimization
 from pyOpt import Optimization
 from ..config import Config
+from ..simulation.simulation_utils import check_templates
 
 INF = Config.INF
 
@@ -47,6 +48,8 @@ class PyoptLinacOptimization(LinacOptimization):
         :param optimizer: Optimizer object.
             Optimizer.
         """
+        check_templates(self._linac.get_templates(), self._x_map)
+
         print(self.__str__())
         # TODO::check whether the optimizer and opt_prob match?
         opt_prob = self._adapt_optimization()

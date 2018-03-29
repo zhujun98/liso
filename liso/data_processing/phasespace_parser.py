@@ -44,7 +44,7 @@ def parse_astra_phasespace(particle_file):
     data = pd.read_csv(particle_file, delim_whitespace=True, names=col_names)
 
     pz_ref = data['pz'].iloc[0]
-    data.ix[0, 'pz'] = 0.0
+    data.loc[0, 'pz'] = 0.0
     data['pz'] += pz_ref
 
     tmp = M_E * V_LIGHT ** 2 / Q_E
@@ -58,7 +58,7 @@ def parse_astra_phasespace(particle_file):
     # before removing lost particles since the reference particle
     # could be removed.
     z_ref = data['z'].iloc[0]
-    data.ix[0, 'z'] = 0.0
+    data.loc[0, 'z'] = 0.0
     data['z'] += z_ref
 
     # remove lost particles

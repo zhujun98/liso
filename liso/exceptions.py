@@ -46,19 +46,18 @@ class TooFewOutputParticlesError(BeamAnalysisError):
     pass
 
 
-class BeamlineInputFileNotFoundError(FileNotFoundError):
-    """Inherited from FileNotFoundError.
-
-    Raised if the simulation input file does not exist.
-    """
-    pass
-
-
 class WatchUpdateFailError(Exception):
     """Raised if watch update fails.
 
     e.g. file is missing or data format is wrong
     """
+    pass
+
+
+class OutUpdateFailError(WatchUpdateFailError):
+    """Inherited from WatchUpdateFailError
+
+    Raised if 'out' update fails."""
     pass
 
 

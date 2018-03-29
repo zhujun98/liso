@@ -2,6 +2,8 @@
 """
 This is an example showing how to simulate different part of a linac
 using different code.
+
+TODO: under development
 """
 from liso import Linac, LinacOptimization, ALPSO
 

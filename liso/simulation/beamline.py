@@ -13,8 +13,8 @@ import numpy as np
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
-from ..data_processing import analyze_beam, analyze_line, tailor_beam, \
-                              convert_particle_file
+from ..data_processing import analyze_beam, analyze_line, tailor_beam, ParticleFileGenerator
+from .simulation_utils import generate_input
 
 from ..exceptions import *
 from ..config import Config
@@ -70,37 +70,35 @@ class Beamline(ABC):
             self._gin = gin
 
         self.dirname = os.path.dirname(os.path.abspath(fin))
-        self.fin = os.path.join(self.dirname, os.path.basename(fin))
-        # Read the template file only once.
+        self._fin = os.path.join(self.dirname, os.path.basename(fin))
+        # Read the template file only once. Make the 'template' read-only by
+        # converting it to a tuple.
         with open(template) as fp:
             self.template = tuple(fp.readlines())
         self.charge = charge
 
-        self.predecessor = None  # the beamline upstream
-        self.pin = pin
-        self.pout = pout
-        if self.pin is not None:
-            self.pin = os.path.join(self.dirname, os.path.basename(self.pin))
-        if self.pout is not None:
-            self.pout = os.path.join(self.dirname, os.path.basename(self.pout))
+        self.next = None  # downstream beamline
+
+        if pin is None:
+            self.pin = pin
         else:
+            self.pin = os.path.join(self.dirname, os.path.basename(pin))
+
+        if pout is None:
             raise ValueError("Please specify the output particle file!")
+        else:
+            self.pout = os.path.join(self.dirname, os.path.basename(pout))
 
         self.z0 = z0  # starting z coordinate (m)
 
         # bookkeeping of Watch and the corresponding BeamParameters
-        # {key: (Watch, BeamParameters)}
+        # {key: name of watch, value: (Watch, BeamParameters)}
         self._watches = OrderedDict()
-
-        # default Watch instance
-        self.add_watch('out', self.pout)
+        self.add_watch('out', self.pout)  # default Watch instance
 
         # suffixes for the output files related to Line instance.
         self._output_suffixes = []
-
-        # default Line instance
-        self._all = None  # Line
-
+        self._all = None  # Line  # default Line instance
         # default LineParameters instances
         self.max = None  # LineParameters
         self.min = None  # LineParameters
@@ -124,7 +122,28 @@ class Beamline(ABC):
             Filename of the Watch object. This file is assumed to be in
             the same folder of the input file of this object.
         """
-        raise NotImplementedError
+        pass
+
+    def generate_input(self, mapping):
+        """Generate input file.
+
+        :param mapping: dict
+            A pattern-value mapping for replacing the pattern with
+            value in the template file.
+        """
+        return generate_input(self.template, mapping, self._fin)
+
+    @abstractmethod
+    def generate_initial_particle_file(self, data, charge):
+        """Generate the initial particle file.
+
+        :param data: Pandas.DataFrame
+            Particle data. See data_processing/phasespace_parser for details
+            of the data columns.
+        :param charge: float / None
+            Charge of the beam.
+        """
+        pass
 
     def _check_watch(self, name, filename):
         """Check existence of a Watch instance.
@@ -139,23 +158,25 @@ class Beamline(ABC):
     def clean(self):
         """Clean the output from the previous simulation.
 
-        - Remove files related to Watch and Line instances.
-        - Set BeamParameters and LineParameters to None.
+        - Remove input files;
+        - Remove files related to Watch and Line instances;
+        - Set BeamParameters and LineParameters to None;
         - Remove initial particle files for a concatenate simulation.
         """
-        # Clean Watch particle files and set the corresponding
-        # BeamParameters instance to None
+        with open(self._fin, 'w') as fp:
+            fp.truncate()
+
+        # Empty Watch particle files and set the corresponding
+        # BeamParameter instances to None
         for item in self._watches.values():
             with open(item[0].pfile, 'w') as fp:
                 fp.truncate()
             item[1] = None
 
-        # Clean Line files
+        # Empty Line files and set LineParameter instances None
         for suffix in self._output_suffixes:
             with open(self._all.rootname + suffix, 'w') as fp:
                 fp.truncate()
-
-        # Set LineParameters to None
         self.max = None
         self.min = None
         self.start = None
@@ -163,10 +184,9 @@ class Beamline(ABC):
         self.ave = None
         self.std = None
 
-        # Remove particle files
-        # (pout has already been removed since it is a Watch.pfile)
-        if self.predecessor is not None:
-            with open(self.pin, 'w') as fp:
+        # Empty the initial particle file of the downstream beamline
+        if self.next is not None:
+            with open(self.next.pin, 'w') as fp:
                 fp.truncate()
 
     def simulate(self, workers=1):
@@ -175,26 +195,17 @@ class Beamline(ABC):
         :param workers: int
             Number of threads.
         """
-        # Generate new particle file for concatenate simulation
-        if self.predecessor is not None:
-            convert_particle_file(self.predecessor.pout, self.pin,
-                                  code_in=self.predecessor.code,
-                                  code_out=self.code,
-                                  z0=self.z0)
-
-            #TODO: set the charge if this is a ImpactT beamline.
-
         if workers > 1:
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
                 self._timeout,
                 workers,
                 self.__class__.exec_p,
-                self.fin)
+                self._fin)
         else:
             command = "timeout {}s {} {}".format(
                 self._timeout,
                 self.__class__.exec_s,
-                os.path.basename(self.fin))
+                os.path.basename(self._fin))
 
         # TODO: understand how to understand the simulation process.
         try:
@@ -208,34 +219,26 @@ class Beamline(ABC):
         finally:
             time.sleep(1)
 
-    def update(self):
+        # process 'out'
+        try:
+            data, charge, self._watches['out'][1] = \
+                self._process_watch(self._watches['out'][0])
+        except Exception as e:
+            raise OutUpdateFailError(e)
+
+        if self.next is not None:
+            self.next.generate_initial_particle_file(data, charge)
+
+    def update_watches_and_lines(self):
         """Re-calculate all BeamParameters and LineParameters."""
         # Update watches
-        for item in self._watches.values():
-            try:
-                watch = item[0]
-                data, charge = watch.load_data()
-                # Even if charge is given for a AstraBeamline, it will still use
-                # the charge returned from watch.load_data().
-                charge = self.charge if charge is None else charge
-
-                n0 = len(data)
-                data = tailor_beam(data,
-                                   tail=watch.tail,
-                                   halo=watch.halo,
-                                   rotation=watch.rotation)
-                charge *= len(data) / n0
-
-                params = analyze_beam(data,
-                                      charge,
-                                      current_bins=watch.current_bins,
-                                      filter_size=watch.filter_size,
-                                      slice_percent=watch.slice_percent,
-                                      slice_with_peak_current=watch.slice_with_peak_current)
-
-                item[1] = params
-            except Exception as e:
-                raise WatchUpdateFailError(e)
+        # # 'out' will be processed in the method 'simulate()'
+        for name, item in self._watches.items():
+            if name != 'out':
+                try:
+                    _, _, item[1] = self._process_watch(item[0])
+                except Exception as e:
+                    raise WatchUpdateFailError(e)
 
         # update lines
         try:
@@ -250,11 +253,40 @@ class Beamline(ABC):
         except Exception as e:
             raise LineUpdateFailError(e)
 
+    def _process_watch(self, watch):
+        """Process a Watch.
+
+        Load the data and analyze the beam.
+
+        :param watch: Watch.
+            Watch instance.
+        """
+        data, charge = watch.load_data()
+        # Even if charge is given for a AstraBeamline, it will still use
+        # the charge returned from watch.load_data().
+        charge = self.charge if charge is None else charge
+
+        n0 = len(data)
+        data = tailor_beam(data,
+                           tail=watch.tail,
+                           halo=watch.halo,
+                           rotation=watch.rotation)
+        charge *= len(data) / n0
+
+        params = analyze_beam(data,
+                              charge,
+                              current_bins=watch.current_bins,
+                              filter_size=watch.filter_size,
+                              slice_percent=watch.slice_percent,
+                              slice_with_peak_current=watch.slice_with_peak_current)
+
+        return data, charge, params
+
     def __str__(self):
         text = '\nBeamline: %s\n' % self.name
         text += '-'*20 + '\n'
         text += 'Directory: %s\n' % self.dirname
-        text += 'Input file: %s\n' % self.fin
+        text += 'Input file: %s\n' % self._fin
         if self.pin is not None:
             text += 'Input particle file: %s\n' % self.pin
         if self.pout is not None:
@@ -285,9 +317,14 @@ class AstraBeamline(Beamline):
         self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001']
 
     def add_watch(self, name, pfile, **kwargs):
-        """Override the abstract method."""
+        """Implement the abstract method."""
         pfile = self._check_watch(name, pfile)
         self._watches[name] = [AstraWatch(name, pfile, **kwargs), None]
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        if self.pin is not None:
+            ParticleFileGenerator(data, self.pin).to_astra_pfile(charge)
 
 
 class ImpacttBeamline(Beamline):
@@ -313,9 +350,14 @@ class ImpacttBeamline(Beamline):
         self._output_suffixes = ['.18', '.24', '.25', '.26']
 
     def add_watch(self, name, pfile, **kwargs):
-        """Override the abstract method."""
+        """Implement the abstract method."""
         pfile = self._check_watch(name, pfile)
         self._watches[name] = [ImpacttWatch(name, pfile, **kwargs), None]
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        if self.pin is not None:
+            ParticleFileGenerator(data, self.pin).to_impactt_pfile()
 
 
 class ImpactzBeamline(Beamline):
