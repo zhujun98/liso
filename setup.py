@@ -12,7 +12,7 @@ REQUIREMENTS = [req.rstrip() for req in REQUIREMENTS]
 setup(
     name='liso',
     version='0.1.0',
-    packages=['liso', 'liso.tests'],
+    packages=find_packages(),
     author='Jun Zhu',
     author_email='zhujun981661@gmail.com',
     url='https://github.com/zhujun98/liso',
