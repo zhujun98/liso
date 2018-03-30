@@ -30,9 +30,9 @@ from itertools import chain
 
 import numpy as np
 
-from ..simulation import Linac
+from ..linac_operation import LinacOperation
 from .variable import Variable
-from .covariable import Covariable
+from ..covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
@@ -43,29 +43,17 @@ from ..simulation.simulation_utils import check_templates
 INF = Config.INF
 
 
-class LinacOptimization(object):
-    """LinacOpt class."""
+class LinacOptimization(LinacOperation):
+    """Inherited from LinacOperation."""
     def __init__(self, linac, *,
                  name='',
-                 max_successive_failures=20,
-                 workers=1):
+                 max_successive_failures=20):
         """Initialization.
 
-        :param linac: Linac object
-            Linac instance.
-        :param name: str
-            Name of the optimization problem (arbitrary).
         :param max_successive_failures: int
             Max number of allowed successive failures.
-        :param workers: int
-            Number of threads.
         """
-        if isinstance(linac, Linac):
-            self._linac = linac
-        else:
-            raise TypeError("{} is not a Linac instance!".format(linac))
-
-        self.name = name
+        super().__init__(linac, name=name)
 
         self.variables = OrderedDict()
         self.covariables = OrderedDict()
@@ -75,24 +63,9 @@ class LinacOptimization(object):
 
         self._x_map = OrderedDict()  # Initialize the x_map dictionary
 
-        self._workers = 1
-        self.workers = workers
-
         self._nfeval = 0  # No. of evaluations on the objectives and constraints.
         self._nf = 0
         self._max_successive_failures = max_successive_failures
-
-        self.time_monitor = False
-        self.verbose = False
-
-    @property
-    def workers(self):
-        return self._workers
-
-    @workers.setter
-    def workers(self, value):
-        if isinstance(value, int) and value > 0:
-            self._workers = value
 
     def solve(self, optimizer):
         """Run the optimization and print the result.
@@ -165,7 +138,7 @@ class LinacOptimization(object):
             f = [INF] * len(self.objectives)
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
 
-        if self.time_monitor is True:
+        if self.monitor_time is True:
             print('elapsed time: {:.4f} s, '.format(dt),
                   'cpu time: {:.4f} s, '.format(dt_cpu))
 

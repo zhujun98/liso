@@ -1,10 +1,14 @@
-from abc import ABC, abstractmethod
-from ..config import Config
+"""
+Author: Jun Zhu
+"""
+
+from .operation_element import OperationElement
+from .config import Config
 
 INF = Config.INF
 
 
-class DescriptiveParameter(ABC):
+class OutputElement(OperationElement):
     """Abstract class a descriptive parameter.
 
     The value of this parameter can be either calculated by parsing
@@ -13,8 +17,6 @@ class DescriptiveParameter(ABC):
     def __init__(self, name, *, expr=None, scale=1.0, func=None):
         """Initialization.
 
-        :param name: string
-            Variable Name.
         :param expr: string
             Expression for an attribute of a BeamParameters instance
             or a LineParameters instance,
@@ -26,7 +28,7 @@ class DescriptiveParameter(ABC):
         :param func: functor
             Used fo update the constraint value.
         """
-        self.name = name
+        super().__init__(name)
 
         if expr is None and func is None:
             raise ValueError("Unknown expression!")
@@ -48,11 +50,3 @@ class DescriptiveParameter(ABC):
             if not hasattr(func, '__call__'):
                 raise TypeError("'func' must be callable!")
             self.func = func
-
-    @abstractmethod
-    def list_item(self):
-        pass
-
-    @abstractmethod
-    def __str__(self):
-        pass

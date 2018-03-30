@@ -6,15 +6,14 @@ Author: Jun Zhu
 
 TODO: For now the cutoff takes no effect!
 """
+from ..operation_element import OperationElement
 
 
-class Jitter(object):
+class Jitter(OperationElement):
     """Jitter Class"""
     def __init__(self, name, *, value=0.0, sigma=0.0, cutoff=2):
         """Initialization.
 
-        :param name: string
-            Jitter Name.
         :param value: float
             Nominal value.
         :param sigma: float
@@ -23,7 +22,8 @@ class Jitter(object):
         :param cutoff: int
             Cutoff of the standard deviation.
         """
-        self.name = name
+        super().__init__(name)
+
         self.value = value
 
         self._sigma = sigma

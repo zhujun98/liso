@@ -1,12 +1,8 @@
 from .linac_optimization import LinacOptimization
-from .descriptive_parameter import DescriptiveParameter
-from .covariable import Covariable
 
 
 __all__ = [
     'LinacOptimization',
-    'DescriptiveParameter',
-    'Covariable'
 ]
 
 try:

@@ -1,44 +1,27 @@
 #!/usr/bin/python
 """
-
 Author: Jun Zhu
-
 """
 from collections import OrderedDict
-from itertools import chain
 
 import numpy as np
 
-from ..simulation import Linac
+from ..linac_operation import LinacOperation
 from .jitter import Jitter
-from ..optimization import Covariable
 from .response import Response
 
 from ..simulation.simulation_utils import check_templates
 
 
-class LinacJitter(object):
+class LinacJitter(LinacOperation):
+    """Inherited from LinacOperation."""
     def __init__(self, linac, *, name=''):
-        """Initialization.
-
-        :param linac: Linac object
-            Linac instance.
-        :param name: str
-            Name of the optimization problem (arbitrary).
-        """
-        if isinstance(linac, Linac):
-            self._linac = linac
-        else:
-            raise TypeError("{} is not a Linac instance!".format(linac))
-
-        self.name = name
+        """Initialization."""
+        super().__init__(linac, name=name)
 
         self.jitters = OrderedDict()
-        self.covariables = OrderedDict()
         self.responses = OrderedDict()
         self._x_map = dict()
-
-        self.verbose = False
 
     def add_jitter(self, name, **kwargs):
         """Add a jitter."""
@@ -56,30 +39,6 @@ class LinacJitter(object):
             del self._x_map[name]
         except KeyError:
             raise KeyError("{} is not a jitter!".format(name))
-
-    def add_covar(self, name, *args, **kwargs):
-        """Add a covariable."""
-        try:
-            self.covariables[name] = Covariable(name, *args, **kwargs)
-
-            var = self.covariables[name].dependent
-            a = self.covariables[name].scale
-            b = self.covariables[name].shift
-            try:
-                self._x_map[name] = a * self._x_map[var] + b
-            except KeyError:
-                raise ValueError("The dependent jitter '%s' does not exist!" % var)
-        except (TypeError, ValueError):
-            print("Input is not valid for a Covariable class instance!")
-            raise
-
-    def del_covar(self, name):
-        """Delete a covariable by name."""
-        try:
-            del self.covariables[name]
-            del self._x_map[name]
-        except KeyError:
-            raise KeyError("{} is not a covariable!".format(name))
 
     def add_response(self, name, **kwargs):
         """Add a response."""
@@ -142,15 +101,8 @@ class LinacJitter(object):
         :param x: 1D array like
             Normalized (mean = 0, std = 1.0) random numbers.
         """
-        x_covar = [0] * len(self.covariables)  # placeholder
-        for key, v in zip(self._x_map.keys(), chain(x, x_covar)):
-            try:
-                self._x_map[key] = self.jitters[key].value + v*self.jitters[key].sigma
-            except KeyError:
-                var = self.covariables[key].dependent
-                a = self.covariables[key].scale
-                b = self.covariables[key].shift
-                self._x_map[key] = a * self._x_map[var] + b
+        for key, v in zip(self._x_map.keys(), x):
+            self._x_map[key] = self.jitters[key].value + v*self.jitters[key].sigma
 
     def _update_response(self, count):
         """Update all Responses.
@@ -182,7 +134,6 @@ class LinacJitter(object):
         text += '\n' + '='*80 + '\n'
         text += self._format_item(self.responses, 'Response(s)')
         text += self._format_item(self.jitters, 'Jitter(s)')
-        text += self._format_item(self.covariables, 'Covariable(s)')
         return text
 
     @staticmethod

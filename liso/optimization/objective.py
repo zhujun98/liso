@@ -4,13 +4,13 @@ Objective class.
 
 Author: Jun Zhu
 """
-from .descriptive_parameter import DescriptiveParameter
+from ..output_element import OutputElement
 from ..config import Config
 
 INF = Config.INF
 
 
-class Objective(DescriptiveParameter):
+class Objective(OutputElement):
     """Optimization Objective Class"""
     def __init__(self, name, expr=None, scale=1.0, func=None, optimum=-INF):
         """Initialization."""

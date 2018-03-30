@@ -31,6 +31,7 @@ class TestJitter(unittest.TestCase):
         self.jt.workers = 1
 
     def test_not_raise(self):
+        self.jt.monitor_time = True
         self.jt.run(5)
 
 

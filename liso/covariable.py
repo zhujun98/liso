@@ -2,9 +2,10 @@
 """
 Author: Jun Zhu
 """
+from .operation_element import OperationElement
 
 
-class Covariable(object):
+class Covariable(OperationElement):
     """Covariable class.
 
     Covariable is a variable which changes along with another variable.
@@ -15,8 +16,6 @@ class Covariable(object):
         The value of the variable is calculated by:
         covar = scale *var + shift
 
-        :param name: string
-            Name of the co-variable.
         :param dependent: string
             Name of the dependent variable.
         :param scale: float
@@ -24,7 +23,7 @@ class Covariable(object):
         :param shift: float
             Coefficient.
         """
-        self.name = name
+        super().__init__(name)
 
         self.dependent = dependent
         self.scale = scale

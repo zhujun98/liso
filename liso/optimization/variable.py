@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 """
-Variable class
-
 Author: Jun Zhu
 """
+from ..operation_element import OperationElement
 from ..config import Config
 
 INF = Config.INF
 
 
-class Variable(object):
+class Variable(OperationElement):
     """Optimization Variable Class"""
     def __init__(self, name, type_='c', *, value=0.0, **kwargs):
         """Variable Class Initialization
 
-        :param name: string
-            Variable Name.
         :param type_: string
             Variable type
             ('c' - continuous, 'i' - integer, 'd' - discrete), default = 'c'
@@ -26,7 +23,8 @@ class Variable(object):
         :param ub: int / float
             Upper boundary.
         """
-        self.name = name
+        super().__init__(name)
+
         self.type_ = type_[0].lower()
         if self.type_ == 'c':
             self.value = float(value)

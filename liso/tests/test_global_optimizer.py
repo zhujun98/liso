@@ -36,8 +36,8 @@ class TestGlobalOptimizer(unittest.TestCase):
         optimizer.swarm_size = 10
         optimizer.max_inner_iter = 3
         optimizer.min_inner_iter = 1
-        optimizer.max_outer_iter = 5
+        optimizer.max_outer_iter = 3
 
         self.opt.workers = 1
-        self.opt.time_monitor = True
+        self.opt.monitor_time = True
         self.opt.solve(optimizer)

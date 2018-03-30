@@ -16,13 +16,13 @@ Author: Jun Zhu
 """
 import warnings
 
-from .descriptive_parameter import DescriptiveParameter
+from ..output_element import OutputElement
 from ..config import Config
 
 INF = Config.INF
 
 
-class IConstraint(DescriptiveParameter):
+class IConstraint(OutputElement):
     """Optimization inequality constraint class."""
     def __init__(self, name, expr=None, scale=1.0, func=None, **kwargs):
         """Initialization."""
@@ -88,7 +88,7 @@ class IConstraint(DescriptiveParameter):
                self.list_item()
 
 
-class EConstraint(DescriptiveParameter):
+class EConstraint(OutputElement):
     """Optimization equality constraint class."""
     def __init__(self, name, expr=None, scale=1.0, func=None, eq=0.0):
         """Initialization."""

@@ -7,12 +7,12 @@ Author: Jun Zhu
 import numpy as np
 
 from ..config import Config
-from ..optimization import DescriptiveParameter
+from ..output_element import OutputElement
 
 INF = Config.INF
 
 
-class Response(DescriptiveParameter):
+class Response(OutputElement):
     """Response Class.
 
     A Response instance records the responses of a parameter to
