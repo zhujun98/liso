@@ -193,10 +193,10 @@ class LinacOptimization(LinacOperation):
                 keys = item.expr
                 if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
                     item.value = self._linac.__getattr__(keys[0]).__getattribute__(
-                        keys[1]).__getattribute__(keys[2])
+                        keys[1]).__getattribute__(keys[2]) * item.scale
                 else:
                     item.value = self._linac.__getattr__(keys[0]).__getattr__(
-                        keys[1]).__getattribute__(keys[2])
+                        keys[1]).__getattribute__(keys[2]) * item.scale
 
     def add_var(self, name, **kwargs):
         """Add a variable."""
