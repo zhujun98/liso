@@ -483,6 +483,11 @@ class LinePlotGUI(PlotGUI):
             return
 
         if self._data is not None:
+            # clear legend
+            if self.legend is not None:
+                self.legend.scene().removeItem(self.legend)
+                self.legend = None
+
             x_var = 'z'
             x = get_line_column_by_name(self._data, x_var)
             x_unit = get_default_unit(x_var)
@@ -494,13 +499,10 @@ class LinePlotGUI(PlotGUI):
             n_items = self._var_list.selectedItems().__len__()
             if n_items == 0:
                 return
+
             if n_items > 1:
                 self.legend = self._plot.addLegend()
-            # TODO: remove legend if only there is only one line
-            # else:
-            #     if self.legend is not None:
-            #         self.legend.scene().removeItem(self.legend)
-            #     self.legend = None
+
             for i, item in enumerate(self._var_list.selectedItems()):
                 y_var = item.text()
                 y = get_line_column_by_name(self._data, y_var)
