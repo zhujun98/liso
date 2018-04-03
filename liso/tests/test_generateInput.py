@@ -5,7 +5,7 @@ import unittest
 
 from ..simulation.simulation_utils import generate_input
 
-TEMPLATE = "liso/tests/jitter_test01/injector.in.000"
+TEMPLATE = "liso/tests/jitter_test/injector.in.000"
 OUTPUT = "liso/tests/astra_gun/injector.in"
 
 

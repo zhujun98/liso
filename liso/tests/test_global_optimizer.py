@@ -15,7 +15,7 @@ class TestGlobalOptimizer(unittest.TestCase):
         linac.add_beamline('astra',
                            name='gun',
                            fin='liso/tests/astra_gun/injector.in',
-                           template='liso/tests/global_optimizer_test01/injector.in.000',
+                           template='liso/tests/global_optimizer_test/injector.in.000',
                            pout='injector.0150.001')
 
         print(linac)
@@ -38,6 +38,5 @@ class TestGlobalOptimizer(unittest.TestCase):
         optimizer.min_inner_iter = 1
         optimizer.max_outer_iter = 3
 
-        self.opt.workers = 1
         self.opt.monitor_time = True
         self.opt.solve(optimizer)

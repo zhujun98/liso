@@ -15,14 +15,14 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
         linac.add_beamline('astra',
                            name='gun',
-                           fin='liso/tests/multi_code_optimization_test01/astra/injector.in',
-                           template='liso/tests/multi_code_optimization_test01/astra/injector.in.000',
+                           fin='liso/tests/multi_code_optimization_test/astra/injector.in',
+                           template='liso/tests/multi_code_optimization_test/astra/injector.in.000',
                            pout='injector.0100.001')
 
         linac.add_beamline('impactt',
                            name='matching',
-                           fin='liso/tests/multi_code_optimization_test01/impactt/ImpactT.in',
-                           template='liso/tests/multi_code_optimization_test01/impactt/ImpactT.in.000',
+                           fin='liso/tests/multi_code_optimization_test/impactt/ImpactT.in',
+                           template='liso/tests/multi_code_optimization_test/impactt/ImpactT.in.000',
                            pout='fort.106',
                            charge=10e-12)
 
@@ -46,6 +46,5 @@ class TestMultiCodeOptimization(unittest.TestCase):
         optimizer.setOption('alfa_stop', 1e-2)
         optimizer.setOption('nf_max', 20)
 
-        self.opt.workers = 1
         self.opt.monitor_time = True
         self.opt.solve(optimizer)

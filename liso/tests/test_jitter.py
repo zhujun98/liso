@@ -13,7 +13,7 @@ class TestJitter(unittest.TestCase):
         linac.add_beamline('astra',
                            name='gun',
                            fin='liso/tests/astra_gun/injector.in',
-                           template='liso/tests/jitter_test01/injector.in.000',
+                           template='liso/tests/jitter_test/injector.in.000',
                            pout='injector.0150.001')
 
         print(linac)
@@ -27,8 +27,6 @@ class TestJitter(unittest.TestCase):
 
         self.jt.add_jitter('gun_gradient', value=110, sigma=-0.001)
         self.jt.add_jitter('gun_phase', value=0.0, sigma=0.01)
-
-        self.jt.workers = 1
 
     def test_not_raise(self):
         self.jt.monitor_time = True
