@@ -62,7 +62,13 @@ LISO has its own single- and multi-objective optimizers. It also provides interf
 
 ### Own optimizers
 
+#### Local unconstrained optimizers
+##### Nelder-Mead
+
+#### Single-objective global optimizers
 ##### ALPSO
+
+#### Multi-objective optimizers
 ##### MOPSO
 
 ### pyOpt optimizers 

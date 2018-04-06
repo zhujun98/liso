@@ -25,7 +25,7 @@ class Optimizer(ABC):
         if self.seed is None:
             self.seed = int(time.time())
 
-        self.printout = 0  # Level of verbosity
+        self.printout = 0  # Level of printout
 
     @abstractmethod
     def __call__(self, opt_problem):
@@ -35,3 +35,7 @@ class Optimizer(ABC):
             Optimization problem instance.
         """
         raise NotImplemented
+
+    @abstractmethod
+    def __str__(self):
+        pass

@@ -179,6 +179,7 @@ class Optimization(Operation):
         """
         x = list(self._x_map.values())
         f_eval, g_eval = self._opt_func(x)
+        self._nfeval += 1
 
         for i, item in enumerate(self.objectives.values()):
             item.value = f_eval[i]
@@ -208,6 +209,12 @@ class Optimization(Operation):
         """
         self._update_x_map(x)
         f, g = self._update_objs_cons()
+
+        if self.printout > 0:
+            print('{:04d} - '.format(self._nfeval),
+                  ['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
+                  ['{:9.2e}'.format(v) for v in f],
+                  ['{:9.2e}'.format(v) for v in g])
 
         return f, g, False
 

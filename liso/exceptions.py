@@ -67,3 +67,13 @@ class LineUpdateFailError(Exception):
     e.g file is missing or data format is wrong
     """
     pass
+
+
+class OptimizationError(Exception):
+    """Raise if there is error in optimization."""
+    pass
+
+
+class OptimizationConstraintSupportError(OptimizationError):
+    """Raise if an optimizer does not support certain constraint."""
+    pass

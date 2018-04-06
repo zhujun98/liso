@@ -1,0 +1,70 @@
+&NEWRUN 
+    Version = 3
+    Head='test for linac optimization'
+    RUN = 1
+    Distribution = 'Radial500_1G3ps.ini'
+    Qbunch = 0.02
+    XYrms = <laser_spot>
+    Trms = 0.003
+    TRACK_ALL = .T 
+    PHASE_SCAN = .F
+    AUTO_PHASE = .T
+    H_max = 0.005
+    H_min = 0.00005
+    Max_step = 10000000
+    debunch = 0.0
+    Z_Cathode = 0.0
+/
+
+&OUTPUT
+    ZSTART = 0.0 
+    ZSTOP = 1.5
+    Zemit = 100
+    Zphase = 1 
+    High_res = .T
+    Local_emit = .F
+    Lproject_emit = .F
+    TR_EmitS = .T
+    EmitS = .T
+    C_Emits = .F  
+    PhaseS = .T
+    RefS = .F
+    TrackS = .F  
+    TcheckS = .F
+    CathodeS = .F
+    LANDFS  = .F
+    Lsub_rot = .F  
+    Lsub_cor = .F
+    Lmagnetized = .F
+/
+
+&CHARGE 
+    LSPCH = .F
+    Max_scale = 0.1
+    Max_Count = 100
+    Exp_Control = 0.1
+    Nrad = 16
+    Nlong_in = 16
+    Lmirror = .F
+    Cell_var = 2.0
+    min_grid = 0.0  
+    N_min = 30.0  
+/
+
+&CAVITY 
+    Loop = .F 
+    LEfield = .T
+    
+    File_Efield(1) = 'gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0 
+    C_smooth(1) = 10, C_higher_order(1) = .T
+    MaxE(1) = 110, Phi(1) = 0.0
+/
+ 
+&SOLENOID
+    Loop = .F 
+    LBfield = .T
+    
+    File_Bfield(1) = 'sole_gun.dat', S_pos(1) = 0.0
+    S_smooth(1) = 5
+    MaxB(1) = <main_sole_b>
+/
