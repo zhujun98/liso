@@ -53,5 +53,5 @@ opt.add_var('laser_spot',  value=0.1, lb= 0.04, ub=0.5)  # variable with lower b
 opt.add_var('main_sole_b', value=0.2, lb= 0.00, ub=0.4)  # variable
 
 opt.workers = 2  # use parallel Astra
-opt.verbose = True  # print the optimization process
+opt.printout = 1  # print the optimization process
 opt.solve(optimizer)  # run the optimization

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-pyALPSO - A Python pyOpt interface for ALPSO.
+pyALPSO - An LISO interface for Augmented Larangian Particle Swarm Optimization.
 
 Author: Jun Zhu
 """
@@ -19,7 +19,7 @@ class ALPSO(Optimizer):
     category = 'global'
 
     def __init__(self):
-        """ALPSO Optimizer Class Initialization"""
+        """Initialization"""
         name = 'ALPSO'
         super().__init__(name)
 
@@ -44,7 +44,7 @@ class ALPSO(Optimizer):
         self.itol = 1e-3
 
         # Relative tolerance for Lagrange function
-        self.rtol = 2e-3
+        self.rtol = 1e-3
         # Absolute tolerance for Lagrange function
         self.atol = 1e-3
         # Absolute tolerance for position deviation of all particles
@@ -59,12 +59,20 @@ class ALPSO(Optimizer):
         # Final Inertia Weight
         self.w1 = 0.40
 
-        # Random Number Seed (None - Auto-Seed based on time clock)
-        self.seed = None
-        if self.seed is None:
-            self.seed = int(time.time())
-
-        self.verbose = True
+        # F. Bergh, A.P. Engelbrecht,
+        # A new locally convergent particle swarm optimiser,
+        # Systems, Man and Cybernetics, 2002 IEEE International Conference.
+        self.use_gcpso = True
+        # Number of Consecutive Successes in Finding New Best Position
+        # of Best Particle Before Search Radius will be Increased (GCPSO)
+        self._ns = 15
+        # Number of Consecutive Failures in Finding New Best Position
+        # of Best Particle Before Search Radius will be Increased (GCPSO)
+        self._nf = 5
+        # Maximum search radius (GCPSO)
+        self._rho_max = 5e-2
+        # Minimum search radius (GCPSO)
+        self._rho_min = 1e-4
 
     def __call__(self, opt_prob):
         """Run Optimizer (Optimize Routine)
@@ -75,29 +83,15 @@ class ALPSO(Optimizer):
         n_vars = len(opt_prob.variables)
         x_min = np.zeros(n_vars, float)
         x_max = np.zeros(n_vars, float)
-        i = 0
-        for key in opt_prob.variables.keys():
+        for i, key in enumerate(opt_prob.variables.keys()):
             x_min[i] = opt_prob.variables[key].lb
             x_max[i] = opt_prob.variables[key].ub
-            i += 1
 
         def f_obj_con(x):
-            """ALPSO - Objective/Constraint Values Function.
-
-            :param x: np.array, [swarm_size, n_vars]
-                Normalized variables (to space [0, 1]).
-
-            :return: f: float
-                Objective value.
-            :return: g: numpy.array
-                Constraint values.
-            """
-            f, g, _ = opt_prob.eval_obj_cons(x*(x_max - x_min) + x_min)
-            # single objective problem
+            f, g, _ = opt_prob.eval_objs_cons(x*(x_max - x_min) + x_min)
             return f[0], g
 
         # =====================================================================
-        name = opt_prob.name
 
         # Constraints
         n_eq_cons = len(opt_prob.e_constraints)
@@ -129,16 +123,21 @@ class ALPSO(Optimizer):
                   self.c2,
                   self.w0,
                   self.w1,
+                  self.use_gcpso,
+                  self._nf,
+                  self._ns,
+                  self._rho_max,
+                  self._rho_min,
                   f_obj_con
                   )
         opt_x[:] = opt_x*(x_max - x_min) + x_min
         delta_t = time.time() - t0
 
-        if self.verbose is True:
+        if self.printout > 0:
             # Print Results
-            print("=" * 80)
-            print(name + "\n")
-            print(stop_info + "\n")
+            print("\n" + "=" * 80)
+            print("\nSolution for optimization problem '%s' using:\n" % opt_prob.name)
+            print(self.__str__())
             print("No. of outer iterations: %d" % k_out)
             print("No. of objective function evaluations: %d" % nfevals)
 
@@ -146,64 +145,72 @@ class ALPSO(Optimizer):
 
             text += "\nBest position:\n"
             for j in range(n_vars):
-                text += ("\tP(%d) = %.4e\t" % (j, opt_x[j]))
+                text += ("    P(%d) = %11.4e" % (j, opt_x[j]))
                 if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
                     text += "\n"
+            text += "\n"
 
             text += "\nObjective function value:\n"
-            text += "\tF = %.4e" % opt_f
+            text += "    F = %11.4e\n" % opt_f
 
             if n_cons > 0:
                 text += "\nAugmented Lagrangian function value:\n"
-                text += "\tL = %.4e" % opt_L
+                text += "    L = %11.4e\n" % opt_L
 
-                text += "\nEquality constraint violation values:\n"
-                for j in range(n_eq_cons):
-                    text += "\tH(%d) = %.4e\t" % (j, opt_g[j])
+                if n_eq_cons > 0:
+                    text += "\nEquality constraint violation value(s):\n"
+                    for j in range(n_eq_cons):
+                        text += "    H(%d) = %11.4e" % (j, opt_g[j])
+                    text += "\n"
 
-                text += "\nInequality constraint violation values:\n"
-                for j in range(n_eq_cons, n_cons):
-                    text += "\tG(%d) = %.4e\t" % (j, opt_g[j])
+                if n_cons > n_eq_cons:
+                    text += "\nInequality constraint violation value(s):\n"
+                    for j in range(n_eq_cons, n_cons):
+                        text += "    G(%d) = %11.4e" % (j, opt_g[j])
+                    text += "\n"
 
-                text += "\nLagrangian multiplier values:\n"
+                text += "\nLagrangian multiplier value(s):\n"
                 for j in range(n_cons):
-                    text += "\tL(%d) = %.4e\t" % (j, opt_lambda[j])
-                    if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
+                    text += "    M(%d) = %11.4e" % (j, opt_lambda[j])
+                    if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
                         text += "\n"
+                text += "\n"
 
-                text += "\nPenalty factor values:\n"
+                text += "\nPenalty factor value(s):\n"
                 for j in range(n_cons):
-                    text += "\tL(%d) = %.4e\t" % (j, opt_rp[j])
-                    if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
+                    text += "    R(%d) = %11.4e" % (j, opt_rp[j])
+                    if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
                         text += "\n"
+                text += "\n"
 
-            print(text + "\n" + "=" * 80 + "\n")
+            print(text)
+
+            print("\n***Additional information***\n")
+            print(stop_info + "\n")
+            print("\n" + "=" * 80 + "\n")
 
         return opt_f, opt_x, {'time': delta_t}
 
     def __str__(self):
-        header = ''
-        header += ' ' * 37 + '======================\n'
-        header += ' ' * 39 + ' ALPSO (Serial)\n'
-        header += ' ' * 37 + '======================\n\n'
-        header += 'Parameters:\n'
-        header += '-' * 97 + '\n'
+        text = '-' * 80 + '\n'
+        text += 'Augmented Lagrangian Particle Swarm Optimizer (ALPSO)\n'
+        text += '-' * 80 + '\n'
 
-        header += 'SwarmSize           :%8d' % self.swarm_size + \
-                  '    MaxOuterIters       :%8d' % self.max_outer_iter + \
-                  '    Topology            : %7s\n' % self.topology
-        header += 'Cognitive Parameter :%8.2f' % self.c1 + \
-                  '    MaxInnerIters       :%8d\n' % self.max_inner_iter
-        header += 'Social Parameter    :%8.2f' % self.c2 + \
-                  '    MinInnerIters       :%8d' % self.min_inner_iter + \
-                  '    Relative Tolerance  : %7.1e\n' % self.rtol
-        header += 'Initial Weight      :%8.2f' % self.w0 + \
-                  '    Equality Tolerance  : %7.1e' % self.etol + \
-                  '    Absolute Tolerance  : %7.1e\n' % self.atol
-        header += 'Final Weight        :%8.2f' % self.w1 + \
-                  '    Inequality Tolerance: %7.1e' % self.itol + \
-                  '    Divergence Tolerance: %7.1e\n' % self.dtol
+        text += 'Swarm size       : %7d' % self.swarm_size + \
+                '  Equality tol.   : %7.1e' % self.etol + \
+                '  Max. outer itr. : %7d\n' % self.max_outer_iter
+        text += 'Cognitive param. : %7.2f' % self.c1 + \
+                '  Inequality tol. : %7.1e' % self.itol + \
+                '  Max. inner itr. : %7d\n' % self.max_inner_iter
+        text += 'Social param.    : %7.2f' % self.c2 + \
+                '  Relative tol.   : %7.1e' % self.rtol + \
+                '  Min. inner itr. : %7d\n' % self.min_inner_iter
+        text += 'Initial weight   : %7.2f' % self.w0 + \
+                '  Absolute tol.   : %7.1e' % self.atol + \
+                '  Topology        : %7s\n' % self.topology
+        text += 'Final weight     : %7.2f' % self.w1 + \
+                '  Divergence tol. : %7.1e\n' % self.dtol
 
-        header += '-' * 97 + '\n\n'
+        text += '-' * 80 + '\n\n'
 
-        return header
+        return text

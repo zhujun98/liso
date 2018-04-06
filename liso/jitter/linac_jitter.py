@@ -6,18 +6,20 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..linac_operation import LinacOperation
+from ..operation import Operation
 from .jitter import Jitter
 from .response import Response
 
 from ..simulation.simulation_utils import check_templates
 
 
-class LinacJitter(LinacOperation):
+class LinacJitter(Operation):
     """Inherited from LinacOperation."""
     def __init__(self, linac, *, name=''):
         """Initialization."""
-        super().__init__(linac, name=name)
+        super().__init__(name)
+
+        self._linac = linac
 
         self.jitters = OrderedDict()
         self.responses = OrderedDict()
@@ -122,7 +124,7 @@ class LinacJitter(LinacOperation):
                     item.values.append(self._linac.__getattr__(keys[0]).__getattr__(
                         keys[1]).__getattribute__(keys[2]) * item.scale)
 
-        if self.verbose is True:
+        if self.printout > 0:
             out = []
             for item in self.responses.values():
                 out.append(item.values[-1])

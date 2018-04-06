@@ -42,7 +42,7 @@ opt.add_var('tws_phase', value=0.1, lb=0.00, ub=0.40)  # variable
 opt.add_var('dipole_by', value=0.0, lb=0.00, ub=0.40)  # variable
 
 opt.workers = 2
-opt.verbose = True
+opt.printout = 1
 
 optimizer = ALPSO()
 opt.solve(optimizer)

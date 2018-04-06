@@ -18,24 +18,9 @@ TODO: Improve convergence condition.
 import numpy as np
 import h5py
 
+from ..config import Config
 
-INF = 1.0e21
-
-# Number of Consecutive Successes in Finding New Best Position
-# of Best Particle Before Search Radius will be Increased (GCPSO)
-NS = 15
-# Number of Consecutive Failures in Finding New Best Position
-# of Best Particle Before Search Radius will be Increased (GCPSO)
-NF = 5
-
-# F. Bergh, A.P. Engelbrecht,
-# A new locally convergent particle swarm optimiser,
-# Systems, Man and Cybernetics, 2002 IEEE International Conference.
-USE_GCPSO = True
-
-# A large RHO_MAX will affect the convergence condition (divergence)
-RHO_MAX = 5e-2  # Maximum search radius
-RHO_MIN = 1e-4  # Minimum search radius
+INF = Config.INF
 
 
 def update_inertial_weight(w0, w1, k):
@@ -70,6 +55,11 @@ def alpso(x0,
           c2,
           w0,
           w1,
+          use_gcpso,
+          nf,
+          ns,
+          rho_max,
+          rho_min,
           f_obj_con):
     """Augmented Lagrangian Particle Swarm Optimizer.
 
@@ -107,6 +97,22 @@ def alpso(x0,
         Initial inertial weight.
     :param w1: float
         Initial inertial weight.
+    :param use_gcpso: bool
+        Use GCPSO:
+        F. Bergh, A.P. Engelbrecht,
+        A new locally convergent particle swarm optimiser,
+        Systems, Man and Cybernetics, 2002 IEEE International Conference.
+    :param ns: int
+        Number of Consecutive Successes in Finding New Best Position
+        of Best Particle Before Search Radius will be Increased (GCPSO)
+    :param nf: int
+        Number of Consecutive Failures in Finding New Best Position
+        of Best Particle Before Search Radius will be Increased (GCPSO).
+    :param rho_max: float
+        Maximum search radius (GCPSO). A large rho_max will affect the
+        convergence condition.
+    :param rho_min: float
+        Minimum search radius (GCPSO).
     :param f_obj_con: function object.
         Take the normalized input parameters and output a tuple of
         (objective, constraints).
@@ -147,7 +153,7 @@ def alpso(x0,
     lambda_ = np.zeros(n_cons, float)  # Lagrangian multiplier
     rp = np.ones(n_cons, float)  # penalty factor (quadratic term)
     w = w0  # inertial weight
-    rho = RHO_MAX  # search radius for the global best particle (GCPSO)
+    rho = rho_max  # search radius for the global best particle (GCPSO)
     nfevals = 0  # No. of evaluations of the objective function
 
     f = np.ones(swarm_size, float) * INF  # objective
@@ -195,6 +201,10 @@ def alpso(x0,
 
     stop_info = ""
 
+    # -----------------------------------------------------------------
+    # Iterations
+    # -----------------------------------------------------------------
+
     # Outer optimization loop
     k_out = 0  # outer loop count
     k_success = 0  # consecutive success count
@@ -216,7 +226,7 @@ def alpso(x0,
             # Update position and velocity
             for i in range(swarm_size):
                 # position and velocity update
-                if USE_GCPSO is True and i == gbest_i:
+                if use_gcpso is True and i == gbest_i:
                     rr = 1.0 - 2.0 * np.random.rand(n_vars)
                     v_k[i, :] = -x_k[i, :] + gbest_x + w*v_k[i, :] + rr*rho
                 else:
@@ -277,7 +287,7 @@ def alpso(x0,
             params_history['divergence'].append(divergence)
             params_history['rho'].append(rho)
 
-            if USE_GCPSO is True:
+            if use_gcpso is True:
                 if gbest_L >= gbest_L_old:
                     k_failure += 1
                     k_success = 0
@@ -286,14 +296,14 @@ def alpso(x0,
                     k_failure = 0
 
                 # Update search radius for the best particle (GCPSO)
-                if k_success > NS:
+                if k_success > ns:
                     rho *= 2.0
                     k_success = 0
-                elif k_failure > NF:
+                elif k_failure > nf:
                     rho *= 0.5
                     k_failure = 0
 
-                rho = max(min(RHO_MAX, rho), RHO_MIN)
+                rho = max(min(rho_max, rho), rho_min)
 
             # check convergence of the inner loop
             if gbest_L < gbest_L_old and k_inn >= min_inner_iter:

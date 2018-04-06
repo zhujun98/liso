@@ -16,14 +16,14 @@ Author: Jun Zhu
 """
 import warnings
 
-from ..output_element import OutputElement
+from ..elements import EvaluatedElement
 from ..config import Config
 
 INF = Config.INF
 
 
-class IConstraint(OutputElement):
-    """Optimization inequality constraint class."""
+class IConstraint(EvaluatedElement):
+    """Inequality constraint class. Inherited from EvaluatedElement."""
     def __init__(self, name, expr=None, scale=1.0, func=None, **kwargs):
         """Initialization."""
         super().__init__(name, expr=expr, scale=scale, func=func)
@@ -88,8 +88,8 @@ class IConstraint(OutputElement):
                self.list_item()
 
 
-class EConstraint(OutputElement):
-    """Optimization equality constraint class."""
+class EConstraint(EvaluatedElement):
+    """Equality constraint class. Inherited from EvaluatedElement."""
     def __init__(self, name, expr=None, scale=1.0, func=None, eq=0.0):
         """Initialization."""
         super().__init__(name, expr=expr, scale=scale, func=func)

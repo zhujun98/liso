@@ -6,11 +6,11 @@ Author: Jun Zhu
 
 TODO: For now the cutoff takes no effect!
 """
-from ..operation_element import OperationElement
+from ..elements import OperationalElement
 
 
-class Jitter(OperationElement):
-    """Jitter Class"""
+class Jitter(OperationalElement):
+    """Inherited from OperationalElement."""
     def __init__(self, name, *, value=0.0, sigma=0.0, cutoff=2):
         """Initialization.
 

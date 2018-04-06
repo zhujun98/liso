@@ -5,6 +5,7 @@ Optimizer class.
 Author: Jun Zhu
 """
 from abc import ABC, abstractmethod
+import time
 
 
 class Optimizer(ABC):
@@ -18,6 +19,13 @@ class Optimizer(ABC):
             Optimizer name.
         """
         self.name = name
+
+        # Random Number Seed (None - Auto-Seed based on time clock)
+        self.seed = None
+        if self.seed is None:
+            self.seed = int(time.time())
+
+        self.printout = 0  # Level of verbosity
 
     @abstractmethod
     def __call__(self, opt_problem):

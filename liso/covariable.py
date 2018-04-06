@@ -2,11 +2,11 @@
 """
 Author: Jun Zhu
 """
-from .operation_element import OperationElement
+from .elements import OperationalElement
 
 
-class Covariable(OperationElement):
-    """Covariable class.
+class Covariable(OperationalElement):
+    """Inherited from OperationalElement.
 
     Covariable is a variable which changes along with another variable.
     """

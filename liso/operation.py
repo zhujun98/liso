@@ -3,28 +3,19 @@ Author: Jun Zhu
 """
 from abc import ABC, abstractmethod
 
-from .simulation import Linac
 
+class Operation(ABC):
+    """Abstract class for Optimization and Jitter."""
 
-class LinacOperation(ABC):
-    """Abstract class for LinacOptimization and LinacJitter."""
-
-    def __init__(self, linac, *, name):
+    def __init__(self, name):
         """Initialization.
 
-        :param linac: Linac object
-            Linac instance.
         :param name: str
             Name of the optimization problem (arbitrary).
         """
-        if isinstance(linac, Linac):
-            self._linac = linac
-        else:
-            raise TypeError("{} is not a Linac instance!".format(linac))
-
         self.name = name
-        self._workers = 1
-        self.verbose = False
+        self._workers = 1  # number of threads
+        self.printout = 0  # Level of printout
         self.monitor_time = False
 
     @property

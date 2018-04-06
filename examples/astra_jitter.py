@@ -30,5 +30,5 @@ jt.add_jitter('tws_gradient', value=30, sigma=-0.001)  # nominal value = 30, sta
 jt.add_jitter('tws_phase', value=-20.0, sigma=0.01)  # nominal value = 0.0, standard deviation = 0.01
 
 jt.workers = 1  # No. of threads
-jt.verbose = True  # print the jitter process
+jt.printout = 1  # print the jitter process
 jt.run(50)  # run with 10 random simulations

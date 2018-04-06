@@ -7,13 +7,13 @@ Author: Jun Zhu
 import numpy as np
 
 from ..config import Config
-from ..output_element import OutputElement
+from ..elements import EvaluatedElement
 
 INF = Config.INF
 
 
-class Response(OutputElement):
-    """Response Class.
+class Response(EvaluatedElement):
+    """Inherited from OperationalElement.
 
     A Response instance records the responses of a parameter to
     the jitters.

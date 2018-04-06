@@ -2,14 +2,14 @@
 """
 Author: Jun Zhu
 """
-from ..operation_element import OperationElement
+from ..elements import OperationalElement
 from ..config import Config
 
 INF = Config.INF
 
 
-class Variable(OperationElement):
-    """Optimization Variable Class"""
+class Variable(OperationalElement):
+    """Variable Class. Inherited from OperationalElement."""
     def __init__(self, name, type_='c', *, value=0.0, **kwargs):
         """Variable Class Initialization
 

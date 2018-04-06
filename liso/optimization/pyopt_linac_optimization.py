@@ -54,13 +54,17 @@ class PyoptLinacOptimization(LinacOptimization):
         # TODO::check whether the optimizer and opt_prob match?
         opt_prob = self._adapt_optimization()
         opt_f, opt_x, _ = optimizer(opt_prob)
-        self._create_solution(opt_x)
+
+        self._update_x_map(opt_x)
+        self._update_objs_cons()
+
         self._verify_solution(opt_f)
+
         print(self.__str__())
 
     def _adapt_optimization(self):
         """Set an Optimization instance used by pyOpt."""
-        opt_prob = Optimization("opt_prob", self.eval_obj_cons)
+        opt_prob = Optimization("opt_prob", self.eval_objs_cons)
 
         # pyOpt relies on the str(int) type key for variables, constraints,
         # so that inside the dictionary the items are sorted by key.

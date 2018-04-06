@@ -1,17 +1,39 @@
 """
 Author: Jun Zhu
 """
-
-from .operation_element import OperationElement
+from abc import ABC, abstractmethod
 from .config import Config
 
 INF = Config.INF
 
 
-class OutputElement(OperationElement):
-    """Abstract class a descriptive parameter.
+class OperationalElement(ABC):
+    """Abstract class.
 
-    The value of this parameter can be either calculated by parsing
+    Base class of Variables, Objectives, Jitters and so on used in
+    Optimization and Jitter studies.
+    """
+    def __init__(self, name):
+        """Initialization.
+
+        :param name: str
+            Name of the element.
+        """
+        self.name = name
+
+    @abstractmethod
+    def list_item(self):
+        pass
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
+
+class EvaluatedElement(OperationalElement):
+    """Inherited from OperationalElement. Abstract class.
+
+    The value of the class instance can be either calculated by parsing
     a given string or evaluating a given function.
     """
     def __init__(self, name, *, expr=None, scale=1.0, func=None):
@@ -30,14 +52,15 @@ class OutputElement(OperationElement):
         """
         super().__init__(name)
 
-        if expr is None and func is None:
-            raise ValueError("Unknown expression!")
-
-        self.expr = None
+        self.expr = expr
         self.scale = scale
-        self.func = None
+        self.func = func
+
         if func is None:
-            if expr is not None and not isinstance(expr, str):
+            if expr is None:
+                return
+
+            if not isinstance(expr, str):
                 raise TypeError("'expr' must be a string!")
 
             self.expr = expr.split(".")
@@ -49,4 +72,3 @@ class OutputElement(OperationElement):
         else:
             if not hasattr(func, '__call__'):
                 raise TypeError("'func' must be callable!")
-            self.func = func
