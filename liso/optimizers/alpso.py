@@ -63,10 +63,10 @@ def alpso(x0,
           f_obj_con):
     """Augmented Lagrangian Particle Swarm Optimizer.
 
-    :param x0: numpy.ndarray (particle ID, variable ID)
-        Initial positions.
-    :param v0: numpy.ndarray (particle ID, variable ID)
-        Initial velocities.
+    :param x0: numpy.ndarray (particle ID, position vector)
+        Initial positions. It has the shape (swarm_size, num_vars)
+    :param v0: numpy.ndarray (particle ID, velocity vector)
+        Initial velocities. It has the shape (swarm_size, num_vars)
     :param n_cons: int
         Total number of constraints.
     :param n_eq_cons: int
@@ -122,6 +122,9 @@ def alpso(x0,
     # -----------------------------------------------------------------
     # Check input parameters
     # -----------------------------------------------------------------
+    if atol <= 0 or rtol <=0 or dtol <=0 or itol <= 0 or etol <= 0:
+        raise ValueError("Tolerance must be positive!")
+
     if x0.max() > 1 or x0.min() < 0:
         raise ValueError("Positions must be normalized in the space [0, 1].")
 
@@ -154,14 +157,14 @@ def alpso(x0,
     rp = np.ones(n_cons, float)  # penalty factor (quadratic term)
     w = w0  # inertial weight
     rho = rho_max  # search radius for the global best particle (GCPSO)
-    nfevals = 0  # No. of evaluations of the objective function
+    nfeval = 0  # No. of evaluations of the objective function
 
     f = np.ones(swarm_size, float) * INF  # objective
     L = np.ones(swarm_size, float) * INF  # Lagrangian function
     g = np.ones([swarm_size, n_cons], float) * INF  # Constraint
     for i in range(swarm_size):
         f[i], g[i, :] = f_obj_con(x_k[i, :])
-        nfevals += 1
+        nfeval += 1
         L[i] = f[i]
         for j in range(n_cons):
             # Equality Constraints
@@ -247,7 +250,7 @@ def alpso(x0,
 
                 # update Lagrangian function values
                 f[i], g[i, :] = f_obj_con(x_k[i, :])
-                nfevals += 1
+                nfeval += 1
 
                 L[i] = f[i]
                 for j in range(n_cons):
@@ -411,4 +414,4 @@ def alpso(x0,
 
     # End of outer loop
     # -------------------------------------------------------------
-    return gbest_x, gbest_L, gbest_f, gbest_g, lambda_, rp, k_out, nfevals, stop_info
+    return gbest_x, gbest_L, gbest_f, gbest_g, lambda_, rp, k_out, nfeval, stop_info

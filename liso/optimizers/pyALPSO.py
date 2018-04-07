@@ -105,7 +105,7 @@ class ALPSO(Optimizer):
         v0 = np.zeros([self.swarm_size, n_vars], float)
 
         t0 = time.time()
-        opt_x, opt_L, opt_f, opt_g, opt_lambda, opt_rp, k_out, nfevals, stop_info = \
+        opt_x, opt_L, opt_f, opt_g, opt_lambda, opt_rp, k_out, nfeval, stop_info = \
             alpso(x0,
                   v0,
                   n_cons,
@@ -139,7 +139,7 @@ class ALPSO(Optimizer):
             print("\nSolution for optimization problem '%s' using:\n" % opt_prob.name)
             print(self.__str__())
             print("No. of outer iterations: %d" % k_out)
-            print("No. of objective function evaluations: %d" % nfevals)
+            print("No. of objective function evaluations: %d" % nfeval)
 
             text = ''
 
@@ -198,13 +198,13 @@ class ALPSO(Optimizer):
 
         text += 'Swarm size       : %7d' % self.swarm_size + \
                 '  Equality tol.   : %7.1e' % self.etol + \
-                '  Max. outer itr. : %7d\n' % self.max_outer_iter
+                '  Max. outer iter.: %7d\n' % self.max_outer_iter
         text += 'Cognitive param. : %7.2f' % self.c1 + \
                 '  Inequality tol. : %7.1e' % self.itol + \
-                '  Max. inner itr. : %7d\n' % self.max_inner_iter
+                '  Max. inner iter.: %7d\n' % self.max_inner_iter
         text += 'Social param.    : %7.2f' % self.c2 + \
                 '  Relative tol.   : %7.1e' % self.rtol + \
-                '  Min. inner itr. : %7d\n' % self.min_inner_iter
+                '  Min. inner iter.: %7d\n' % self.min_inner_iter
         text += 'Initial weight   : %7.2f' % self.w0 + \
                 '  Absolute tol.   : %7.1e' % self.atol + \
                 '  Topology        : %7s\n' % self.topology
