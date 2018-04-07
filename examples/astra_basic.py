@@ -5,9 +5,7 @@ with a local search optimizer.
 
 The solution is 0.1543 at laser_spot = 0.040 and main_sole_b = 0.2750.
 """
-from liso import Linac
-from liso import PyoptLinacOptimization as LinacOptimization
-from pyOpt import SDPEN
+from liso import Linac, LinacOptimization, SDPEN
 
 
 # set up a linac
@@ -30,7 +28,7 @@ print(linac)
 
 # set the optimizer
 optimizer = SDPEN()
-optimizer.setOption('alfa_stop', 1e-2)
+optimizer.rtol = 1e-2
 
 # set an optimization problem
 opt = LinacOptimization(linac)

@@ -39,3 +39,16 @@ class Optimizer(ABC):
     @abstractmethod
     def __str__(self):
         pass
+
+    @staticmethod
+    def _print_title(opt_prob_name):
+        print("\n\nSolution for optimization problem '%s' using:" % opt_prob_name)
+        print("=" * 80)
+        print()
+
+    @staticmethod
+    def _print_additional_info(info_list):
+        print("\nAdditional information:")
+        for info in info_list:
+            print('- ' + info)
+        print()

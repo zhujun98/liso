@@ -65,8 +65,8 @@ class Rosenbrock(OptimizationTestProblem):
     name = 'Rosenbrock'
     opt_f = 0
     opt_x = [1, 1]
-    x_min = [-1.5, -1]
-    x_max = [1.5, 3]
+    x_min = [-10, -10]
+    x_max = [10, 10]
     n_cons = 0
     n_eq_cons = 0
 

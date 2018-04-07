@@ -1,4 +1,4 @@
-# liso
+# LISO
 
 Jun Zhu
 
@@ -6,7 +6,7 @@ Jun Zhu
 
 ## Introduction
 
-'liso', **Li**nac **S**imulation and **O**ptimization, is an API for various beam dynamics and FEL codes like ASTRA, IMPACT-T, IMPACT-Z and GENESIS.
+'LISO', **Li**nac **S**imulation and **O**ptimization, is an API for various beam dynamics and FEL codes like ASTRA, IMPACT-T, IMPACT-Z and GENESIS.
 
 ## Dependencies
 
@@ -18,29 +18,29 @@ Python3 >= 3.5
 - [IMPACT-Z]
 - [GENESIS]
 
-#### External optimizers:
-- [pyOpt](http://www.pyopt.org/) > 1.2.0 (optional)
-
 ## Installation
 
-- Download and install LinacOpt
+### LISO
+
 ```sh
 $ git clone https://github.com/zhujun98/liso.git
 $ cd liso
 $ python setup.py install
 ```
-
-- Download and install pyOpt
-```sh
-$ git clone https://github.com/zhujun98/pyOpt
-$ cd pyOpt
-$ python setup.py install
-```
-**It is recommended to uninstall the old version before installing a new one**. To uninstall:
+It is recommended to uninstall the old version before installing a new one. To uninstall:
 
 ```sh
 $ python setup.py install --record files.txt
 $ cat files.txt | xargs rm -rf
+```
+
+### Optional 3rd party optimization libraries
+
+#### pyOpt
+```sh
+$ git clone https://github.com/zhujun98/pyOpt
+$ cd pyOpt
+$ python setup.py install
 ```
 
 ## GUI
@@ -58,12 +58,15 @@ gui()
 
 ## Optimization
 
-LISO has its own single- and multi-objective optimizers. It also provides interfaces for external optimizers like [pyOpt](http://www.pyopt.org/).
+LISO has its own single- and multi-objective optimizers. It also provides interfaces for 3rd party optimizers.
 
-### Own optimizers
+### Optimizers
 
 #### Local unconstrained optimizers
 ##### Nelder-Mead
+
+#### Local constrained optimizers
+##### SDPEN (from pyOpt)
 
 #### Single-objective global optimizers
 ##### ALPSO
@@ -71,12 +74,6 @@ LISO has its own single- and multi-objective optimizers. It also provides interf
 #### Multi-objective optimizers
 ##### MOPSO
 
-### pyOpt optimizers 
 
-##### [Augmented Lagrangian Particle Swarm Optimizer](http://www.pyopt.org/reference/optimizers.alpso.html#module-pyALPSO)
-
-##### [Non Sorting Genetic Algorithm II](http://www.pyopt.org/reference/optimizers.nsga2.html#module-pyNSGA2)
-
-##### [SDPEN](http://www.pyopt.org/reference/optimizers.sdpen.html#module-pySDPEN)
 
 

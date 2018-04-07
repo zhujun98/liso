@@ -227,7 +227,10 @@ class Optimization(Operation):
         if self.printout > 0:
             print(optimizer)
 
+        print("\n***Start solving***\n")
         print(self.__str__())
+        print("\n***with***\n")
+        print(optimizer)
 
         opt_f, opt_x, _ = optimizer(self)
 

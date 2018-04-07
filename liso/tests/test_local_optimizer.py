@@ -6,9 +6,7 @@ cases.
 """
 import unittest
 
-from liso import Linac, NelderMead, LinacOptimization
-from liso import PyoptLinacOptimization
-from pyOpt import SDPEN
+from liso import Linac, NelderMead, SDPEN, LinacOptimization
 
 
 class TestLocalOptimizer(unittest.TestCase):
@@ -26,12 +24,6 @@ class TestLocalOptimizer(unittest.TestCase):
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
 
-        self.opt_pyopt = PyoptLinacOptimization(linac)
-
-        self.opt_pyopt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)
-        self.opt_pyopt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
-        self.opt_pyopt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
-
     def test_nelderMead(self):
         optimizer = NelderMead()
 
@@ -40,7 +32,7 @@ class TestLocalOptimizer(unittest.TestCase):
 
     def test_sdpen(self):
         optimizer = SDPEN()
-        optimizer.setOption('alfa_stop', 1e-2)
+        optimizer.rtol = 1e-2
 
-        self.opt_pyopt.monitor_time = True
-        self.opt_pyopt.solve(optimizer)
+        self.opt.monitor_time = True
+        self.opt.solve(optimizer)

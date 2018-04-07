@@ -5,8 +5,7 @@ of a linac.
 """
 import unittest
 
-from liso import Linac, PyoptLinacOptimization
-from pyOpt import SDPEN
+from liso import Linac, LinacOptimization, SDPEN
 
 
 class TestMultiCodeOptimization(unittest.TestCase):
@@ -28,7 +27,7 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
         print(linac)
 
-        self.opt = PyoptLinacOptimization(linac)
+        self.opt = LinacOptimization(linac)
 
         self.opt.add_obj('emitx_um', expr='matching.out.emitx', scale=1.0e6)
         self.opt.add_icon('g1', func=lambda a: max(a.gun.max.Sx, a.matching.max.Sx), scale=1.0e3, ub=1.5)
@@ -43,8 +42,8 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
     def test_not_raise(self):
         optimizer = SDPEN()
-        optimizer.setOption('alfa_stop', 1e-2)
-        optimizer.setOption('nf_max', 20)
+        optimizer.rtol = 1e-2
+        optimizer.max_iter = 20
 
         self.opt.monitor_time = True
         self.opt.solve(optimizer)
