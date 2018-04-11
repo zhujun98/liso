@@ -1,10 +1,13 @@
 #!/usr/bin/python
 """
-Test jitter study using ASTRA.
+Unittest of jitter study with ASTRA.
+
+Author: Jun Zhu
 """
 import unittest
 
 from liso import Linac, LinacJitter
+from .test_utils import print_title
 
 
 class TestJitter(unittest.TestCase):
@@ -29,11 +32,10 @@ class TestJitter(unittest.TestCase):
         self.jt.add_jitter('gun_phase', value=0.0, sigma=0.01)
 
     def test_not_raise(self):
+        print_title("Test jitter simulation with ASTRA!")
         self.jt.monitor_time = True
         self.jt.run(5)
 
 
 if __name__ == "__main__":
     unittest.main()
-
-

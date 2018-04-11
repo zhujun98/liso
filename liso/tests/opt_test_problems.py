@@ -1,5 +1,7 @@
 """
-Test optimization problem functions.
+Optimization problems for unittests of different optimizers.
+
+Author: Jun Zhu
 """
 from abc import ABC, abstractmethod
 import numpy as np

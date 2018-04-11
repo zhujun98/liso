@@ -1,7 +1,9 @@
 """
-Unittest for ALPSO
+Unittest of ALPSO optimizer.
 
 Eggholder and TP37 have higher probabilities of failure.
+
+Author: Jun Zhu
 """
 import unittest
 import numpy as np
@@ -49,19 +51,10 @@ class TestALPSO(unittest.TestCase):
 
         # Check the solution
 
-        # print(np.linalg.norm(opt_x - cls.opt_x))
-        # if cls.opt_f != 0:
-        #     print(abs(opt_f - cls.opt_f)/abs(cls.opt_f))
-        # else:
-        #     print(abs(opt_f - cls.opt_f))
-
-        # x
         self.assertLessEqual(np.linalg.norm(opt_x - cls.opt_x), dtol)
 
-        # f
         if atol is None:
-            self.assertLessEqual(abs(opt_f - cls.opt_f),
-                                 rtol*abs(cls.opt_f))
+            self.assertLessEqual(abs(opt_f - cls.opt_f), rtol*abs(cls.opt_f))
         else:
             self.assertLessEqual(abs(opt_f - cls.opt_f), atol)
 
@@ -69,7 +62,7 @@ class TestALPSO(unittest.TestCase):
         self._setup_test(Rastrigin, 150, atol=0.002, dtol=0.001)
 
     def test_rosenbrock(self):
-        self._setup_test(Rosenbrock, 150, atol=0.002, dtol=0.01)
+        self._setup_test(Rosenbrock, 150, atol=0.002, dtol=0.05)
 
     def test_eggholder(self):
         self._setup_test(EggHolder, 150, rtol=0.01, dtol=0.1)

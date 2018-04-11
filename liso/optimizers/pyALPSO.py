@@ -134,9 +134,8 @@ class ALPSO(Optimizer):
         delta_t = time.time() - t0
 
         if self.printout > 0:
-            # Print Results
-            print("\n" + "=" * 80)
-            print("\nSolution for optimization problem '%s' using:\n" % opt_prob.name)
+            self._print_title(opt_prob.name)
+
             print(self.__str__())
             print("No. of outer iterations: %d" % k_out)
             print("No. of objective function evaluations: %d" % nfeval)
@@ -185,9 +184,7 @@ class ALPSO(Optimizer):
 
             print(text)
 
-            print("\n***Additional information***\n")
-            print(stop_info + "\n")
-            print("\n" + "=" * 80 + "\n")
+            self._print_additional_info([stop_info])
 
         return opt_f, opt_x, {'time': delta_t}
 

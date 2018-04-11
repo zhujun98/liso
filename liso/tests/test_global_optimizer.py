@@ -1,12 +1,17 @@
 #!/usr/bin/python
 """
+Unittest of global optimization of a linac.
+
 Wild ranges of gun gradient and phase are used in this test in order to
 make many failed simulations. The API should be able to deal with these
 cases.
+
+Author: Jun Zhu
 """
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
+from .test_utils import print_title
 
 
 class TestGlobalOptimizer(unittest.TestCase):
@@ -32,6 +37,8 @@ class TestGlobalOptimizer(unittest.TestCase):
         self.opt.add_var('gun_phase', value=0.0, lb=-90.0, ub=0.0)
 
     def test_not_raise(self):
+        print_title("Test global optimizer ALPSO with ASTRA!")
+
         optimizer = ALPSO()
         optimizer.swarm_size = 10
         optimizer.max_inner_iter = 3
@@ -40,3 +47,7 @@ class TestGlobalOptimizer(unittest.TestCase):
 
         self.opt.monitor_time = True
         self.opt.solve(optimizer)
+
+
+if __name__ == "__main__":
+    unittest.main()

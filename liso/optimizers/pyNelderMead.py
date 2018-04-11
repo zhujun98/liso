@@ -10,7 +10,7 @@ import numpy as np
 
 from .optimizer import Optimizer
 from .nelder_mead import nelder_mead
-from ..exceptions import *
+from ..exceptions import OptimizationConstraintSupportError
 
 
 class NelderMead(Optimizer):
@@ -80,7 +80,6 @@ class NelderMead(Optimizer):
         # =============================================================
         # Run Nelder-Mead
         # =============================================================
-        np.random.seed(self.seed)  # Set random number generator
 
         # Initialize the simplex vertices
         x0 = np.zeros((n_vars + 1, n_vars))
@@ -115,13 +114,9 @@ class NelderMead(Optimizer):
         delta_t = time.time() - t0
 
         if self.printout > 0:
-            # Print Results
-            print("\n" + "=" * 80)
-            print("\nSolution for optimization problem '%s' using:\n" % opt_prob.name)
-            print(self.__str__())
-            print("Optimization stopped because:")
-            print(stop_info + "\n")
+            self._print_title(opt_prob.name)
 
+            print(self.__str__())
             print("No. of iterations: %d" % k_iter)
             print("No. of objective function evaluations: %d" % nfeval)
             print("No. of reflection operation: %d" % k_misc[0])
@@ -144,8 +139,8 @@ class NelderMead(Optimizer):
 
             print(text)
 
-            # print("\n***Additional information***\n")
-            print("\n" + "=" * 80 + "\n")
+            print("\nAdditional information:")
+            self._print_additional_info([stop_info])
 
         return opt_f, opt_x, {'time': delta_t}
 

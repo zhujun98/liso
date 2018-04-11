@@ -1,11 +1,14 @@
 #!/usr/bin/python
 """
-Test optimization with two simulation codes for two different parts
-of a linac.
+Unittest of optimization with two simulation codes for two different
+parts of a linac.
+
+Author: Jun Zhu
 """
 import unittest
 
-from liso import Linac, LinacOptimization, SDPEN
+from liso import Linac, LinacOptimization, ALPSO
+from .test_utils import print_title
 
 
 class TestMultiCodeOptimization(unittest.TestCase):
@@ -41,9 +44,17 @@ class TestMultiCodeOptimization(unittest.TestCase):
         self.opt.add_var('MQZM2_G', value=0.0, lb=-6.0, ub=6.0)
 
     def test_not_raise(self):
-        optimizer = SDPEN()
-        optimizer.rtol = 1e-2
-        optimizer.max_iter = 20
+        print_title("Test multi-code optimization with ALPSO!")
+
+        optimizer = ALPSO()
+        optimizer.swarm_size = 20
+        optimizer.max_inner_iter = 3
+        optimizer.min_inner_iter = 1
+        optimizer.max_outer_iter = 3
 
         self.opt.monitor_time = True
         self.opt.solve(optimizer)
+
+
+if __name__ == "__main__":
+    unittest.main()

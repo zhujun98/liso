@@ -1,6 +1,7 @@
 """
-Unittest for Nelder-Mead optimizer
+Unittest of Nelder-Mead optimizer.
 
+Author: Jun Zhu
 """
 import unittest
 import numpy as np
@@ -9,12 +10,13 @@ from liso import Optimization, NelderMead
 from ..optimizers.nelder_mead import _compute_centroid, _compute_reflection, \
                                      _compute_expansion, _compute_shrink
 from .opt_test_problems import *
-from ..exceptions import *
+from ..exceptions import OptimizationConstraintSupportError
 
 
 class TestNelderMead(unittest.TestCase):
     def setUp(self):
         self.optimizer = NelderMead()
+
         self.simplex3 = [(np.array([0.0, 0.0]), 0.0),
                          (np.array([1.0, 0.0]), 1.0),
                          (np.array([0.0, 1.0]), 2.0)]
@@ -65,7 +67,6 @@ class TestNelderMead(unittest.TestCase):
         :param printout: int
             Printout level of the optimizer.
         """
-        # self.optimizer.seed = 2  # Get consistent result
         self.optimizer.printout = printout
 
         opt_prob = Optimization(cls.name, opt_func=cls())
@@ -78,38 +79,25 @@ class TestNelderMead(unittest.TestCase):
         for i in range(cls.n_eq_cons, cls.n_cons):
             opt_prob.add_icon('g' + str(i + 1))
 
-        # opt_prob.printout = 1
-        # print(opt_prob)
-
         opt_f, opt_x, _ = self.optimizer(opt_prob)
 
         # Check the solution
-
-        # print(np.linalg.norm(opt_x - cls.opt_x))
-        # if cls.opt_f != 0:
-        #     print(abs(opt_f - cls.opt_f)/abs(cls.opt_f))
-        # else:
-        #     print(abs(opt_f - cls.opt_f))
-
-        # x
         self.assertLessEqual(np.linalg.norm(opt_x - cls.opt_x), dtol)
 
-        # f
         if atol is None:
-            self.assertLessEqual(abs(opt_f - cls.opt_f),
-                                 rtol*abs(cls.opt_f))
+            self.assertLessEqual(abs(opt_f - cls.opt_f), rtol*abs(cls.opt_f))
         else:
             self.assertLessEqual(abs(opt_f - cls.opt_f), atol)
 
     def test_raise(self):
         with self.assertRaises(OptimizationConstraintSupportError):
-            self.assertRaises(self._setup_test(TP08, [10, 10], atol=0.002, dtol=0.001))
+            self.assertRaises(self._setup_test(TP08, [10, 10]))
 
     def test_rastrigin(self):
         self._setup_test(Rastrigin, [0.1, 0.1], atol=0.002, dtol=0.001)
 
     def test_rosenbrock(self):
-        self._setup_test(Rosenbrock, [0.5, 0.5], atol=0.002, dtol=0.01)
+        self._setup_test(Rosenbrock, [-1, -1], atol=0.002, dtol=0.01)
 
     def test_eggholder(self):
         self._setup_test(EggHolder, [500, 400], rtol=0.01, dtol=0.2)

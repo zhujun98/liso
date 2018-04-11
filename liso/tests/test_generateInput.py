@@ -1,5 +1,7 @@
 """
 Unittest for InputGenerator
+
+Author: Jun Zhu
 """
 import unittest
 
