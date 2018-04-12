@@ -104,7 +104,7 @@ class ALPSO(Optimizer):
         x0 = np.random.rand(self.swarm_size, n_vars)
         v0 = np.zeros([self.swarm_size, n_vars], float)
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         opt_x, opt_L, opt_f, opt_g, opt_lambda, opt_rp, k_out, nfeval, stop_info = \
             alpso(x0,
                   v0,
@@ -131,14 +131,20 @@ class ALPSO(Optimizer):
                   f_obj_con
                   )
         opt_x[:] = opt_x*(x_max - x_min) + x_min
-        delta_t = time.time() - t0
+        delta_t = time.perf_counter() - t0
+
+        # miscellaneous information
+        misc_info = ""
+        misc_info += "%s\n\n" % stop_info
+        misc_info += "No. of objective function evaluations: %d\n" % nfeval
+        misc_info += "Time consumed: %f second(s)\n" % delta_t
+        misc_info += "No. of outer iteration(s): %d\n" % k_out
 
         if self.printout > 0:
             self._print_title(opt_prob.name)
 
             print(self.__str__())
-            print("No. of outer iterations: %d" % k_out)
-            print("No. of objective function evaluations: %d" % nfeval)
+            print(misc_info)
 
             text = ''
 
@@ -184,9 +190,7 @@ class ALPSO(Optimizer):
 
             print(text)
 
-            self._print_additional_info([stop_info])
-
-        return opt_f, opt_x, {'time': delta_t}
+        return opt_f, opt_x, misc_info
 
     def __str__(self):
         text = '-' * 80 + '\n'

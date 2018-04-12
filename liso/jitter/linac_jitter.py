@@ -15,7 +15,7 @@ from ..simulation.simulation_utils import check_templates
 
 class LinacJitter(Operation):
     """Inherited from LinacOperation."""
-    def __init__(self, linac, *, name=''):
+    def __init__(self, linac, *, name='unnamed'):
         """Initialization."""
         super().__init__(name)
 
@@ -24,6 +24,8 @@ class LinacJitter(Operation):
         self.jitters = OrderedDict()
         self.responses = OrderedDict()
         self._x_map = dict()
+
+        self._outcome = False  # a flag used to control __str__ output
 
     def add_jitter(self, name, **kwargs):
         """Add a jitter."""
@@ -65,6 +67,7 @@ class LinacJitter(Operation):
         """
         check_templates(self._linac.get_templates(), self._x_map)
 
+        self._outcome = False
         print(self.__str__())
 
         # Generate random numbers for all passes
@@ -75,6 +78,7 @@ class LinacJitter(Operation):
             self._linac.update(self._x_map)
             self._update_response(i+1)
 
+        self._outcome = True
         print(self.__str__())
 
     @staticmethod
@@ -132,7 +136,11 @@ class LinacJitter(Operation):
                   ['{:9.6e}'.format(v) for v in out])
 
     def __str__(self):
-        text = '\nJitter Problem: %s' % self.name
+        if self._outcome is False:
+            text = '\nJitter problem: %s' % self.name
+        else:
+            text = '\nOutcome for jitter problem: %s' % self.name
+
         text += '\n' + '='*80 + '\n'
         text += self._format_item(self.responses, 'Response(s)')
         text += self._format_item(self.jitters, 'Jitter(s)')

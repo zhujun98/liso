@@ -96,7 +96,7 @@ class NelderMead(Optimizer):
 
         x0_normalized = (x0 - x_min) / (x_max - x_min)  # normalize to [0, 1]
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         opt_x, opt_f, k_iter, nfeval, k_misc, stop_info = \
             nelder_mead(x0_normalized,
                         self.rtol,
@@ -108,22 +108,26 @@ class NelderMead(Optimizer):
                         self._beta,
                         self._sigma,
                         f_obj)
-
         opt_x[:] = opt_x*(x_max - x_min) + x_min
+        delta_t = time.perf_counter() - t0
 
-        delta_t = time.time() - t0
+        # miscellaneous information
+        misc_info = ""
+        misc_info += "%s\n\n" % stop_info
+        misc_info += "No. of objective function evaluations: %d\n" % nfeval
+        misc_info += "Time consumed: %f second(s)\n" % delta_t
+        misc_info += "No. of iteration(s): %d\n" % k_iter
+        misc_info += "No. of reflection operation(s): %d\n" % k_misc[0]
+        misc_info += "No. of expansion operation(s): %d\n" % k_misc[1]
+        misc_info += "No. of inner contraction operation(s): %d\n" % k_misc[2]
+        misc_info += "No. of outer contraction operation(s): %d\n" % k_misc[3]
+        misc_info += "No. of shrink operation(s): %d\n" % k_misc[4]
 
         if self.printout > 0:
             self._print_title(opt_prob.name)
 
             print(self.__str__())
-            print("No. of iterations: %d" % k_iter)
-            print("No. of objective function evaluations: %d" % nfeval)
-            print("No. of reflection operation: %d" % k_misc[0])
-            print("No. of expansion operation: %d" % k_misc[1])
-            print("No. of inner contraction operation: %d" % k_misc[2])
-            print("No. of outer contraction operation: %d" % k_misc[3])
-            print("No. of shrink operation: %d" % k_misc[4])
+            print(misc_info)
 
             text = ''
 
@@ -139,10 +143,7 @@ class NelderMead(Optimizer):
 
             print(text)
 
-            print("\nAdditional information:")
-            self._print_additional_info([stop_info])
-
-        return opt_f, opt_x, {'time': delta_t}
+        return opt_f, opt_x, misc_info
 
     def __str__(self):
         text = '-' * 80 + '\n'

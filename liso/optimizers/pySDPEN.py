@@ -4,6 +4,7 @@ pyNelderMead - An LISO interface for optimizer - pyOpt.SDPEN.
 
 Author: Jun Zhu
 """
+import time
 import numpy as np
 
 from pyOpt import SDPEN as pyoptSDPEN
@@ -74,12 +75,20 @@ class SDPEN(Optimizer):
 
         pyopt_prob = to_pyopt_optimization(opt_prob)
 
+        t0 = time.perf_counter()
         opt_f, opt_x, pyopt_info = self._sdpen(pyopt_prob)
         opt_f = opt_f[0]  # pyOpt.Optimizer.__call__() returns a list
+        delta_t = time.perf_counter() - t0
+
+        # miscellaneous information
+        misc_info = ""
+        misc_info += "%s\n\n" % pyopt_info['text']
+        misc_info += "Time consumed: %f second(s)\n" % delta_t
 
         if self.printout > 0:
             self._print_title(opt_prob.name)
             print(self.__str__())
+            print(misc_info)
 
             text = ''
 
@@ -95,9 +104,7 @@ class SDPEN(Optimizer):
 
             print(text)
 
-            self._print_additional_info([pyopt_info['text']])
-
-        return opt_f, opt_x, {}
+        return opt_f, opt_x, misc_info
 
     def __str__(self):
         text = '-' * 80 + '\n'

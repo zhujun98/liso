@@ -67,6 +67,8 @@ class Optimization(Operation):
 
         self._opt_func = opt_func
 
+        self._solution = False  # a flag used to control __str__ output
+
     def add_var(self, name, **kwargs):
         """Add a variable."""
         try:
@@ -224,23 +226,21 @@ class Optimization(Operation):
         :param optimizer: Optimizer object.
             Optimizer.
         """
-        if self.printout > 0:
-            print(optimizer)
-
         print("\n***Start solving***\n")
+        self._solution = False
         print(self.__str__())
         print("\n***with***\n")
         print(optimizer)
 
-        opt_f, opt_x, _ = optimizer(self)
-
+        opt_f, opt_x, misc_info = optimizer(self)
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
         self.eval_objs_cons(opt_x)
-
         self._verify_solution(opt_f)
 
+        self._solution = True
         print(self.__str__())
+        print(misc_info)
 
     def _get_objs_cons(self):
         """Get the values of all objectives and constraints."""
@@ -285,7 +285,11 @@ class Optimization(Operation):
         return text
 
     def __str__(self):
-        text = '\nOptimization Problem: %s' % self.name
+        if self._solution is False:
+            text = '\nOptimization problem: %s' % self.name
+        else:
+            text = '\nSolution for optimization problem: %s' % self.name
+
         text += '\n' + '='*80 + '\n'
         text += self._format_item(self.objectives, 'Objective(s)')
         text += self._format_item(self.e_constraints, 'Equality constraint(s)')
