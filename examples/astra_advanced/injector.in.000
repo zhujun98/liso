@@ -3,9 +3,9 @@
     Head='test for linac optimization'
     RUN = 1
     Distribution = 'Radial2k_1G3ps.ini'
-    Qbunch = 0.1
+    Qbunch = 0.01
     XYrms = <laser_spot>
-    Trms = 0.003
+    Trms = 0.000040  ! 40 fs
     TRACK_ALL = .T 
     PHASE_SCAN = .F
     AUTO_PHASE = .T
@@ -52,16 +52,16 @@
 /
 
 &CAVITY 
-    Loop = .F 
+    Loop = .F
     LEfield = .T
     
     File_Efield(1) = 'gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0 
     C_smooth(1) = 10, C_higher_order(1) = .T
-    MaxE(1) = 130.00, Phi(1) = 0.0
+    MaxE(1) = 130, Phi(1) = <gun_phase>
    
     File_Efield(2) = 'tws_cavity.dat', Nue(2) = 2.998, C_pos(2) = 2.2
     C_numb(2) = 60, C_smooth(2) = 10
-    MaxE(2) = 25.0, Phi(2) = 0.0
+    MaxE(2) = 25, Phi(2) = <tws_phase>
 /
 
 &SOLENOID
@@ -72,4 +72,3 @@
     S_smooth(1) = 5
     MaxB(1) = <main_sole_b>
 /
-

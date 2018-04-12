@@ -33,7 +33,7 @@ class NelderMead(Optimizer):
         # Absolute tolerance for Lagrange function
         self.atol = 1e-4
         # Maximum number of stagnation (no improvement)
-        self.max_stag = 5
+        self.max_stag = 10
         # Maximum number of iterations
         self.max_iter = 10000
 

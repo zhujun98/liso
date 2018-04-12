@@ -3,9 +3,16 @@
 This is a basic example showing how to optimize the emittance in ASTRA
 with a local search optimizer.
 
-The solution is 0.1543 at laser_spot = 0.040 and main_sole_b = 0.2750.
+The solution of running the following code is 
+    emitx_um    = 0.3195 
+at
+    laser_spot  = 0.1189
+    main_sole_b = 0.2187
+
+
+Author: Jun Zhu
 """
-from liso import Linac, LinacOptimization, SDPEN
+from liso import Linac, LinacOptimization, NelderMead
 
 
 # set up a linac
@@ -27,8 +34,7 @@ linac.add_beamline('astra',
 print(linac)
 
 # set the optimizer
-optimizer = SDPEN()
-optimizer.rtol = 1e-2
+optimizer = NelderMead()
 
 # set an optimization problem
 opt = LinacOptimization(linac)
@@ -42,14 +48,12 @@ opt = LinacOptimization(linac)
 
 # objective: its value is the horizontal emittance at the end of the 'gun' beamline.
 opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1e6)
-# inequality constraint with lower boundary (lb): its value is the beta (x) function at the end of the 'gun' beamline.
-# opt.add_icon('g1', func=lambda a: a.gun.out.betax,  lb=10)
-# inequality constraint with upper boundary (ub): its value is the maximum beam size (x) throughout the 'gun' beamline.
-# opt.add_icon('g2', func=lambda a: a.gun.max.Sx*1e3, ub=2.0)
 
-opt.add_var('laser_spot',  value=0.1, lb= 0.04, ub=0.5)  # variable with lower boundary (lb) and upper boundary (ub)
-opt.add_var('main_sole_b', value=0.2, lb= 0.00, ub=0.4)  # variable
+# variables with lower boundary (lb) and upper boundary (ub)
+opt.add_var('laser_spot',  value=0.10, lb=0.04, ub=0.3)
+opt.add_var('main_sole_b', value=0.20, lb=0.00, ub=0.4)
 
-opt.workers = 2  # use parallel Astra
+opt.workers = 12  # use parallel Astra
 opt.printout = 1  # print the optimization process
 opt.solve(optimizer)  # run the optimization
+

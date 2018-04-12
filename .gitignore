@@ -12,7 +12,7 @@ win_config.dat
 
 examples/astra_injector/*
 !examples/astra_injector/gun.dat
-!examples/astra_injector/Radial500_1G3ps.ini
+!examples/astra_injector/Radial2k_1G3ps.ini
 !examples/astra_injector/sp_gunsol.dat
 !examples/astra_injector/sole_cavity.dat
 !examples/astra_injector/tws_cavity.dat
