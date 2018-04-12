@@ -1,10 +1,14 @@
 import unittest
+import warnings
 
 from .test_dataAnalysis import TestAnalyzeBeam
 from .test_generateInput import TestGenerateInput
 from .test_alpso import TestALPSO
 from .test_nelderMead import TestNelderMead
-from .test_sdpen import TestSDPEN
+try:
+    from .test_sdpen import TestSDPEN
+except ImportError:
+    warnings.warn("Skip TestSDPEN due to ImportError!", RuntimeWarning)
 
 
 def suite():

@@ -4,15 +4,12 @@ pyNelderMead - An LISO interface for optimizer - pyOpt.SDPEN.
 
 Author: Jun Zhu
 """
-try:
-    from pyOpt import SDPEN as pyoptSDPEN
-except ModuleNotFoundError:
-    raise
-
 import numpy as np
 
-from .adapters import to_pyopt_optimization
+from pyOpt import SDPEN as pyoptSDPEN
+
 from .optimizer import Optimizer
+from ..optimization.pyopt_adapter import to_pyopt_optimization
 from ..exceptions import OptimizationConstraintSupportError
 
 

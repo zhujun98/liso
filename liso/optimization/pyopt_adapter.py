@@ -1,16 +1,10 @@
 #!/usr/bin/python
 """
-An adapter for third-part optimization libraries.
-
-It is put here to ensure that the API only has import from 3rd party
-optimization libraries in the folder 'optimizers'.
+An adapter for pyOpt.
 
 Author: Jun Zhu
 """
-try:
-    from pyOpt import Optimization as pyoptOptimization
-except ModuleNotFoundError:
-    pass
+from pyOpt import Optimization as pyoptOptimization
 
 
 def to_pyopt_optimization(opt_prob):
