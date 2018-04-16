@@ -17,23 +17,8 @@ examples/astra_injector/*
 !examples/astra_injector/sole_cavity.dat
 !examples/astra_injector/tws_cavity.dat
 
-examples/astra_impactt_combined/astra/*
-examples/astra_impactt_combined/impactt/*
-!examples/astra_impactt_combined/astra/gun.dat
-!examples/astra_impactt_combined/astra/Radial500_1G3ps.ini
-!examples/astra_impactt_combined/astra/injector.in.000
-!examples/astra_impactt_combined/astra/sp_gunsol.dat
-!examples/astra_impactt_combined/astra/sole_cavity.dat
-!examples/astra_impactt_combined/astra/tws_cavity.dat
-!examples/astra_impactt_combined/impactt/ImpactT.in.000
-
-examples/astra_advanced/*
-!examples/astra_advanced/gun.dat
-!examples/astra_advanced/Radial500_1G3ps.ini
-!examples/astra_advanced/injector.in.000
-!examples/astra_advanced/sole_gun.dat
-!examples/astra_advanced/sole_cavity.dat
-!examples/astra_advanced/tws_cavity.dat
+examples/impactt_lattice/*
+!examples/impactt_lattice/.gitkeep
 
 liso/tests/astra_gun/*
 !liso/tests/astra_gun/gun.dat

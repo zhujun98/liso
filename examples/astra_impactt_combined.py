@@ -3,9 +3,10 @@
 This is an example showing how to simulate different part of a linac
 using different code.
 
-TODO: under development
+This may not be a good example for optimization. It simply shows how
+does a concatenated optimization work.
 """
-from liso import Linac, LinacOptimization, ALPSO
+from liso import Linac, LinacOptimization, NelderMead
 
 
 # Set up the linac
@@ -14,9 +15,9 @@ linac = Linac()
 # Add the first beamline
 linac.add_beamline('astra',
                    name='gun',
-                   fin='astra_impactt_combined/astra/injector.in',
-                   template='astra_impactt_combined/astra/injector.in.000',
-                   pout='injector.0400.001')
+                   fin='astra_injector/injector.in',
+                   template='astra_impactt_combined/injector.in.000',
+                   pout='injector.0450.001')
 
 # Add the second beamline
 #
@@ -24,25 +25,30 @@ linac.add_beamline('astra',
 # will be ignored if the code is Astra.
 linac.add_beamline('impactt',
                    name='chicane',
-                   fin='astra_impactt_combined/impactt/ImpactT.in',
-                   template='astra_impactt_combined/impactt/ImpactT.in.000',
-                   pout='fort.107',
-                   charge=1e-12)
+                   fin='impactt_lattice/ImpactT.in',
+                   template='astra_impactt_combined/ImpactT.in.000',
+                   pout='fort.106',
+                   charge=1e-15)
 
 print(linac)
 
 opt = LinacOptimization(linac)
 
-opt.add_obj('St', expr='chicane.out.St', scale=1.0e15)  # objective
-opt.add_icon('g3', func=lambda a: a.matching.out.emitx*1e6, ub=0.2)  # inequality constraint
+opt.add_obj('St_betaxy', func=lambda a: max(a.chicane.out.emitx*1e6, 
+                                     a.chicane.out.betax, 
+                                     a.chicane.out.betay))  # objective
 
-opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.50)  # variable
+opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.30)  # variable
 opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)  # variable
-opt.add_var('tws_phase', value=0.1, lb=0.00, ub=0.40)  # variable
-opt.add_var('dipole_by', value=0.0, lb=0.00, ub=0.40)  # variable
+opt.add_var('MQZM1_G', value=0.0, lb=-10, ub=10)  # variable
+opt.add_var('MQZM3_G', value=0.0, lb=-10, ub=10)  # variable
 
-opt.workers = 2
+opt.add_covar('MQZM2_G', 'MQZM1_G', scale=-1)  # covariable
+opt.add_covar('MQZM4_G', 'MQZM3_G', scale=-1)  # covariable
+
+opt.workers = 12
 opt.printout = 1
 
-optimizer = ALPSO()
+optimizer = NelderMead()
 opt.solve(optimizer)
+

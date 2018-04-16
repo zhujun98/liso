@@ -2,7 +2,7 @@
     Version = 3
     Head='test for linac optimization'
     RUN = 1
-    Distribution = 'Radial500_1G3ps.ini'
+    Distribution = 'Radial2k_1G3ps.ini'
     Qbunch = 0.1
     XYrms = <laser_spot>
     Trms = 0.003
@@ -18,7 +18,7 @@
  
 &OUTPUT
     ZSTART = 0.0 
-    ZSTOP = 4.0
+    ZSTOP = 4.5
     Zemit = 100
     Zphase = 1 
     High_res = .T
@@ -43,8 +43,8 @@
     Max_scale = 0.1
     Max_Count = 100
     Exp_Control = 0.1
-    Nrad = 16
-    Nlong_in = 16
+    Nrad = 32
+    Nlong_in = 32
     Lmirror = .F
     Cell_var = 2.0
     min_grid = 0.0  
@@ -59,12 +59,11 @@
     C_smooth(1) = 10, C_higher_order(1) = .T
     MaxE(1) = 130.00, Phi(1) = 0.0
    
-    File_Efield(2) = 'tws_cavity.dat', Nue(2) = 2.998, C_pos(2) = 1.8
+    File_Efield(2) = 'tws_cavity.dat', Nue(2) = 2.998, C_pos(2) = 2.2
     C_numb(2) = 60, C_smooth(2) = 10
-    MaxE(2) = 30.0
-    Phi(2) = <tws_phase>
+    MaxE(2) = 25.0, Phi(2) = 0.0
 /
- 
+
 &SOLENOID
     Loop = .F 
     LBfield = .T
@@ -73,3 +72,4 @@
     S_smooth(1) = 5
     MaxB(1) = <main_sole_b>
 /
+
