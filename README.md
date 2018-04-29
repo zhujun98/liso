@@ -34,6 +34,8 @@ $ python setup.py install --record files.txt
 $ cat files.txt | xargs rm -rf
 ```
 
+**Modify the command names for different codes in `liso/config.py`!**
+
 ### Optional 3rd party optimization libraries
 
 #### pyOpt
