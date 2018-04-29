@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-pyNelderMead - An LISO interface for Nelder-Mead (simplex) algorithm.
+NelderMead - An LISO interface for Nelder-Mead (simplex) algorithm.
 
 Author: Jun Zhu
 """

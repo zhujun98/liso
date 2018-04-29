@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-pyNelderMead - An LISO interface for optimizer - pyOpt.SDPEN.
+SDPEN - An LISO interface for optimizer - pyOpt.SDPEN.
 
 Author: Jun Zhu
 """
@@ -9,8 +9,7 @@ import numpy as np
 
 from pyOpt import SDPEN as pyoptSDPEN
 
-from .optimizer import Optimizer
-from ..optimization.pyopt_adapter import to_pyopt_optimization
+from .pyopt_optimizer import PyoptOptimizer
 from ..exceptions import OptimizationConstraintSupportError
 
 
@@ -31,7 +30,7 @@ class SDPENOption(object):
         return instance.__dict__['_sdpen'].setOption(self.name, value)
 
 
-class SDPEN(Optimizer):
+class SDPEN(PyoptOptimizer):
     """SDPEN optimizer class."""
     category = 'local'
 
@@ -73,7 +72,7 @@ class SDPEN(Optimizer):
 
         n_vars = len(opt_prob.variables)
 
-        pyopt_prob = to_pyopt_optimization(opt_prob)
+        pyopt_prob = self._to_pyopt_optimization(opt_prob)
 
         t0 = time.perf_counter()
         opt_f, opt_x, pyopt_info = self._sdpen(pyopt_prob)

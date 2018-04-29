@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-pyALPSO - An LISO interface for Augmented Larangian Particle Swarm Optimization.
+ALPSO - An LISO interface for Augmented Larangian Particle Swarm Optimization.
 
 Author: Jun Zhu
 """
