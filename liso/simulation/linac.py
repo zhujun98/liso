@@ -63,24 +63,21 @@ class Linac(object):
             Number of threads.
 
         :return: (elapsed time, cpu time) in second.
-        """
-        t0 = time.perf_counter()
-        t0_cpu = time.process_time()
 
+        Note: even without space-charge effects, the code is ASTRA
+              (or other codes)-bound. The Beamline method `simulation`
+              takes most of the time.
+        """
         # First clean all the previous output
         for beamline in self._beamlines.values():
             beamline.clean()
 
         # Run simulations, and update all the BeamParameters and LineParameters
-        for (i, beamline) in enumerate(self._beamlines.values()):
-            # TODO: implement multi-threading here
+        for i, beamline in enumerate(self._beamlines.values()):
             beamline.generate_input(mapping)
             beamline.simulate(workers)
+            beamline.update_out()
             beamline.update_watches_and_lines()
-
-        dt = time.perf_counter() - t0
-        dt_cpu = time.process_time() - t0_cpu
-        return dt, dt_cpu
 
     def get_templates(self):
         """Get templates for all beamlines."""

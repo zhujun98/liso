@@ -27,6 +27,7 @@ Author: Jun Zhu
 """
 from collections import OrderedDict
 from itertools import chain
+import time
 
 import numpy as np
 
@@ -334,11 +335,11 @@ class LinacOptimization(Optimization):
 
         # Run simulations with the new input files
         is_update_failed = True
-        dt = 0.0
-        dt_cpu = 0.0
+        t0 = time.perf_counter()
+        t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            dt, dt_cpu = self._linac.update(self._x_map, self.workers)
+            self._linac.update(self._x_map, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
@@ -371,6 +372,8 @@ class LinacOptimization(Optimization):
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
 
         if self.monitor_time is True:
+            dt = time.perf_counter() - t0
+            dt_cpu = time.process_time() - t0_cpu
             print('elapsed time: {:.4f} s, '.format(dt),
                   'cpu time: {:.4f} s, '.format(dt_cpu))
 

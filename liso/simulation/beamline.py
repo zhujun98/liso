@@ -209,17 +209,18 @@ class Beamline(ABC):
 
         # TODO: understand how to understand the simulation process.
         try:
-            output = subprocess.check_output(command,
-                                             stderr=subprocess.STDOUT,
-                                             universal_newlines=True,
-                                             shell=True,
-                                             cwd=self.dirname)
+            subprocess.check_output(command,
+                                    stderr=subprocess.STDOUT,
+                                    universal_newlines=True,
+                                    shell=True,
+                                    cwd=self.dirname)
         except subprocess.CalledProcessError as e:
             raise SimulationNotFinishedProperlyError(e)
         finally:
             time.sleep(1)
 
-        # process 'out'
+    def update_out(self):
+        """Re-calculate BeamParameters at the final Watch - 'out'."""
         try:
             data, charge, self._watches['out'][1] = \
                 self._process_watch(self._watches['out'][0])
