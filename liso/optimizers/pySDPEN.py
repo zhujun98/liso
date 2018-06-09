@@ -33,6 +33,7 @@ class SDPENOption(object):
 class SDPEN(PyoptOptimizer):
     """SDPEN optimizer class."""
     category = 'local'
+    _name = 'pyOpt_SDPEN'
 
     rtol = SDPENOption('alfa_stop')
     max_iter = SDPENOption('nf_max')
@@ -42,8 +43,7 @@ class SDPEN(PyoptOptimizer):
 
     def __init__(self):
         """Initialization."""
-        name = 'pyOpt_SDPEN'
-        super().__init__(name)
+        super().__init__(self._name)
 
         self._sdpen = pyoptSDPEN()
         self._sdpen.setOption('iprint', -1)

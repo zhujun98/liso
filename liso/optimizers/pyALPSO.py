@@ -42,11 +42,11 @@ class ALPSO(Optimizer):
 
     """
     category = 'global'
+    _name = 'ALPSO'
 
     def __init__(self):
         """Initialization"""
-        name = 'ALPSO'
-        super().__init__(name)
+        super().__init__(self._name)
 
         # -------------------------------------------------------------
         # default optimizer settings

@@ -24,11 +24,11 @@ class NelderMead(Optimizer):
 
     """
     category = 'local'
+    _name = 'Nelder-Mead'
 
     def __init__(self):
         """Initialization"""
-        name = 'Nelder-Mead'
-        super().__init__(name)
+        super().__init__(self._name)
 
         # -------------------------------------------------------------
         # default optimizer settings
