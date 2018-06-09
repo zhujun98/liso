@@ -1,7 +1,7 @@
 """
 Unittest for Data Analysis
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 import os

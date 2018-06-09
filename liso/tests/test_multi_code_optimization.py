@@ -3,7 +3,7 @@
 Unittest of optimization with two simulation codes for two different
 parts of a linac.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 

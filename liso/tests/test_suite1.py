@@ -1,3 +1,8 @@
+"""
+Test suite for tests without involving accelerator codes.
+
+Author: Jun Zhu, zhujun981661@gmail.com
+"""
 import unittest
 import warnings
 

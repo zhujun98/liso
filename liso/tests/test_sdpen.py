@@ -1,10 +1,9 @@
 """
 Unittest of SDPEN optimizer
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
-import numpy as np
 
 from liso import Optimization, SDPEN
 

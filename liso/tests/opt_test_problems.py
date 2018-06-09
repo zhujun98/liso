@@ -1,7 +1,7 @@
 """
 Optimization problems for unittests of different optimizers.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 from abc import ABC, abstractmethod
 import numpy as np

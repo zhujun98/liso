@@ -1,10 +1,9 @@
 """
 Unittest of Nelder-Mead optimizer.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
-import numpy as np
 
 from liso import Optimization, NelderMead
 from ..optimizers.nelder_mead import _compute_centroid, _compute_reflection, \

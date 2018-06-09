@@ -2,7 +2,7 @@
 """
 Unittest of jitter study with ASTRA.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 

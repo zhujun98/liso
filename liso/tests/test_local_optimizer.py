@@ -2,7 +2,7 @@
 """
 Unittest of local optimization of a linac with different optimizers.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 

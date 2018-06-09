@@ -3,10 +3,9 @@ Unittest of ALPSO optimizer.
 
 Eggholder and TP37 have higher probabilities of failure.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
-import numpy as np
 
 from liso import Optimization, ALPSO
 from .opt_test_problems import *
