@@ -16,3 +16,4 @@ Linac Optimization and Simulation (LISO)
    Simulation
    Optimization
    Optimizers
+   GUI

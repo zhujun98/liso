@@ -41,9 +41,3 @@ GUI
 ~~~
 
 The GUI is based on `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`_ and `pyqtgraph <http://www.pyqtgraph.org/>`_.
-
-.. code-block:: python
-
-    from liso import gui
-
-    gui()
