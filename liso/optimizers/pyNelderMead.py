@@ -16,7 +16,13 @@ from ..exceptions import OptimizationConstraintSupportError
 class NelderMead(Optimizer):
     """NelderMead Optimizer Class.
 
-    Inherited from Optimizer Abstract Class."""
+    Attributes:
+        rtol (float): Relative tolerance for Lagrange function. Default = 1e-3.
+        atol (float): Absolute tolerance for Lagrange function. Default = 1e-4.
+        max_stag (int): Maximum number of stagnation (no improvement). Default = 10.
+        max_iter (int): Maximum number of iterations. Default = 10000.
+
+    """
     category = 'local'
 
     def __init__(self):
@@ -28,23 +34,15 @@ class NelderMead(Optimizer):
         # default optimizer settings
         # -------------------------------------------------------------
 
-        # Relative tolerance for Lagrange function
         self.rtol = 1e-3
-        # Absolute tolerance for Lagrange function
         self.atol = 1e-4
-        # Maximum number of stagnation (no improvement)
         self.max_stag = 10
-        # Maximum number of iterations
         self.max_iter = 10000
 
-        # reflection coefficient (0.0, INF)
-        self._alpha = 1.0
-        # expansion coefficient: (1.0, INF)
-        self._gamma = 2.0
-        # contraction coefficient: (0, 0.5]
-        self._beta = 0.5
-        # shrink coefficient
-        self._sigma = 0.5
+        self._alpha = 1.0  # reflection coefficient (0.0, INF)
+        self._gamma = 2.0  # expansion coefficient: (1.0, INF)
+        self._beta = 0.5  # contraction coefficient: (0, 0.5]
+        self._sigma = 0.5  # shrink coefficient
 
         # Relative change of position at initialization when it is not zero
         self._relative_delta = 0.05

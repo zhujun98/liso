@@ -15,7 +15,32 @@ from .alpso import alpso
 class ALPSO(Optimizer):
     """ALPSO Optimizer Class.
 
-    Inherited from Optimizer Abstract Class."""
+    Attributes:
+        swarm_size (int): Number of particles. Default = 40.
+        topology (str): Topology of the swarm. Default = 'gbest'.
+        max_outer_iter (int): Maximum Number of Outer Loop Iterations.
+                              Default = 6.
+        max_inner_iter (int): Maximum Number of Inner Loop Iterations.
+                              Default = 3.
+        min_inner_iter (int): Minimum Number of Inner Loop Iterations.
+        etol (float): Absolute tolerance for equality constraints.
+                      Default = 1e-3.
+        itol (float): Absolute tolerance for inequality constraints.
+                      Default = 1e-3.
+        rtol (float): Relative tolerance for Lagrange function. Default = 1e-3.
+        atol (float): Absolute tolerance for Lagrange function. Default = 1e-3.
+        dtol (float): Absolute tolerance for position deviation of all particles
+                      . Default = 1e-2.
+        c1 (float): Cognitive Parameter. Default = 1.5.
+        c2 (float): Social Parameter. Default = 1.5.
+        w0 (float): Initial Inertia Weight. Default = 0.90.
+        w1 (float): Final Inertia Weight. Default = 0.40.
+        use_gcpso (bool): Use Guaranteed Convergence Particle Swarm Optimization
+                          (F. Bergh, A.P. Engelbrecht, A new locally convergent
+                          particle swarm optimiser, Systems, Man and Cybernetics
+                          , 2002 IEEE International Conference). Default = True.
+
+    """
     category = 'global'
 
     def __init__(self):
@@ -27,41 +52,24 @@ class ALPSO(Optimizer):
         # default optimizer settings
         # -------------------------------------------------------------
 
-        # Number of Particles (Depends on Problem dimensions)
         self.swarm_size = 40
-        #
         self.topology = 'gbest'
-        # Maximum Number of Outer Loop Iterations
         self.max_outer_iter = 100
-        # Maximum Number of Inner Loop Iterations
         self.max_inner_iter = 6
-        # Minimum Number of Inner Loop Iterations
         self.min_inner_iter = 3
 
-        # Absolute tolerance for equality constraints
         self.etol = 1e-3
-        # Absolute tolerance for inequality constraints
         self.itol = 1e-3
-
-        # Relative tolerance for Lagrange function
         self.rtol = 1e-3
-        # Absolute tolerance for Lagrange function
         self.atol = 1e-3
-        # Absolute tolerance for position deviation of all particles
         self.dtol = 1e-2
 
-        # Cognitive Parameter
         self.c1 = 1.5
-        # Social Parameter
         self.c2 = 1.5
-        # Initial Inertia Weight
         self.w0 = 0.90
-        # Final Inertia Weight
         self.w1 = 0.40
 
-        # F. Bergh, A.P. Engelbrecht,
-        # A new locally convergent particle swarm optimiser,
-        # Systems, Man and Cybernetics, 2002 IEEE International Conference.
+        #
         self.use_gcpso = True
         # Number of Consecutive Successes in Finding New Best Position
         # of Best Particle Before Search Radius will be Increased (GCPSO)

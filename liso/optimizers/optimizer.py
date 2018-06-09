@@ -34,12 +34,14 @@ class Optimizer(ABC):
         :param opt_problem: Optimization object
             Optimization problem instance.
 
-        :return opt_f: float
-            Optimized f.
-        :return opt_x: array-like
-            Optimized x.
-        :return misc_info: str
-            Miscellaneous information ready for printout.
+        :returns: opt_f, opt_x, misc_info
+
+            opt_f: float
+                Optimized f.
+            opt_x: array-like
+                Optimized x.
+            misc_info: str
+                Miscellaneous information ready for printout.
         """
         raise NotImplemented
 
