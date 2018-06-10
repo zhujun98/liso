@@ -300,95 +300,97 @@ class Beamline(ABC):
         return text
 
 
-class AstraBeamline(Beamline):
-    """Beamline simulated by ASTRA.
-
-    Inherit from Beamline class.
-    """
-    code = 'a'
-    exec_s = Config.ASTRA
-    exec_p = Config.ASTRA_P
-
-    def __init__(self, *args, **kwargs):
-        """Initialization."""
-        super().__init__(*args, **kwargs)
-
-        rootpath = os.path.join(self.dirname, os.path.basename(self.pout.split('.')[0]))
-        self._all = AstraLine('all', rootpath)
-        self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001']
-
-    def add_watch(self, name, pfile, **kwargs):
-        """Implement the abstract method."""
-        pfile = self._check_watch(name, pfile)
-        self._watches[name] = [AstraWatch(name, pfile, **kwargs), None]
-
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
-        if self.pin is not None:
-            ParticleFileGenerator(data, self.pin).to_astra_pfile(charge)
-
-
-class ImpacttBeamline(Beamline):
-    """Beamline simulated by IMPACT-T.
-
-    Inherit from Beamline class.
-    """
-    code = 't'
-    exec_s = Config.IMPACTT
-    exec_p = Config.IMPACTT_P
-
-    def __init__(self, pin='partcl.data', *args, **kwargs):
-        """Initialization."""
-        super().__init__(pin=pin, *args, **kwargs)
-        if self.pin is not None and os.path.basename(self.pin) != 'partcl.data':
-            raise ValueError("Input particle file for ImpactT must be 'partcl.data'!")
-
-        if self.charge is None:
-            raise ValueError("Bunch charge is required for ImpactT simulation!")
-
-        rootpath = os.path.join(self.dirname, os.path.basename(self.pout.split('.')[0]))
-        self._all = ImpacttLine('all', rootpath)
-        self._output_suffixes = ['.18', '.24', '.25', '.26']
-
-    def add_watch(self, name, pfile, **kwargs):
-        """Implement the abstract method."""
-        pfile = self._check_watch(name, pfile)
-        self._watches[name] = [ImpacttWatch(name, pfile, **kwargs), None]
-
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
-        if self.pin is not None:
-            ParticleFileGenerator(data, self.pin).to_impactt_pfile()
-
-
-class ImpactzBeamline(Beamline):
-    """Beamline simulated by IMPACT-Z.
-
-    Inherit from Beamline class.
-    """
-    code = 'z'
-    exec_s = None
-    exec_p = None
-    pass
-
-
-class GenesisBeamline(Beamline):
-    """Beamline simulated by GENESIS.
-
-    Inherit from Beamline class.
-    """
-    code = 'g'
-    exec_s = None
-    exec_p = None
-    pass
-
-
 def create_beamline(code, *args, **kwargs):
     """Create a Beamline instance.
 
     :param code: string
         Code name.
     """
+    class AstraBeamline(Beamline):
+        """Beamline simulated by ASTRA.
+
+        Inherit from Beamline class.
+        """
+        code = 'a'
+        exec_s = Config.ASTRA
+        exec_p = Config.ASTRA_P
+
+        def __init__(self, *args, **kwargs):
+            """Initialization."""
+            super().__init__(*args, **kwargs)
+
+            rootpath = os.path.join(self.dirname,
+                                    os.path.basename(self.pout.split('.')[0]))
+            self._all = AstraLine('all', rootpath)
+            self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
+                                     '.TRemit.001']
+
+        def add_watch(self, name, pfile, **kwargs):
+            """Implement the abstract method."""
+            pfile = self._check_watch(name, pfile)
+            self._watches[name] = [AstraWatch(name, pfile, **kwargs), None]
+
+        def generate_initial_particle_file(self, data, charge):
+            """Implement the abstract method."""
+            if self.pin is not None:
+                ParticleFileGenerator(data, self.pin).to_astra_pfile(charge)
+
+    class ImpacttBeamline(Beamline):
+        """Beamline simulated by IMPACT-T.
+
+        Inherit from Beamline class.
+        """
+        code = 't'
+        exec_s = Config.IMPACTT
+        exec_p = Config.IMPACTT_P
+
+        def __init__(self, pin='partcl.data', *args, **kwargs):
+            """Initialization."""
+            super().__init__(pin=pin, *args, **kwargs)
+            if self.pin is not None and os.path.basename(
+                    self.pin) != 'partcl.data':
+                raise ValueError(
+                    "Input particle file for ImpactT must be 'partcl.data'!")
+
+            if self.charge is None:
+                raise ValueError(
+                    "Bunch charge is required for ImpactT simulation!")
+
+            rootpath = os.path.join(self.dirname,
+                                    os.path.basename(self.pout.split('.')[0]))
+            self._all = ImpacttLine('all', rootpath)
+            self._output_suffixes = ['.18', '.24', '.25', '.26']
+
+        def add_watch(self, name, pfile, **kwargs):
+            """Implement the abstract method."""
+            pfile = self._check_watch(name, pfile)
+            self._watches[name] = [ImpacttWatch(name, pfile, **kwargs), None]
+
+        def generate_initial_particle_file(self, data, charge):
+            """Implement the abstract method."""
+            if self.pin is not None:
+                ParticleFileGenerator(data, self.pin).to_impactt_pfile()
+
+    class ImpactzBeamline(Beamline):
+        """Beamline simulated by IMPACT-Z.
+
+        Inherit from Beamline class.
+        """
+        code = 'z'
+        exec_s = None
+        exec_p = None
+        pass
+
+    class GenesisBeamline(Beamline):
+        """Beamline simulated by GENESIS.
+
+        Inherit from Beamline class.
+        """
+        code = 'g'
+        exec_s = None
+        exec_p = None
+        pass
+
     if code.lower() in ('astra', 'a'):
         return AstraBeamline(*args, **kwargs)
 
