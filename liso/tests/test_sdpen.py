@@ -8,7 +8,7 @@ import unittest
 from liso import Optimization, SDPEN
 
 from .opt_test_problems import *
-from ..exceptions import OptimizationConstraintSupportError
+from liso.exceptions import OptimizationConstraintSupportError
 
 
 class TestSDPEN(unittest.TestCase):

@@ -17,14 +17,14 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
         linac.add_beamline('astra',
                            name='gun',
-                           fin='liso/tests/multi_code_optimization_test/astra/injector.in',
-                           template='liso/tests/multi_code_optimization_test/astra/injector.in.000',
+                           fin='tests/multi_code_optimization_test/astra/injector.in',
+                           template='tests/multi_code_optimization_test/astra/injector.in.000',
                            pout='injector.0100.001')
 
         linac.add_beamline('impactt',
                            name='matching',
-                           fin='liso/tests/multi_code_optimization_test/impactt/ImpactT.in',
-                           template='liso/tests/multi_code_optimization_test/impactt/ImpactT.in.000',
+                           fin='tests/multi_code_optimization_test/impactt/ImpactT.in',
+                           template='tests/multi_code_optimization_test/impactt/ImpactT.in.000',
                            pout='fort.106',
                            charge=10e-12)
 

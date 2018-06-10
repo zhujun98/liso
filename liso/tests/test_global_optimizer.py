@@ -19,8 +19,8 @@ class TestGlobalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='liso/tests/astra_gun/injector.in',
-                           template='liso/tests/global_optimizer_test/injector.in.000',
+                           fin='tests/astra_gun/injector.in',
+                           template='tests/global_optimizer_test/injector.in.000',
                            pout='injector.0150.001')
 
         print(linac)
@@ -33,7 +33,7 @@ class TestGlobalOptimizer(unittest.TestCase):
 
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
-        self.opt.add_var('gun_gradient', value=130, lb=0.0, ub=130.0)
+        self.opt.add_var('gun_gradient', value=130, lb=90.0, ub=130.0)
         self.opt.add_var('gun_phase', value=0.0, lb=-90.0, ub=0.0)
 
     def test_not_raise(self):

@@ -3,7 +3,6 @@ Test suite for tests without involving accelerator codes.
 
 Author: Jun Zhu, zhujun981661@gmail.com
 """
-import unittest
 import warnings
 
 from .test_dataAnalysis import TestAnalyzeBeam
@@ -14,20 +13,3 @@ try:
     from .test_sdpen import TestSDPEN
 except ImportError:
     warnings.warn("Skip TestSDPEN due to ImportError!", RuntimeWarning)
-
-
-def suite():
-    suite = unittest.TestSuite()
-
-    suite.addTests(unittest.makeSuite(TestAnalyzeBeam))
-    suite.addTests(unittest.makeSuite(TestGenerateInput))
-    suite.addTests(unittest.makeSuite(TestALPSO))
-    suite.addTests(unittest.makeSuite(TestNelderMead))
-    suite.addTests(unittest.makeSuite(TestSDPEN))
-
-    return suite
-
-
-if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(suite())

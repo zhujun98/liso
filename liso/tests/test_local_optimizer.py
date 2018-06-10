@@ -15,8 +15,8 @@ class TestLocalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='liso/tests/astra_gun/injector.in',
-                           template='liso/tests/local_optimizer_test/injector.in.000',
+                           fin='tests/astra_gun/injector.in',
+                           template='tests/local_optimizer_test/injector.in.000',
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)

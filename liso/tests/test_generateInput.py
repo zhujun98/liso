@@ -5,15 +5,15 @@ Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 
-from ..simulation.simulation_utils import generate_input
+from liso.simulation.simulation_utils import generate_input
 
-TEMPLATE = "liso/tests/jitter_test/injector.in.000"
-OUTPUT = "liso/tests/astra_gun/injector.in"
+
+OUTPUT = "tests/astra_gun/injector.in"
 
 
 class TestGenerateInput(unittest.TestCase):
     def setUp(self):
-        with open(TEMPLATE) as fp:
+        with open("tests/jitter_test/injector.in.000") as fp:
             self.template = tuple(fp.readlines())
 
     def test_raises(self):
