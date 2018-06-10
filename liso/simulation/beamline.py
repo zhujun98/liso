@@ -192,8 +192,7 @@ class Beamline(ABC):
     def simulate(self, workers=1):
         """Simulate the beamline.
 
-        :param workers: int
-            Number of threads.
+        :param int workers: Number of processes for parallel accelerator codes.
         """
         if workers > 1:
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(

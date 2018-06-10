@@ -9,6 +9,7 @@ class Operation(ABC):
 
     Attributes:
         name (str): Name of the operation.
+        workers (int): Number of processes for parallel accelerator codes.
         printout (int): Level of printout.
         monitor_time (bool):
     """
@@ -18,7 +19,7 @@ class Operation(ABC):
         :param (str) name: Name of the operation (arbitrary).
         """
         self.name = name
-        self._workers = 1  # number of threads
+        self.workers = 1
         self.printout = 0
         self.monitor_time = False
 
