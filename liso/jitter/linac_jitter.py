@@ -65,7 +65,7 @@ class LinacJitter(Operation):
         :param passes: int
             Number of independent runs.
         """
-        check_templates(self._linac.get_templates(), self._x_map)
+        check_templates(self._linac._get_templates(), self._x_map)
 
         self._outcome = False
         print(self.__str__())
@@ -75,7 +75,7 @@ class LinacJitter(Operation):
 
         for i in range(passes):
             self._update_x_map(random_numbers[i, :])
-            self._linac.update(self._x_map)
+            self._linac.simulate(self._x_map)
             self._update_response(i+1)
 
         self._outcome = True

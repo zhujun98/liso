@@ -323,7 +323,7 @@ class LinacOptimization(Optimization):
 
         Override the method in the parent class.
         """
-        check_templates(self._linac.get_templates(), self._x_map)
+        check_templates(self._linac._get_templates(), self._x_map)
         super().solve(optimizer)
 
     def eval_objs_cons(self, x):
@@ -339,7 +339,7 @@ class LinacOptimization(Optimization):
         t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            self._linac.update(self._x_map, self.workers)
+            self._linac.simulate(self._x_map, self.workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method

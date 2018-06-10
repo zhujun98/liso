@@ -1,8 +1,7 @@
 #!/usr/bin/python
 """
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
-import time
 from collections import OrderedDict
 
 from .beamline import create_beamline
@@ -25,8 +24,10 @@ class Linac(object):
     def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
 
-        :param code: string.
-            Code used to simulate the beamline.
+        :param str code: Code used to simulate the beamline. ASTRA:
+                         'astra' or 'a'; IMPACT-T: 'impactt' or 't'; IMPACT-Z:
+                         'impactz' or 'z'; GENESIS: 'genesis' or 'g'. Case
+                         Insensitive.
         """
         bl = create_beamline(code, *args, **kwargs)
 
@@ -46,27 +47,21 @@ class Linac(object):
     def add_watch(self, beamline, *args, **kwargs):
         """Add a Watch object to a Beamline of the Linac.
 
-        :param beamline: string
-            Name of the Beamline object.
+        :param string beamline: Name of the Beamline object.
         """
         self._beamlines[beamline].add_watch(*args, **kwargs)
 
-    def update(self, mapping, workers=1):
-        """Update the linac.
+    def simulate(self, mapping, workers=1):
+        """Simulate and update all BeamParameters and LineParameters.
 
-        Re-simulate all beamlines and update all BeamParameters and
-        LineParameters.
+        Note:
+        Even without space-charge effects, the code is ASTRA
+        (or other codes)-bound. The Beamline method `simulation` takes
+        most of the time.
 
-        :param: mapping: dict
-            A dictionary for variables and covariables- {name: value}.
-        :param workers: int
-            Number of threads.
-
-        :return: (elapsed time, cpu time) in second.
-
-        Note: even without space-charge effects, the code is ASTRA
-              (or other codes)-bound. The Beamline method `simulation`
-              takes most of the time.
+        :param dict mapping: A dictionary for variables and covariables -
+                             {name: value}.
+        :param int workers: Number of threads.
         """
         # First clean all the previous output
         for beamline in self._beamlines.values():
@@ -79,7 +74,7 @@ class Linac(object):
             beamline.update_out()
             beamline.update_watches_and_lines()
 
-    def get_templates(self):
+    def _get_templates(self):
         """Get templates for all beamlines."""
         templates = []
         for beamline in self._beamlines.values():
