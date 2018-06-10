@@ -2,7 +2,7 @@
 """
 NelderMead - An LISO interface for Nelder-Mead (simplex) algorithm.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import time
 
@@ -52,8 +52,7 @@ class NelderMead(Optimizer):
     def __call__(self, opt_prob):
         """Run Optimizer (Optimize Routine)
 
-        :param opt_prob:
-            Optimization instance.
+        Override.
         """
         # Constraints
         if opt_prob.e_constraints or opt_prob.i_constraints:

@@ -13,4 +13,6 @@ Linac Optimization and Simulation (LISO)
    :caption: Contents:
 
    Installation
+   Simulation
+   Optimization
    Optimizers

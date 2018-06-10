@@ -2,7 +2,7 @@
 """
 ALPSO - An LISO interface for Augmented Larangian Particle Swarm Optimization.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import time
 
@@ -85,8 +85,7 @@ class ALPSO(Optimizer):
     def __call__(self, opt_prob):
         """Run Optimizer (Optimize Routine)
 
-        :param opt_prob:
-            Optimization instance.
+        Override.
         """
         n_vars = len(opt_prob.variables)
         x_min = np.zeros(n_vars, float)

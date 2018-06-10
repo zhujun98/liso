@@ -9,39 +9,38 @@ import time
 
 
 class Optimizer(ABC):
-    """Abstract Class for Optimizer Object"""
+    """Abstract class for optimizers.
+
+    Attributes:
+        name (str): Name of the optimizer.
+        seed (int): Seed for random number. Default = None.
+        printout (int): Level of printout.
+    """
     category = None  # should be either 'global' or 'local'.
 
     def __init__(self, name):
         """Optimizer Class Initialization
 
-        :param name: string
-            Optimizer name.
+        :param str name: Optimizer name.
         """
         self.name = name
 
-        # Random Number Seed (None - Auto-Seed based on time clock)
         self.seed = None
         if self.seed is None:
             self.seed = int(time.time())
 
-        self.printout = 0  # Level of printout
+        self.printout = 0
 
     @abstractmethod
     def __call__(self, opt_problem):
         """Run Optimizer (Calling Routine)
 
-        :param opt_problem: Optimization object
-            Optimization problem instance.
+        :param Optimization opt_problem: Optimization instance.
 
-        :returns: opt_f, opt_x, misc_info
-
-            opt_f: float
-                Optimized f.
-            opt_x: array-like
-                Optimized x.
-            misc_info: str
-                Miscellaneous information ready for printout.
+        :return: (optimized f,
+                  optimized x,
+                  miscellaneous information ready for printout).
+        :rtype: (float, array-like, str)
         """
         raise NotImplemented
 

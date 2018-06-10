@@ -1,21 +1,25 @@
 """
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 from abc import ABC, abstractmethod
 
 
 class Operation(ABC):
-    """Abstract class for Optimization and Jitter."""
+    """Abstract class for Optimization and Jitter.
 
+    Attributes:
+        name (str): Name of the operation.
+        printout (int): Level of printout.
+        monitor_time (bool):
+    """
     def __init__(self, name):
         """Initialization.
 
-        :param name: str
-            Name of the optimization problem (arbitrary).
+        :param (str) name: Name of the operation (arbitrary).
         """
         self.name = name
         self._workers = 1  # number of threads
-        self.printout = 0  # Level of printout
+        self.printout = 0
         self.monitor_time = False
 
     @property

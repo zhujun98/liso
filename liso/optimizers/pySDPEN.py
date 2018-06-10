@@ -2,7 +2,7 @@
 """
 SDPEN - An LISO interface for optimizer - pyOpt.SDPEN.
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 """
 import time
 import numpy as np
@@ -54,8 +54,7 @@ class SDPEN(PyoptOptimizer):
     def __call__(self, opt_prob):
         """Run Optimizer (Optimize Routine)
 
-        :param opt_prob:
-            Optimization instance.
+        Override.
         """
         if self.__class__.__dict__['_constraint_on'] is True:
             # Constraints

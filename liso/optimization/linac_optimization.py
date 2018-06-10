@@ -22,7 +22,7 @@ where:
     constraints: m_i = m - m_e).
 
 
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 
 """
 from collections import OrderedDict
@@ -45,14 +45,21 @@ INF = Config.INF
 
 
 class Optimization(Operation):
-    """Inherited from Operation."""
+    """Inherited from Operation.
+
+    Attributes:
+        variables (OrderedDict): variable set.
+        covariables (OrderedDict): covariable set.
+        objectives (OrderedDict): objective set.
+        e_constraints (OrderedDict): equality constraint set.
+        i_constraints (OrderedDict): inequality constraint set.
+    """
     def __init__(self, name='unnamed', *, opt_func=None):
         """Initialization.
 
-        :param name: str
-            Name of the optimization problem (arbitrary).
-        :param opt_func: callable
-            A callable object which returns (objective, constraints).
+        :param str name: Name of the optimization problem (arbitrary).
+        :param callable opt_func: A callable object which returns (objective,
+                                  constraints).
         """
         super().__init__(name)
 
@@ -224,8 +231,7 @@ class Optimization(Operation):
     def solve(self, optimizer):
         """Run the optimization and print the result.
 
-        :param optimizer: Optimizer object.
-            Optimizer.
+        :param Optimizer optimizer: Optimizer instance.
         """
         print("\n***Start solving***\n")
         self._solution = False
@@ -305,11 +311,9 @@ class LinacOptimization(Optimization):
     def __init__(self, linac, name='unnamed', *, max_nf=20):
         """Initialization.
 
-        :param linac: Linac instance
-            Linac instance.
-        :param max_nf: int
-            Max number of allowed successive failures of of calling
-            Linac.update() method.
+        :param Linac linac: Linac instance.
+        :param int max_nf: Max number of allowed successive failures of of
+                           calling Linac.update() method.
         """
         super().__init__(name)
 
@@ -321,7 +325,7 @@ class LinacOptimization(Optimization):
     def solve(self, optimizer):
         """Run the optimization and print the result.
 
-        Override the method in the parent class.
+        Override.
         """
         check_templates(self._linac._get_templates(), self._x_map)
         super().solve(optimizer)
