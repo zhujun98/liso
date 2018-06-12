@@ -13,7 +13,8 @@ import numpy as np
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
-from ..data_processing import analyze_beam, analyze_line, tailor_beam, ParticleFileGenerator
+from ..data_processing import analyze_beam, analyze_line, tailor_beam, \
+                              ParticleFileGenerator
 from .simulation_utils import generate_input
 
 from ..exceptions import *
@@ -224,7 +225,7 @@ class Beamline(ABC):
             data, charge, self._watches['out'][1] = \
                 self._process_watch(self._watches['out'][0])
         except Exception as e:
-            raise OutUpdateFailError(e)
+            raise LISOWatchUpdateError(e)
 
         if self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
@@ -237,8 +238,8 @@ class Beamline(ABC):
             if name != 'out':
                 try:
                     _, _, item[1] = self._process_watch(item[0])
-                except Exception as e:
-                    raise WatchUpdateFailError(e)
+                except (FileNotFoundError, LISOFileEmptyError) as e:
+                    raise LISOWatchUpdateError(e)
 
         # update lines
         try:
@@ -250,8 +251,8 @@ class Beamline(ABC):
             self.max = analyze_line(data, np.max)
             self.ave = analyze_line(data, np.average)
             self.std = analyze_line(data, np.std)
-        except Exception as e:
-            raise LineUpdateFailError(e)
+        except (FileNotFoundError, LISOFileEmptyError) as e:
+            raise LISOLineUpdateError(e)
 
     def _process_watch(self, watch):
         """Process a Watch.
@@ -262,6 +263,7 @@ class Beamline(ABC):
             Watch instance.
         """
         data, charge = watch.load_data()
+
         # Even if charge is given for a AstraBeamline, it will still use
         # the charge returned from watch.load_data().
         charge = self.charge if charge is None else charge
@@ -271,6 +273,7 @@ class Beamline(ABC):
                            tail=watch.tail,
                            halo=watch.halo,
                            rotation=watch.rotation)
+
         charge *= len(data) / n0
 
         params = analyze_beam(data,

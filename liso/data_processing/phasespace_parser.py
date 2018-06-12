@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import Config
+from .data_proc_utils import check_data_file
 
 
 V_LIGHT = Config.vLight
@@ -122,6 +123,8 @@ def parse_phasespace(code, particle_file):
     :return charge: float / None
         Charge (C) of the bunch.
     """
+    check_data_file(particle_file)
+
     if code.lower() in ("astra", "a"):
         data, charge = parse_astra_phasespace(particle_file)
     elif code.lower() in ('impactt', 't'):

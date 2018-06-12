@@ -1,11 +1,13 @@
 """
-Author: Jun Zhu
+Author: Jun Zhu, zhujun981661@gmail.com
 
 """
+import os
 import numpy as np
 from .beam_parameters import BeamParameters
 from .line_parameters import LineParameters
 from ..exceptions import *
+from ..config import Config
 
 
 def compute_canonical_emit(x, px):
@@ -223,8 +225,7 @@ def analyze_beam(data, charge, *,
                  current_bins='auto',
                  filter_size=1,
                  slice_percent=0.1,
-                 slice_with_peak_current=True,
-                 minimum_particles=5):
+                 slice_with_peak_current=True):
     """Calculate beam parameters.
 
     :param data: Pandas.DataFrame
@@ -240,9 +241,6 @@ def analyze_beam(data, charge, *,
         True for calculating slice properties of the slice with peak
         current; False for calculating slice properties of the slice
         in the center of the bunch.
-    :param minimum_particles: int
-        If the number of particles is less than "minimum_particles", it
-        will throw an exception.
 
     :return: BeamParameters object.
         Beam parameters.
@@ -255,9 +253,9 @@ def analyze_beam(data, charge, *,
 
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
-    if params.n < minimum_particles:
-        raise TooFewOutputParticlesError("Too few particles ({}) in the data!".
-                                         format(params.n))
+    if n0 < Config.MIN_PHASESPACE_PARTICLES:
+        raise LISOWatchUpdateError("Too few particles {} in the phasespace".
+                                   format(n0))
 
     p = np.sqrt(data['pz'] ** 2 + data['px'] ** 2 + data['py'] ** 2)
 
@@ -313,9 +311,9 @@ def analyze_beam(data, charge, *,
     slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
                              (sorted_data.t < Ct_slice + dt_slice / 2)]
 
-    if len(slice_data) < minimum_particles:
-        raise TooFewOutputParticlesError("Too few particles ({}) in the slice data!".
-                                         format(len(slice_data)))
+    if len(slice_data) < Config.MIN_PHASESPACE_PARTICLES:
+        raise LISOWatchUpdateError("Too few particles {} in the slice".
+                                   format(len(slice_data)))
 
     p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
 
@@ -343,6 +341,10 @@ def analyze_line(data, func):
 
     :return: A LineParameters instance.
     """
+    if len(data) < Config.MIN_LINE_POINTS:
+        raise LISOLineUpdateError("Too few points {} in the line".
+                                  format(len(data)))
+
     params = LineParameters()
 
     params.z = func(data['z'])
@@ -361,3 +363,11 @@ def analyze_line(data, func):
     params.emity_tr = func(data['emity_tr'])
 
     return params
+
+
+def check_data_file(filepath):
+    """Check the status of a given file."""
+    if not os.path.isfile(filepath):
+        raise FileNotFoundError(filepath + " does not exist!")
+    if not os.path.getsize(filepath):
+        raise LISOFileEmptyError(filepath + " is empty!")

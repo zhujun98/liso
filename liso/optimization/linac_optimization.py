@@ -350,13 +350,13 @@ class LinacOptimization(Optimization):
         except SimulationNotFinishedProperlyError as e:
             print(e)
         # exception propagates from Beamline.update() method
-        except WatchUpdateFailError as e:
+        except LISOWatchUpdateError as e:
             self._nf += 1
             print("Watch update failed: {}".format(e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
-        except LineUpdateFailError as e:
+        except LISOLineUpdateError as e:
             self._nf += 1
             print("Line update failed: {}".format(e))
         except Exception as e:

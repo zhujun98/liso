@@ -4,6 +4,8 @@ class Config(object):
     vLight = 299792458
     me = 9.10938356e-31
     qe = 1.60217662e-19
+    MIN_PHASESPACE_PARTICLES = 20  # minimum particles in phasespace analysis
+    MIN_LINE_POINTS = 5  # minimum points in line analysis
     ASTRA = "astra"
     ASTRA_P = "astra_r62_Linux_x86_64_OpenMPI_1.6.1"  # parallel ASTRA
     IMPACTT = "ImpactTv1.7linux"

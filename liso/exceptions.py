@@ -38,15 +38,7 @@ class BeamParametersInconsistentError(BeamAnalysisError):
     pass
 
 
-class TooFewOutputParticlesError(BeamAnalysisError):
-    """Inherited from BeamAnalysisError.
-
-    Raised when there are not enough particles in the output.
-    """
-    pass
-
-
-class WatchUpdateFailError(Exception):
+class LISOWatchUpdateError(Exception):
     """Raised if watch update fails.
 
     e.g. file is missing or data format is wrong
@@ -54,14 +46,7 @@ class WatchUpdateFailError(Exception):
     pass
 
 
-class OutUpdateFailError(WatchUpdateFailError):
-    """Inherited from WatchUpdateFailError
-
-    Raised if 'out' update fails."""
-    pass
-
-
-class LineUpdateFailError(Exception):
+class LISOLineUpdateError(Exception):
     """Raise if line update fails.
 
     e.g file is missing or data format is wrong
@@ -76,4 +61,9 @@ class OptimizationError(Exception):
 
 class OptimizationConstraintSupportError(OptimizationError):
     """Raise if an optimizer does not support certain constraint."""
+    pass
+
+
+class LISOFileEmptyError(Exception):
+    """Raise if the file is empty."""
     pass

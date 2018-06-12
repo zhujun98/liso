@@ -37,6 +37,9 @@ import numpy as np
 
 
 from ..config import Config
+from .data_proc_utils import check_data_file
+from ..exceptions import *
+
 
 V_LIGHT = Config.vLight
 M_E = Config.me
@@ -66,8 +69,11 @@ def parse_impactt_line(root_name):
         root_name = 'fort'
 
     x_file = root_name + '.24'
+    check_data_file(x_file)
     y_file = root_name + '.25'
+    check_data_file(y_file)
     z_file = root_name + '.26'
+    check_data_file(z_file)
 
     xdata = pd.read_csv(
         x_file, delim_whitespace=True,
@@ -142,8 +148,11 @@ def parse_astra_line(root_name):
         raise ValueError("\nroot_name of the output files is not given!")
 
     x_file = root_name + '.Xemit.001'
+    check_data_file(x_file)
     y_file = root_name + '.Yemit.001'
+    check_data_file(y_file)
     z_file = root_name + '.Zemit.001'
+    check_data_file(z_file)
     emit_tr_file = root_name + '.TRemit.001'
 
     data = pd.DataFrame()
@@ -163,13 +172,15 @@ def parse_astra_line(root_name):
 
     # ASTRA will not output .TRemit file by default
     try:
+        check_data_file(emit_tr_file)
+    
         emit_tr_data = pd.read_csv(
             emit_tr_file, delim_whitespace=True,
             names=['z', 't', 'emitx_tr', 'emity_tr', 'emitz_tr'])
         data['emitx_tr'] = emit_tr_data['emitx_tr']*1.0e-6
         data['emity_tr'] = emit_tr_data['emity_tr']*1.0e-6
         # data['emitz_tr'] = emit_tr_data['emitz_tr']*1.0e-6
-    except IOError:
+    except (FileNotFoundError, LISOFileEmptyError):
         data['emitx_tr'] = xdata['emitx']*1.0e-6
         data['emity_tr'] = ydata['emity']*1.0e-6
         # data['emitz_tr'] = zdata['emitz']*1.0e-6
