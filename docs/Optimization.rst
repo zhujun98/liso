@@ -1,6 +1,16 @@
 Optimization
 ============
 
+Guid for beginners
+------------------
+
+- Test your optimization problem without collective effects first.
+- Try to find a trade-off between speed and accuracy. In ASTRA simulation, for instance, the knobs are
+"H_MAX", "MAX_SCALE", "MAX_COUNT", "NRAD", "NLONG_IN", etc.
+- Run some small optimization problems first to familiarize yourself with different optimizers and your
+problem.
+- Your "Objective" should be much larger than "Absolute tolerance" in the optimizer setup.
+
 .. currentmodule:: liso.operation
 .. autoclass:: Operation
     :show-inheritance:
