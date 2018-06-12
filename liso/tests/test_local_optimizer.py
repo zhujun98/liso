@@ -6,7 +6,7 @@ Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 
-from liso import Linac, NelderMead, SDPEN, LinacOptimization
+from liso import Linac, NelderMead, LinacOptimization
 from .test_utils import print_title
 
 
@@ -33,6 +33,12 @@ class TestLocalOptimizer(unittest.TestCase):
         self.opt.solve(optimizer)
 
     def test_sdpen(self):
+        try:
+            from liso import SDPEN
+        except ImportError:
+            # TODO: add a log or message here
+            return
+             
         print_title("Test local optimizer SDPEN with ASTRA!")
 
         optimizer = SDPEN()
