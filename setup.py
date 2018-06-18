@@ -28,6 +28,8 @@ setup(
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',
                  'License :: GNU',
+                 'Programming Language :: Python :: 3.4',
+                 'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering',
                  'Topic :: Software Development',

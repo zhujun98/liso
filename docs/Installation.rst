@@ -8,14 +8,7 @@ Install LISO
 
     $ git clone https://github.com/zhujun98/liso.git
     $ cd liso
-    $ python3 setup.py install
-
-It is recommended to uninstall the old version before installing a new one. To uninstall:
-
-.. code-block:: bash
-
-    $ python3 setup.py install --record files.txt
-    $ cat files.txt | xargs rm -rf
+    $ sudo pip3 install .
 
 Set up the environment
 ----------------------
