@@ -2,7 +2,7 @@
     Version = 3
     Head='test for linac jitter'
     RUN = 1
-    Distribution = 'Radial500_1G3ps.ini'
+    Distribution = 'Radial2k_1G3ps.ini'
     Qbunch = 0.02
     XYrms = 0.04
     Trms = 0.003
