@@ -8,4 +8,4 @@ install:
   - pip install .[testing]
 
 script:
-  pytest ./tests
+  pytest liso/tests
