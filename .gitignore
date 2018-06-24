@@ -9,6 +9,7 @@ __pycache__
 win_config.dat
 .Rhistory
 *.autosave
+.coverage
 
 .ipynb_checkpoints/*
 
