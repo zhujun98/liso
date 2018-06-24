@@ -2,6 +2,7 @@ build
 dist
 .cache
 __pycache__
+.pytest_cache
 .idea
 *.pyc
 *.egg-info
@@ -21,17 +22,17 @@ examples/astra_injector/*
 examples/impactt_lattice/*
 !examples/impactt_lattice/.gitkeep
 
-liso/tests/astra_gun/*
-!liso/tests/astra_gun/gun.dat
-!liso/tests/astra_gun/Radial500_1G3ps.ini
-!liso/tests/astra_gun/sole_gun.dat
-!liso/tests/astra_gun/sole_cavity.dat
+liso/integTests/astra_gun/*
+!liso/integTests/astra_gun/gun.dat
+!liso/integTests/astra_gun/Radial500_1G3ps.ini
+!liso/integTests/astra_gun/sole_gun.dat
+!liso/integTests/astra_gun/sole_cavity.dat
 
-liso/tests/multi_code_optimization_test/astra/*
-liso/tests/multi_code_optimization_test/impactt/*
-!liso/tests/multi_code_optimization_test/astra/gun.dat
-!liso/tests/multi_code_optimization_test/astra/Radial500_1G3ps.ini
-!liso/tests/multi_code_optimization_test/astra/injector.in.000
-!liso/tests/multi_code_optimization_test/astra/sp_gunsol.dat
-!liso/tests/multi_code_optimization_test/impactt/ImpactT.in.000
+liso/integTests/multi_code_optimization/astra/*
+liso/integTests/multi_code_optimization/impactt/*
+!liso/integTests/multi_code_optimization/astra/gun.dat
+!liso/integTests/multi_code_optimization/astra/Radial500_1G3ps.ini
+!liso/integTests/multi_code_optimization/astra/injector.in.000
+!liso/integTests/multi_code_optimization/astra/sp_gunsol.dat
+!liso/integTests/multi_code_optimization/impactt/ImpactT.in.000
 
