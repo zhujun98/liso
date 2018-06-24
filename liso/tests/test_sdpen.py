@@ -5,12 +5,17 @@ Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 
-from liso import Optimization, SDPEN
+SKIP_TEST = False
+try:
+    from liso import Optimization, SDPEN
+except ImportError:
+    SKIP_TEST = True
 
 from .opt_test_problems import *
 from liso.exceptions import OptimizationConstraintSupportError
 
 
+@unittest.skipIf(SKIP_TEST is True, "failed to import library")
 class TestSDPEN(unittest.TestCase):
     def setUp(self):
         self.optimizer = SDPEN()
