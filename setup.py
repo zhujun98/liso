@@ -39,7 +39,9 @@ setup(
                  ],
 
     install_requires=REQUIREMENTS,
-    tests_require=[
-        'pytest >= 3.6'
-    ]
+    extras_require={
+        'testing': [
+            'pytest >= 3.6'
+        ]
+    }
 )
