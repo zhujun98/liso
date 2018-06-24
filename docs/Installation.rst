@@ -8,9 +8,9 @@ Install LISO
 
     $ git clone https://github.com/zhujun98/liso.git
     $ cd liso
-    $ sudo python3 -m pip install .
+    $ sudo pip3 install .
     # To uninstall
-    $ sudo python3 -m pip uninstall liso
+    $ sudo pip3 uninstall liso
 
 Set up the environment
 ----------------------
@@ -34,7 +34,7 @@ pyOpt
 
     $ git clone https://github.com/zhujun98/pyOpt
     $ cd pyOpt
-    $ python3 setup.py install
+    $ sudo pip3 install .
 
 
 GUI
