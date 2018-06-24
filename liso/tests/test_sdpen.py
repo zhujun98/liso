@@ -11,8 +11,8 @@ try:
 except ImportError:
     SKIP_TEST = True
 
-from .opt_test_problems import *
 from liso.exceptions import OptimizationConstraintSupportError
+from .opt_problems import *
 
 
 @unittest.skipIf(SKIP_TEST is True, "failed to import library")

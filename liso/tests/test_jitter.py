@@ -7,7 +7,7 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 
 from liso import Linac, LinacJitter
-from .test_utils import print_title
+from .helpers import print_title
 
 
 class TestJitter(unittest.TestCase):

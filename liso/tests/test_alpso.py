@@ -8,7 +8,7 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 
 from liso import Optimization, ALPSO
-from .opt_test_problems import *
+from .opt_problems import *
 
 
 class TestALPSO(unittest.TestCase):
