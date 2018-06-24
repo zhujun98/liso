@@ -8,12 +8,12 @@ import unittest
 from liso.simulation.simulation_utils import generate_input
 
 
-OUTPUT = "tests/astra_gun/injector.in"
+OUTPUT = "liso/tests/files4test/injector.in"
 
 
 class TestGenerateInput(unittest.TestCase):
     def setUp(self):
-        with open("tests/jitter_test/injector.in.000") as fp:
+        with open("liso/tests/files4test/injector.in.000") as fp:
             self.template = tuple(fp.readlines())
 
     def test_raises(self):

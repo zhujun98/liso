@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import sys
 from setuptools import setup, find_packages
 
@@ -39,5 +38,10 @@ setup(
                  'Operating System :: MacOS',
                  ],
 
-    install_requires=REQUIREMENTS
+    install_requires=REQUIREMENTS,
+    extras_require={
+        'testing': [
+            'pytest >= 3.6'
+        ]
+    }
 )

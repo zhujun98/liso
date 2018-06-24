@@ -7,7 +7,7 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 
 from liso import Linac, NelderMead, LinacOptimization
-from .test_utils import print_title
+from liso.integTests.helpers import print_title
 
 
 class TestLocalOptimizer(unittest.TestCase):
@@ -15,8 +15,8 @@ class TestLocalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='tests/astra_gun/injector.in',
-                           template='tests/local_optimizer_test/injector.in.000',
+                           fin='integTests/astra_gun/injector.in',
+                           template='integTests/local_optimizer/injector.in.000',
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)

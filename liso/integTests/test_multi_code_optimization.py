@@ -8,7 +8,7 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 
 from liso import Linac, LinacOptimization, ALPSO
-from .test_utils import print_title
+from liso.integTests.helpers import print_title
 
 
 class TestMultiCodeOptimization(unittest.TestCase):
@@ -17,14 +17,14 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
         linac.add_beamline('astra',
                            name='gun',
-                           fin='tests/multi_code_optimization_test/astra/injector.in',
-                           template='tests/multi_code_optimization_test/astra/injector.in.000',
+                           fin='integTests/multi_code_optimization/astra/injector.in',
+                           template='integTests/multi_code_optimization/astra/injector.in.000',
                            pout='injector.0100.001')
 
         linac.add_beamline('impactt',
                            name='matching',
-                           fin='tests/multi_code_optimization_test/impactt/ImpactT.in',
-                           template='tests/multi_code_optimization_test/impactt/ImpactT.in.000',
+                           fin='integTests/multi_code_optimization/impactt/ImpactT.in',
+                           template='integTests/multi_code_optimization/impactt/ImpactT.in.000',
                            pout='fort.106',
                            charge=10e-12)
 

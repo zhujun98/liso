@@ -8,8 +8,8 @@ import unittest
 from liso import Optimization, NelderMead
 from liso.optimizers.nelder_mead import _compute_centroid, _compute_reflection, \
                                      _compute_expansion, _compute_shrink
-from .opt_test_problems import *
 from liso.exceptions import OptimizationConstraintSupportError
+from .opt_problems import *
 
 
 class TestNelderMead(unittest.TestCase):
