@@ -2,8 +2,8 @@ import sys
 from setuptools import setup, find_packages
 
 
-if sys.version_info[0] != 3:
-    raise SystemError("Python 3 is required!")
+if sys.version_info < (3, 5):
+    raise SystemError("Python >= 3.5 is required!")
 
 REQUIREMENTS = open('requirements.txt', encoding='utf-8').readlines()
 REQUIREMENTS = [req.rstrip() for req in REQUIREMENTS]
@@ -27,7 +27,6 @@ setup(
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',
                  'License :: GNU',
-                 'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering',
@@ -41,7 +40,8 @@ setup(
     install_requires=REQUIREMENTS,
     extras_require={
         'testing': [
-            'pytest >= 3.6'
+            'pytest',
+            'pytest-cov',
         ]
     }
 )

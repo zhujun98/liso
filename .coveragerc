@@ -1,0 +1,7 @@
+[run]
+source = liso
+
+omit =
+  */tests/*
+  */integTests/*
+  */visualization/pyqtgraph/*
