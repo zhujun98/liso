@@ -11,11 +11,11 @@ from liso.data_processing import analyze_beam, parse_phasespace, tailor_beam
 
 class TestAnalyzeBeam(unittest.TestCase):
     def setUp(self):
-        pfile = os.path.abspath("tests/particle_files_for_test/impactt.out")
+        pfile = os.path.abspath("tests/files4test/impactt.out")
         self.impactt_data, _ = parse_phasespace('t', pfile)
         self.impactt_charge = 1e-11
 
-        pfile = os.path.abspath("tests/particle_files_for_test/astra.out")
+        pfile = os.path.abspath("tests/files4test/astra.out")
         self.astra_data, self.astra_charge = parse_phasespace('a', pfile)
 
     def test_astra(self):
