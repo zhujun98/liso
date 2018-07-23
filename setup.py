@@ -38,6 +38,13 @@ setup(
                  ],
 
     install_requires=REQUIREMENTS,
+
+    entry_points={
+        'console_scripts': [
+            'liso-gui=liso.visualization.main_gui:main_gui'
+        ],
+    },
+
     extras_require={
         'testing': [
             'pytest',
