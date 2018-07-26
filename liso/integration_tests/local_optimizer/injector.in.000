@@ -2,7 +2,7 @@
     Version = 3
     Head='test for linac optimization'
     RUN = 1
-    Distribution = 'Radial500_1G3ps.ini'
+    Distribution = '../astra_gun/Radial500_1G3ps.ini'
     Qbunch = 0.02
     XYrms = <laser_spot>
     Trms = 0.003
@@ -55,7 +55,7 @@
     Loop = .F 
     LEfield = .T
     
-    File_Efield(1) = 'gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0 
+    File_Efield(1) = '../astra_gun/gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0
     C_smooth(1) = 10, C_higher_order(1) = .T
     MaxE(1) = 110, Phi(1) = 0.0
 /
@@ -64,7 +64,7 @@
     Loop = .F 
     LBfield = .T
     
-    File_Bfield(1) = 'sole_gun.dat', S_pos(1) = 0.0
+    File_Bfield(1) = '../astra_gun/sole_gun.dat', S_pos(1) = 0.0
     S_smooth(1) = 5
     MaxB(1) = <main_sole_b>
 /
