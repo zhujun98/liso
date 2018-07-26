@@ -40,7 +40,9 @@ from .objective import Objective
 from ..config import Config
 from ..exceptions import *
 from ..simulation.simulation_utils import check_templates
+from ..logging import create_logger
 
+logger = create_logger(__name__)
 INF = Config.INF
 
 
@@ -352,16 +354,16 @@ class LinacOptimization(Optimization):
         # exception propagates from Beamline.update() method
         except LISOWatchUpdateError as e:
             self._nf += 1
-            print("Watch update failed: {}".format(e))
+            logger.info("Watch update failed: {}".format(e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
         except LISOLineUpdateError as e:
             self._nf += 1
-            print("Line update failed: {}".format(e))
+            logger.info("Line update failed: {}".format(e))
         except Exception as e:
             self._nf += 1
-            print("Unknown exceptions:\n {}".format(e))
+            logger.info("Unknown exceptions:\n {}".format(e))
             raise
         finally:
             if self._nf > self._max_nf:
@@ -378,8 +380,8 @@ class LinacOptimization(Optimization):
         if self.monitor_time is True:
             dt = time.perf_counter() - t0
             dt_cpu = time.process_time() - t0_cpu
-            print('elapsed time: {:.4f} s, '.format(dt),
-                  'cpu time: {:.4f} s, '.format(dt_cpu))
+            logger.debug('elapsed time: {:.4f} s, cpu time: {:.4f} s'
+                         .format(dt, dt_cpu))
 
         if self.printout > 0:
             print('{:04d} - '.format(self._nfeval),
