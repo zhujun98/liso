@@ -4,10 +4,16 @@ Unittest of local optimization of a linac with different optimizers.
 
 Author: Jun Zhu, zhujun981661@gmail.com
 """
+import os
+import glob
 import unittest
 
 from liso import Linac, NelderMead, LinacOptimization
-from liso.integTests.helpers import print_title
+from liso.integration_tests.helpers import print_title
+
+test_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'local_optimizer'
+))
 
 
 class TestLocalOptimizer(unittest.TestCase):
@@ -15,8 +21,8 @@ class TestLocalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='integTests/astra_gun/injector.in',
-                           template='integTests/local_optimizer/injector.in.000',
+                           fin=os.path.join(test_path, 'injector.in'),
+                           template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)
@@ -24,6 +30,11 @@ class TestLocalOptimizer(unittest.TestCase):
         self.opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
+
+    def tearDown(self):
+        for file in glob.glob(os.path.join(test_path, "injector.*.001")):
+            os.remove(file)
+        os.remove(os.path.join(test_path, "injector.in"))
 
     def test_nelderMead(self):
         print_title("Test local optimizer NelderMead with ASTRA!")

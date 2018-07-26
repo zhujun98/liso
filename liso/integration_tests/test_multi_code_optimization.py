@@ -5,28 +5,36 @@ parts of a linac.
 
 Author: Jun Zhu, zhujun981661@gmail.com
 """
+import os
+import glob
 import unittest
 
 from liso import Linac, LinacOptimization, ALPSO
-from liso.integTests.helpers import print_title
+from liso.integration_tests.helpers import print_title
+
+test_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'multi_code_optimization'
+))
 
 
 class TestMultiCodeOptimization(unittest.TestCase):
     def setUp(self):
         linac = Linac()
 
-        linac.add_beamline('astra',
-                           name='gun',
-                           fin='integTests/multi_code_optimization/astra/injector.in',
-                           template='integTests/multi_code_optimization/astra/injector.in.000',
-                           pout='injector.0100.001')
+        linac.add_beamline(
+            'astra',
+            name='gun',
+            fin=os.path.join(test_path, 'astra/injector.in'),
+            template=os.path.join(test_path, 'astra/injector.in.000'),
+            pout='injector.0100.001')
 
-        linac.add_beamline('impactt',
-                           name='matching',
-                           fin='integTests/multi_code_optimization/impactt/ImpactT.in',
-                           template='integTests/multi_code_optimization/impactt/ImpactT.in.000',
-                           pout='fort.106',
-                           charge=10e-12)
+        linac.add_beamline(
+            'impactt',
+            name='matching',
+            fin=os.path.join(test_path, 'impactt/ImpactT.in'),
+            template=os.path.join(test_path, 'impactt/ImpactT.in.000'),
+            pout='fort.106',
+            charge=10e-12)
 
         print(linac)
 
@@ -42,6 +50,14 @@ class TestMultiCodeOptimization(unittest.TestCase):
         self.opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)
         self.opt.add_var('MQZM1_G', value=0.0, lb=-6.0, ub=6.0)
         self.opt.add_var('MQZM2_G', value=0.0, lb=-6.0, ub=6.0)
+
+    def tearDown(self):
+        for file in glob.glob(os.path.join(test_path, "astra/injector.*.001")):
+            os.remove(file)
+        os.remove(os.path.join(test_path, "astra/injector.in"))
+        for file in glob.glob(os.path.join(test_path, "impactt/fort.*")):
+            os.remove(file)
+        os.remove(os.path.join(test_path, "impactt/ImpactT.in"))
 
     def test_not_raise(self):
         print_title("Test multi-code optimization with ALPSO!")

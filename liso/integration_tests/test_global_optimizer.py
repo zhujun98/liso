@@ -8,10 +8,16 @@ cases.
 
 Author: Jun Zhu, zhujun981661@gmail.com
 """
+import os
+import glob
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
-from liso.integTests.helpers import print_title
+from liso.integration_tests.helpers import print_title
+
+test_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'global_optimizer'
+))
 
 
 class TestGlobalOptimizer(unittest.TestCase):
@@ -19,8 +25,8 @@ class TestGlobalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='integTests/astra_gun/injector.in',
-                           template='integTests/global_optimizer/injector.in.000',
+                           fin=os.path.join(test_path, 'injector.in'),
+                           template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
         print(linac)
@@ -35,6 +41,11 @@ class TestGlobalOptimizer(unittest.TestCase):
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
         self.opt.add_var('gun_gradient', value=130, lb=90.0, ub=130.0)
         self.opt.add_var('gun_phase', value=0.0, lb=-90.0, ub=0.0)
+
+    def tearDown(self):
+        for file in glob.glob(os.path.join(test_path, "injector.*.001")):
+            os.remove(file)
+        os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
         print_title("Test global optimizer ALPSO with ASTRA!")
