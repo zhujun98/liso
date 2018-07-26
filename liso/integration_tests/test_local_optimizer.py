@@ -34,7 +34,10 @@ class TestLocalOptimizer(unittest.TestCase):
     def tearDown(self):
         for file in glob.glob(os.path.join(test_path, "injector.*.001")):
             os.remove(file)
-        os.remove(os.path.join(test_path, "injector.in"))
+        try:
+            os.remove(os.path.join(test_path, "injector.in"))
+        except FileNotFoundError:
+            pass
 
     def test_nelderMead(self):
         print_title("Test local optimizer NelderMead with ASTRA!")
