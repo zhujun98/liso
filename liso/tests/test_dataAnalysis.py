@@ -8,14 +8,18 @@ import os
 
 from liso.data_processing import analyze_beam, parse_phasespace, tailor_beam
 
+test_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'files4test'
+))
+
 
 class TestAnalyzeBeam(unittest.TestCase):
     def setUp(self):
-        pfile = os.path.abspath("liso/tests/files4test/impactt.out")
+        pfile = os.path.join(test_path, "impactt.out")
         self.impactt_data, _ = parse_phasespace('t', pfile)
         self.impactt_charge = 1e-11
 
-        pfile = os.path.abspath("liso/tests/files4test/astra.out")
+        pfile = os.path.join(test_path, "astra.out")
         self.astra_data, self.astra_charge = parse_phasespace('a', pfile)
 
     def test_astra(self):
@@ -88,19 +92,23 @@ class TestAnalyzeBeam(unittest.TestCase):
         self.assertEqual(params.charge, 0.0)
 
     def test_cut_halo(self):
-        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1), self.astra_charge)
+        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1),
+                              self.astra_charge)
         self.assertEqual(params.n, 450)
 
     def test_cut_tail(self):
-        params = analyze_beam(tailor_beam(self.astra_data, tail=0.1), self.astra_charge)
+        params = analyze_beam(tailor_beam(self.astra_data, tail=0.1),
+                              self.astra_charge)
         self.assertEqual(params.n, 450)
 
     def test_rotate_beam(self):
-        params = analyze_beam(tailor_beam(self.astra_data, rotation=0.1), self.astra_charge)
+        params = analyze_beam(tailor_beam(self.astra_data, rotation=0.1),
+                              self.astra_charge)
         self.assertEqual(params.n, 500)
 
     def test_tailor_beam(self):
-        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1, tail=0.2, rotation=0.1),
+        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1, tail=0.2,
+                                          rotation=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 360)
 

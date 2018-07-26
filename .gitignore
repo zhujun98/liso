@@ -10,6 +10,7 @@ win_config.dat
 .Rhistory
 *.autosave
 .coverage
+*.log
 
 .ipynb_checkpoints/*
 
@@ -23,17 +24,23 @@ examples/astra_injector/*
 examples/impactt_lattice/*
 !examples/impactt_lattice/.gitkeep
 
-liso/integTests/astra_gun/*
-!liso/integTests/astra_gun/gun.dat
-!liso/integTests/astra_gun/Radial500_1G3ps.ini
-!liso/integTests/astra_gun/sole_gun.dat
-!liso/integTests/astra_gun/sole_cavity.dat
+liso/integration_tests/jitter/*
+!liso/integration_tests/jitter/injector.in.000
 
-liso/integTests/multi_code_optimization/astra/*
-liso/integTests/multi_code_optimization/impactt/*
-!liso/integTests/multi_code_optimization/astra/gun.dat
-!liso/integTests/multi_code_optimization/astra/Radial500_1G3ps.ini
-!liso/integTests/multi_code_optimization/astra/injector.in.000
-!liso/integTests/multi_code_optimization/astra/sp_gunsol.dat
-!liso/integTests/multi_code_optimization/impactt/ImpactT.in.000
+liso/integration_tests/local_optimizer/*
+liso/integration_tests/local_optimizer/injector.in.000
+
+liso/integration_tests/global_optimizer/*
+liso/integration_tests/global_optimizer/injector.in.000
+
+liso/integation_tests/astra_gun/*
+!liso/integration_tests/astra_gun/gun.dat
+!liso/integration_tests/astra_gun/Radial500_1G3ps.ini
+!liso/integration_tests/astra_gun/sole_gun.dat
+!liso/integration_tests/astra_gun/sp_gunsol.data
+
+liso/integration_tests/multi_code_optimization/astra/*
+!liso/integration_tests/multi_code_optimization/astra/injector.in.000
+liso/integration_tests/multi_code_optimization/impactt/*
+!liso/integration_tests/multi_code_optimization/impactt/ImpactT.in.000
 

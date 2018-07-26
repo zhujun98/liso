@@ -4,10 +4,16 @@ Unittest of jitter study with ASTRA.
 
 Author: Jun Zhu, zhujun981661@gmail.com
 """
+import os
+import glob
 import unittest
 
 from liso import Linac, LinacJitter
-from liso.integTests.helpers import print_title
+from liso.integration_tests.helpers import print_title
+
+test_path = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'jitter'
+))
 
 
 class TestJitter(unittest.TestCase):
@@ -15,8 +21,8 @@ class TestJitter(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin='integTests/astra_gun/injector.in',
-                           template='integTests/jitter/injector.in.000',
+                           fin=os.path.join(test_path, 'injector.in'),
+                           template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
         print(linac)
@@ -30,6 +36,11 @@ class TestJitter(unittest.TestCase):
 
         self.jt.add_jitter('gun_gradient', value=110, sigma=-0.001)
         self.jt.add_jitter('gun_phase', value=0.0, sigma=0.01)
+
+    def tearDown(self):
+        for file in glob.glob(os.path.join(test_path, "injector.*.001")):
+            os.remove(file)
+        os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
         print_title("Test jitter simulation with ASTRA!")
