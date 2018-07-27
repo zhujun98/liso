@@ -200,7 +200,7 @@ class ALPSO(Optimizer):
         return opt_f, opt_x, misc_info
 
     def __str__(self):
-        text = '-' * 80 + '\n'
+        text = '\n' + '-' * 80 + '\n'
         text += 'Augmented Lagrangian Particle Swarm Optimizer (ALPSO)\n'
         text += '-' * 80 + '\n'
 

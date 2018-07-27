@@ -11,3 +11,4 @@ class Config(object):
     IMPACTT = "ImpactTv1.7linux"
     IMPACTT_P = "ImpactTv1.7linuxPara"  # paralle IMPACT-T
     LOG_FILENAME = "liso.log"
+    OPT_LOG_FILENAME = "liso_opt.log"

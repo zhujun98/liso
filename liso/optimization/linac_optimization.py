@@ -40,7 +40,7 @@ from .objective import Objective
 from ..config import Config
 from ..exceptions import *
 from ..simulation.simulation_utils import check_templates
-from ..logging import create_logger
+from ..logging import create_logger, opt_logger
 
 logger = create_logger(__name__)
 INF = Config.INF
@@ -73,11 +73,9 @@ class Optimization(Operation):
 
         self._x_map = OrderedDict()  # Initialize the x_map dictionary
 
-        self._nfeval = 0  # No. of evaluations on the objectives and constraints.
+        self._nfeval = 0  # No. of evaluations
 
         self._opt_func = opt_func
-
-        self._solution = False  # a flag used to control __str__ output
 
     def add_var(self, name, **kwargs):
         """Add a variable."""
@@ -107,7 +105,8 @@ class Optimization(Operation):
             try:
                 self._x_map[name] = a * self._x_map[var] + b
             except KeyError:
-                raise ValueError("The dependent variable '%s' does not exist!" % var)
+                raise ValueError(
+                    "The dependent variable '%s' does not exist!" % var)
         except (TypeError, ValueError):
             print("Input is not valid for a Covariable class instance!")
             raise
@@ -196,7 +195,8 @@ class Optimization(Operation):
         for i, item in enumerate(self.objectives.values()):
             item.value = f_eval[i]
 
-        for i, item in enumerate(chain(self.e_constraints.values(), self.i_constraints.values())):
+        for i, item in enumerate(chain(self.e_constraints.values(),
+                                       self.i_constraints.values())):
             item.value = g_eval[i]
 
         f, g = self._get_objs_cons()
@@ -222,34 +222,51 @@ class Optimization(Operation):
         self._update_x_map(x)
         f, g = self._update_objs_cons()
 
+        text = self._get_eval_info(f, g, False)
+        opt_logger.info(text)
         if self.printout > 0:
-            print('{:04d} - '.format(self._nfeval),
-                  ['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
-                  ['{:9.2e}'.format(v) for v in f],
-                  ['{:9.2e}'.format(v) for v in g])
+            print(text)
 
         return f, g, False
+
+    def _get_eval_info(self, f, g, is_failed):
+        """Optimization result after each step."""
+        text = '{:05d} - '.format(self._nfeval)
+        text += "variable(s): "
+        for value in self._x_map.values():
+            text += '{:11.4e}, '.format(value)
+        text += "objective(s): "
+        for v in f:
+            text += '{:11.4e}, '.format(v)
+        if g:
+            text += "constraint(s): "
+        for v in g:
+            text += '{:11.4e}, '.format(v)
+        text += "Failed" if is_failed is True else "Succeeded"
+        return text
 
     def solve(self, optimizer):
         """Run the optimization and print the result.
 
         :param Optimizer optimizer: Optimizer instance.
         """
-        print("\n***Start solving***\n")
-        self._solution = False
-        print(self.__str__())
-        print("\n***with***\n")
-        print(optimizer)
+        text = "\n\n***Start solving***\n" \
+               + self._get_info(False) \
+               + "\n***with***\n" \
+               + str(optimizer)
+        logger.info(text)
+        opt_logger.info(text)
 
         opt_f, opt_x, misc_info = optimizer(self)
+
+        text = "\n" + self._get_info(True) + "\n" + misc_info
+        logger.info(text)
+        opt_logger.info(text)
+
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
         self.eval_objs_cons(opt_x)
         self._verify_solution(opt_f)
-
-        self._solution = True
-        print(self.__str__())
-        print(misc_info)
 
     def _get_objs_cons(self):
         """Get the values of all objectives and constraints."""
@@ -258,7 +275,8 @@ class Optimization(Operation):
             f.append(obj.value)
 
         g = []
-        for con in chain(self.e_constraints.values(), self.i_constraints.values()):
+        for con in chain(self.e_constraints.values(),
+                         self.i_constraints.values()):
             g.append(con.value)
 
         return f, g
@@ -293,14 +311,18 @@ class Optimization(Operation):
                 text += ele.list_item()
         return text
 
-    def __str__(self):
-        if self._solution is False:
-            text = '\nOptimization problem: %s' % self.name
+    def _get_info(self, is_solution):
+        text = '\n' + '=' * 80 + '\n'
+        if is_solution is False:
+            text += 'Optimization problem: %s\n' % self.name
         else:
-            text = '\nSolution for optimization problem: %s' % self.name
+            text += 'Solution for optimization problem: %s\n' % self.name
+        text += self.__str__()
+        text += '\n' + '=' * 80 + '\n'
+        return text
 
-        text += '\n' + '='*80 + '\n'
-        text += self._format_item(self.objectives, 'Objective(s)')
+    def __str__(self):
+        text = self._format_item(self.objectives, 'Objective(s)')
         text += self._format_item(self.e_constraints, 'Equality constraint(s)')
         text += self._format_item(self.i_constraints, 'Inequality constraint(s)')
         text += self._format_item(self.variables, 'Variable(s)')
@@ -384,12 +406,11 @@ class LinacOptimization(Optimization):
             logger.debug('elapsed time: {:.4f} s, cpu time: {:.4f} s'
                          .format(dt, dt_cpu))
 
+        # optimization result after each step
+        text = self._get_eval_info(f, g, is_update_failed)
+        opt_logger.info(text)
         if self.printout > 0:
-            print('{:04d} - '.format(self._nfeval),
-                  ['{:^12}: {:9.2e}'.format(key, value) for key, value in self._x_map.items()],
-                  ['{:9.2e}'.format(v) for v in f],
-                  ['{:9.2e}'.format(v) for v in g],
-                  is_update_failed)
+            print(text)
 
         return f, g, is_update_failed
 
