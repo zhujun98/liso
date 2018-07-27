@@ -143,7 +143,7 @@ class NelderMead(Optimizer):
         return opt_f, opt_x, misc_info
 
     def __str__(self):
-        text = '-' * 80 + '\n'
+        text = '\n' + '-' * 80 + '\n'
         text += 'Nelder-Mead (Simplex) optimizer\n'
         text += '-' * 80 + '\n'
 

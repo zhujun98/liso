@@ -105,7 +105,7 @@ class SDPEN(PyoptOptimizer):
         return opt_f, opt_x, misc_info
 
     def __str__(self):
-        text = '-' * 80 + '\n'
+        text = '\n' + '-' * 80 + '\n'
         text += 'Sequential Penalty Derivative-free Method (SDPEN)\n'
         text += '-' * 80 + '\n'
 

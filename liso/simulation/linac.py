@@ -83,7 +83,8 @@ class Linac(object):
 
     def __str__(self):
         text = ''
-        for beamline in self._beamlines.values():
-            text += beamline.__str__() + '\n'
-
+        for i, beamline in enumerate(self._beamlines.values()):
+            text += "\nBeamline {:02d}\n".format(i)
+            text += "-"*11 + "\n"
+            text += beamline.__str__()
         return text

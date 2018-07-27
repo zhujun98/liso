@@ -9,8 +9,11 @@ import numpy as np
 from ..operation import Operation
 from .jitter import Jitter
 from .response import Response
-
+from ..logging import create_logger
 from ..simulation.simulation_utils import check_templates
+
+
+logger = create_logger(__name__)
 
 
 class LinacJitter(Operation):
@@ -24,8 +27,6 @@ class LinacJitter(Operation):
         self.jitters = OrderedDict()
         self.responses = OrderedDict()
         self._x_map = dict()
-
-        self._outcome = False  # a flag used to control __str__ output
 
     def add_jitter(self, name, **kwargs):
         """Add a jitter."""
@@ -67,8 +68,7 @@ class LinacJitter(Operation):
         """
         check_templates(self._linac._get_templates(), self._x_map)
 
-        self._outcome = False
-        print(self.__str__())
+        logger.info('\n' + self._get_info(False))
 
         # Generate random numbers for all passes
         random_numbers = self._generate_randoms(len(self.jitters), passes)
@@ -78,8 +78,7 @@ class LinacJitter(Operation):
             self._linac.simulate(self._x_map)
             self._update_response(i+1)
 
-        self._outcome = True
-        print(self.__str__())
+        logger.info('\n' + self._get_info(True))
 
     @staticmethod
     def _generate_randoms(n, size):
@@ -135,14 +134,18 @@ class LinacJitter(Operation):
             print('{:04d} - '.format(count),
                   ['{:9.6e}'.format(v) for v in out])
 
-    def __str__(self):
-        if self._outcome is False:
-            text = '\nJitter problem: %s' % self.name
+    def _get_info(self, is_result):
+        text = '\n' + '=' * 80 + '\n'
+        if is_result is False:
+            text += 'Optimization problem: %s\n' % self.name
         else:
-            text = '\nOutcome for jitter problem: %s' % self.name
+            text += 'Outcome for jitter problem: %s\n' % self.name
+        text += self.__str__()
+        text += '\n' + '=' * 80 + '\n'
+        return text
 
-        text += '\n' + '='*80 + '\n'
-        text += self._format_item(self.responses, 'Response(s)')
+    def __str__(self):
+        text = self._format_item(self.responses, 'Response(s)')
         text += self._format_item(self.jitters, 'Jitter(s)')
         return text
 

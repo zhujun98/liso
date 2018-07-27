@@ -24,3 +24,20 @@ def create_logger(name, filemode="w"):
     logger.addHandler(ch)
 
     return logger
+
+
+def create_opt_logger():
+    """Logger for optimization information."""
+    logger = logging.getLogger("opt")
+    logger.setLevel(logging.DEBUG)
+
+    fh = logging.FileHandler(Config.OPT_LOG_FILENAME, mode="w")
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
+
+    return logger
+
+
+opt_logger = create_opt_logger()
