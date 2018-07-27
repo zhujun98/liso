@@ -10,7 +10,9 @@ import glob
 import unittest
 
 from liso import Linac, LinacOptimization, ALPSO
-from liso.integration_tests.helpers import print_title
+from liso.logging import create_logger
+
+logger = create_logger(__name__)
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'multi_code_optimization'
@@ -36,8 +38,6 @@ class TestMultiCodeOptimization(unittest.TestCase):
             pout='fort.106',
             charge=10e-12)
 
-        print(linac)
-
         self.opt = LinacOptimization(linac)
 
         self.opt.add_obj('emitx_um', expr='matching.out.emitx', scale=1.0e6)
@@ -60,7 +60,7 @@ class TestMultiCodeOptimization(unittest.TestCase):
         os.remove(os.path.join(test_path, "impactt/ImpactT.in"))
 
     def test_not_raise(self):
-        print_title("Test multi-code optimization with ALPSO!")
+        logger.info("\n - Test multi-code optimization with ALPSO! - \n")
 
         optimizer = ALPSO()
         optimizer.swarm_size = 20

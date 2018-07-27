@@ -5,11 +5,14 @@ Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 
+import numpy as np
+
 from liso import Optimization, NelderMead
-from liso.optimizers.nelder_mead import _compute_centroid, _compute_reflection, \
-                                     _compute_expansion, _compute_shrink
+from liso.optimizers.nelder_mead import (
+    _compute_centroid, _compute_reflection, _compute_expansion, _compute_shrink
+)
 from liso.exceptions import OptimizationConstraintSupportError
-from .opt_problems import *
+from opt_problems import *
 
 
 class TestNelderMead(unittest.TestCase):
@@ -50,7 +53,8 @@ class TestNelderMead(unittest.TestCase):
         self.assertAlmostEqual(vertices[2][0], self.shrink3[2][0][0], 1e-7)
         self.assertAlmostEqual(vertices[2][1], self.shrink3[2][0][1], 1e-7)
 
-    def _setup_test(self, cls, x_init, *, atol=None, rtol=1e-3, dtol=1e-4, printout=1):
+    def _setup_test(self, cls, x_init, *,
+                    atol=None, rtol=1e-3, dtol=1e-4, printout=1):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance
@@ -72,7 +76,8 @@ class TestNelderMead(unittest.TestCase):
 
         opt_prob.add_obj('f')
         for i in range(len(cls.x_min)):
-            opt_prob.add_var('x' + str(i + 1), value=x_init[i], lb=cls.x_min[i], ub=cls.x_max[i])
+            opt_prob.add_var('x' + str(i + 1), value=x_init[i],
+                             lb=cls.x_min[i], ub=cls.x_max[i])
         for i in range(cls.n_eq_cons):
             opt_prob.add_econ('g' + str(i + 1))
         for i in range(cls.n_eq_cons, cls.n_cons):

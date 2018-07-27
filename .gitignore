@@ -24,23 +24,23 @@ examples/astra_injector/*
 examples/impactt_lattice/*
 !examples/impactt_lattice/.gitkeep
 
-liso/integration_tests/jitter/*
-!liso/integration_tests/jitter/injector.in.000
+integration_tests/jitter/*
+!integration_tests/jitter/injector.in.000
 
-liso/integration_tests/local_optimizer/*
-liso/integration_tests/local_optimizer/injector.in.000
+integration_tests/local_optimizer/*
+!integration_tests/local_optimizer/injector.in.000
 
-liso/integration_tests/global_optimizer/*
-liso/integration_tests/global_optimizer/injector.in.000
+integration_tests/global_optimizer/*
+!integration_tests/global_optimizer/injector.in.000
 
-liso/integation_tests/astra_gun/*
-!liso/integration_tests/astra_gun/gun.dat
-!liso/integration_tests/astra_gun/Radial500_1G3ps.ini
-!liso/integration_tests/astra_gun/sole_gun.dat
-!liso/integration_tests/astra_gun/sp_gunsol.data
+integation_tests/astra_gun/*
+!integration_tests/astra_gun/gun.dat
+!integration_tests/astra_gun/Radial500_1G3ps.ini
+!integration_tests/astra_gun/sole_gun.dat
+!integration_tests/astra_gun/sp_gunsol.data
 
-liso/integration_tests/multi_code_optimization/astra/*
-!liso/integration_tests/multi_code_optimization/astra/injector.in.000
-liso/integration_tests/multi_code_optimization/impactt/*
-!liso/integration_tests/multi_code_optimization/impactt/ImpactT.in.000
+integration_tests/multi_code_optimization/astra/*
+!integration_tests/multi_code_optimization/astra/injector.in.000
+integration_tests/multi_code_optimization/impactt/*
+!integration_tests/multi_code_optimization/impactt/ImpactT.in.000
 

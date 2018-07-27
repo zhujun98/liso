@@ -13,7 +13,9 @@ import glob
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
-from liso.integration_tests.helpers import print_title
+from liso.logging import create_logger
+
+logger = create_logger(__name__)
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'global_optimizer'
@@ -28,8 +30,6 @@ class TestGlobalOptimizer(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
-
-        print(linac)
 
         self.opt = LinacOptimization(linac)
 
@@ -48,7 +48,7 @@ class TestGlobalOptimizer(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
-        print_title("Test global optimizer ALPSO with ASTRA!")
+        logger.info("\n - Test global optimizer ALPSO with ASTRA! - \n")
 
         optimizer = ALPSO()
         optimizer.swarm_size = 10
