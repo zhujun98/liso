@@ -13,9 +13,6 @@ import glob
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
-from liso.logging import create_logger
-
-logger = create_logger(__name__)
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'global_optimizer'
@@ -48,8 +45,6 @@ class TestGlobalOptimizer(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
-        logger.info("\n - Test global optimizer ALPSO with ASTRA! - \n")
-
         optimizer = ALPSO()
         optimizer.swarm_size = 10
         optimizer.max_inner_iter = 3

@@ -10,9 +10,6 @@ import glob
 import unittest
 
 from liso import Linac, LinacOptimization, ALPSO
-from liso.logging import create_logger
-
-logger = create_logger(__name__)
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'multi_code_optimization'
@@ -41,7 +38,9 @@ class TestMultiCodeOptimization(unittest.TestCase):
         self.opt = LinacOptimization(linac)
 
         self.opt.add_obj('emitx_um', expr='matching.out.emitx', scale=1.0e6)
-        self.opt.add_icon('g1', func=lambda a: max(a.gun.max.Sx, a.matching.max.Sx), scale=1.0e3, ub=1.5)
+        self.opt.add_icon('g1', func=lambda a: max(a.gun.max.Sx,
+                                                   a.matching.max.Sx),
+                          scale=1.0e3, ub=1.5)
         self.opt.add_icon('g2', func=lambda a: a.matching.out.betax, lb=40)
         self.opt.add_icon('g3', func=lambda a: a.matching.out.betax, ub=60)
         self.opt.add_icon('g4', func=lambda a: a.matching.out.betay, ub=20)
@@ -60,8 +59,6 @@ class TestMultiCodeOptimization(unittest.TestCase):
         os.remove(os.path.join(test_path, "impactt/ImpactT.in"))
 
     def test_not_raise(self):
-        logger.info("\n - Test multi-code optimization with ALPSO! - \n")
-
         optimizer = ALPSO()
         optimizer.swarm_size = 20
         optimizer.max_inner_iter = 3

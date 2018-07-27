@@ -8,6 +8,7 @@ import os
 
 from liso.data_processing import analyze_beam, parse_phasespace, tailor_beam
 
+
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'files4test'
 ))

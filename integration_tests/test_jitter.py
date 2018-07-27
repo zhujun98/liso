@@ -9,13 +9,8 @@ import glob
 import unittest
 
 from liso import Linac, LinacJitter
-from liso.logging import create_logger
 
-logger = create_logger(__name__)
-
-test_path = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'jitter'
-))
+test_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'jitter'))
 
 
 class TestJitter(unittest.TestCase):
@@ -43,7 +38,6 @@ class TestJitter(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
-        logger.info("\n - Test jitter simulation with ASTRA! - \n")
         self.jt.monitor_time = True
         self.jt.run(5)
 

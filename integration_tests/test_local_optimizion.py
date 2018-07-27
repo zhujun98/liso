@@ -9,9 +9,12 @@ import glob
 import unittest
 
 from liso import Linac, NelderMead, LinacOptimization
-from liso.logging import create_logger
 
-logger = create_logger(__name__)
+SKIP_SDPEN_TEST = False
+try:
+    from liso import SDPEN
+except ImportError:
+    SKIP_SDPEN_TEST = True
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'local_optimizer'
@@ -42,21 +45,13 @@ class TestLocalOptimizer(unittest.TestCase):
             pass
 
     def test_nelderMead(self):
-        logger.info("\n - Test local optimizer NelderMead with ASTRA! - \n")
         optimizer = NelderMead()
 
         self.opt.monitor_time = True
         self.opt.solve(optimizer)
 
+    @unittest.skipIf(SKIP_SDPEN_TEST is True, "Failed to import library")
     def test_sdpen(self):
-        try:
-            from liso import SDPEN
-        except ImportError:
-            logger.info("Failed to import 'SDPEN'. Test skipped!")
-            return
-             
-        logger.info("\n - Test local optimizer SDPEN with ASTRA! - \n")
-
         optimizer = SDPEN()
         optimizer.rtol = 1e-3
 

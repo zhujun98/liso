@@ -10,6 +10,7 @@ import unittest
 import numpy as np
 
 from liso import Optimization, ALPSO
+
 from opt_problems import (
     Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP32, TP37, TP43
 )

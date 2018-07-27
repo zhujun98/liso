@@ -7,19 +7,13 @@ import unittest
 import numpy as np
 
 from liso.exceptions import OptimizationConstraintSupportError
-from liso.logging import create_logger
 
-from opt_problems import (
-    Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP32, TP37, TP43
-)
-
-logger=create_logger(__name__)
+from opt_problems import Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP37
 
 SKIP_TEST = False
 try:
     from liso import Optimization, SDPEN
 except ImportError:
-    logger.info("Failed to import pyOpt.SDPEN!")
     SKIP_TEST = True
 
 
