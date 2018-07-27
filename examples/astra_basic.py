@@ -31,8 +31,6 @@ linac.add_beamline('astra',
                    template='astra_basic/injector.in.000',
                    pout='injector.0450.001')
 
-print(linac)
-
 # set the optimizer
 optimizer = NelderMead()
 

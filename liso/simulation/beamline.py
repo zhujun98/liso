@@ -286,8 +286,7 @@ class Beamline(ABC):
         return data, charge, params
 
     def __str__(self):
-        text = '\nBeamline: %s\n' % self.name
-        text += '-'*20 + '\n'
+        text = 'Name: %s\n' % self.name
         text += 'Directory: %s\n' % self.dirname
         text += 'Input file: %s\n' % self._fin
         if self.pin is not None:
@@ -295,9 +294,9 @@ class Beamline(ABC):
         if self.pout is not None:
             text += 'Output particle file: %s\n' % self.pout
 
-        text += '\nWatch point(s):\n'
+        text += 'Watch point(s):\n'
         for item in self._watches.values():
-            text += '* ' + item[0].__str__()
+            text += ' - ' + item[0].__str__()
 
         return text
 

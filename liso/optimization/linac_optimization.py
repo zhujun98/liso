@@ -330,6 +330,7 @@ class LinacOptimization(Optimization):
         Override.
         """
         check_templates(self._linac._get_templates(), self._x_map)
+        logger.debug("\n" + str(self._linac) + "\n")
         super().solve(optimizer)
 
     def eval_objs_cons(self, x):

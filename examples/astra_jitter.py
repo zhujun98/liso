@@ -15,8 +15,6 @@ linac.add_beamline('astra',
                    template='astra_jitter/injector.in.000',
                    pout='injector.0450.001')
 
-print(linac)
-
 # set an jitter problem
 jt = LinacJitter(linac)
 

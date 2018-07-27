@@ -30,8 +30,6 @@ linac.add_beamline('impactt',
                    pout='fort.106',
                    charge=1e-15)
 
-print(linac)
-
 opt = LinacOptimization(linac)
 
 opt.add_obj('St_betaxy', func=lambda a: max(a.chicane.out.emitx*1e6, 

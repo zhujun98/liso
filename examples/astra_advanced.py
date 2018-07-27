@@ -39,8 +39,6 @@ linac.add_beamline('astra',
                    pout='injector.0450.001',
                    timeout=60)
 
-print(linac)
-
 # set the optimizer
 optimizer = ALPSO()
 optimizer.swarm_size = 40
