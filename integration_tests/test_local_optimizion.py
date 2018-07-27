@@ -9,7 +9,12 @@ import glob
 import unittest
 
 from liso import Linac, NelderMead, LinacOptimization
-from liso.integration_tests.helpers import print_title
+
+SKIP_SDPEN_TEST = False
+try:
+    from liso import SDPEN
+except ImportError:
+    SKIP_SDPEN_TEST = True
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'local_optimizer'
@@ -34,24 +39,19 @@ class TestLocalOptimizer(unittest.TestCase):
     def tearDown(self):
         for file in glob.glob(os.path.join(test_path, "injector.*.001")):
             os.remove(file)
-        os.remove(os.path.join(test_path, "injector.in"))
+        try:
+            os.remove(os.path.join(test_path, "injector.in"))
+        except FileNotFoundError:
+            pass
 
     def test_nelderMead(self):
-        print_title("Test local optimizer NelderMead with ASTRA!")
         optimizer = NelderMead()
 
         self.opt.monitor_time = True
         self.opt.solve(optimizer)
 
+    @unittest.skipIf(SKIP_SDPEN_TEST is True, "Failed to import library")
     def test_sdpen(self):
-        try:
-            from liso import SDPEN
-        except ImportError:
-            # TODO: add a log or message here
-            return
-             
-        print_title("Test local optimizer SDPEN with ASTRA!")
-
         optimizer = SDPEN()
         optimizer.rtol = 1e-3
 

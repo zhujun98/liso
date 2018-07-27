@@ -9,11 +9,8 @@ import glob
 import unittest
 
 from liso import Linac, LinacJitter
-from liso.integration_tests.helpers import print_title
 
-test_path = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'jitter'
-))
+test_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'jitter'))
 
 
 class TestJitter(unittest.TestCase):
@@ -24,8 +21,6 @@ class TestJitter(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
-
-        print(linac)
 
         # set an jitter problem
         self.jt = LinacJitter(linac)
@@ -43,7 +38,6 @@ class TestJitter(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
-        print_title("Test jitter simulation with ASTRA!")
         self.jt.monitor_time = True
         self.jt.run(5)
 

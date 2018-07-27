@@ -7,15 +7,21 @@ Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
 
+import numpy as np
+
 from liso import Optimization, ALPSO
-from .opt_problems import *
+
+from opt_problems import (
+    Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP32, TP37, TP43
+)
 
 
 class TestALPSO(unittest.TestCase):
     def setUp(self):
         self.optimizer = ALPSO()
 
-    def _setup_test(self, cls, swarm_size=100, *, atol=None, rtol=1e-3, dtol=1e-4, printout=1):
+    def _setup_test(self, cls, swarm_size=100, *,
+                    atol=None, rtol=1e-3, dtol=1e-4, printout=1):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance

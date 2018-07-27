@@ -8,6 +8,7 @@ import unittest
 
 from liso.simulation.simulation_utils import generate_input
 
+
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'files4test'
 ))

@@ -10,3 +10,4 @@ class Config(object):
     ASTRA_P = "astra_r62_Linux_x86_64_OpenMPI_1.6.1"  # parallel ASTRA
     IMPACTT = "ImpactTv1.7linux"
     IMPACTT_P = "ImpactTv1.7linuxPara"  # paralle IMPACT-T
+    LOG_FILENAME = "liso.log"
