@@ -79,7 +79,7 @@ class TestNelderMead(unittest.TestCase):
         for i in range(cls.n_eq_cons, cls.n_cons):
             opt_prob.add_icon('g' + str(i + 1))
 
-        opt_f, opt_x, _ = self.optimizer(opt_prob)
+        opt_f, opt_x = opt_prob.solve(self.optimizer)
 
         # Check the solution
         self.assertLessEqual(np.linalg.norm(opt_x - cls.opt_x), dtol)

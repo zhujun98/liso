@@ -18,6 +18,10 @@ import warnings
 
 from ..elements import EvaluatedElement
 from ..config import Config
+from ..logging import create_logger, opt_logger
+
+
+logger = create_logger(__name__)
 
 INF = Config.INF
 
@@ -28,11 +32,13 @@ class IConstraint(EvaluatedElement):
         """Initialization."""
         super().__init__(name, expr=expr, scale=scale, func=func)
 
-        self._lb = -INF
-        self._ub = 0.0
-
         self._value = None  # the real value
         self.value = None  # the value seen by the optimizer
+
+        self._lb = -INF
+        self.lb = INF
+        self._ub = 0.0
+        self.ub = 0.0
 
         for key in kwargs:
             if key.lower() == 'lb':
@@ -43,7 +49,9 @@ class IConstraint(EvaluatedElement):
                 raise ValueError("Unknown keyword argument!")
 
         if len(kwargs) > 1:
-            warnings.warn("'lb' is ignored since 'ub' is specified!")
+            info = "'lb' is ignored since 'ub' is specified!"
+            logger.warn(info)
+            opt_logger.warn(info)
 
     @property
     def ub(self):
@@ -63,7 +71,7 @@ class IConstraint(EvaluatedElement):
     def lb(self, value):
         self._lb = value
         self._ub = INF
-        self.value = -INF
+        self._value = -INF
 
     @property
     def value(self):

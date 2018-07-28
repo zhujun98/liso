@@ -268,6 +268,8 @@ class Optimization(Operation):
         self.eval_objs_cons(opt_x)
         self._verify_solution(opt_f)
 
+        return opt_f, opt_x
+
     def _get_objs_cons(self):
         """Get the values of all objectives and constraints."""
         f = []
@@ -284,21 +286,28 @@ class Optimization(Operation):
     def _verify_solution(self, opt_f):
         """Verify the solution.
 
-        :param opt_f: list
-            Optimized objective value(s).
+        :param list opt_f: Optimized objective value(s).
         """
         f = [item.value for item in self.objectives.values()]
         np.testing.assert_almost_equal(f, opt_f)
+
+    def _get_info(self, is_solution):
+        text = '\n' + '=' * 80 + '\n'
+        if is_solution is False:
+            text += 'Optimization problem: %s\n' % self.name
+        else:
+            text += 'Solution for optimization problem: %s\n' % self.name
+        text += self.__str__()
+        text += '\n' + '=' * 80 + '\n'
+        return text
 
     @staticmethod
     def _format_item(instance_set, name):
         """Return structured list of parameters.
 
-        :param instance_set: OrderedDict
-            Should be either self.objectives, self.constraints or
-            self.variables.
-        :param name: string
-            Name of the instance set.
+        :param OrderedDict instance_set: Should be either self.objectives,
+               self.e_constraints, self.i_constraints or self.variables.
+        :param str name: Name of the instance set.
         """
         is_first = True
         text = ''
@@ -309,16 +318,6 @@ class Optimization(Operation):
                 is_first = False
             else:
                 text += ele.list_item()
-        return text
-
-    def _get_info(self, is_solution):
-        text = '\n' + '=' * 80 + '\n'
-        if is_solution is False:
-            text += 'Optimization problem: %s\n' % self.name
-        else:
-            text += 'Solution for optimization problem: %s\n' % self.name
-        text += self.__str__()
-        text += '\n' + '=' * 80 + '\n'
         return text
 
     def __str__(self):
