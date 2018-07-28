@@ -56,10 +56,10 @@ class Optimization(Operation):
         e_constraints (OrderedDict): equality constraint set.
         i_constraints (OrderedDict): inequality constraint set.
     """
-    def __init__(self, name='unnamed', *, opt_func=None):
+    def __init__(self, name='opt_prob', *, opt_func=None):
         """Initialization.
 
-        :param str name: Name of the optimization problem (arbitrary).
+        :param str name: Name of the optimization problem. Default = 'opt_prob'.
         :param callable opt_func: A callable object which returns (objective,
                                   constraints).
         """
@@ -332,14 +332,14 @@ class Optimization(Operation):
 
 class LinacOptimization(Optimization):
     """Inherited from Optimization."""
-    def __init__(self, linac, name='unnamed', *, max_nf=20):
+    def __init__(self, linac, *, max_nf=20, **kwargs):
         """Initialization.
 
         :param Linac linac: Linac instance.
         :param int max_nf: Max number of allowed successive failures of of
-                           calling Linac.update() method.
+                           calling Linac.update() method. Default = 20.
         """
-        super().__init__(name)
+        super().__init__(**kwargs)
 
         self._linac = linac
         # No. of consecutive failures of calling Linac.update() method

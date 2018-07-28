@@ -18,8 +18,12 @@ logger = create_logger(__name__)
 
 class LinacJitter(Operation):
     """Inherited from LinacOperation."""
-    def __init__(self, linac, *, name='unnamed'):
-        """Initialization."""
+    def __init__(self, linac, *, name='jitter_prob'):
+        """Initialization.
+
+        :param Linac linac: Linac instance.
+        :param str name: Name of the jitter problem. Default = 'jitter_prob'.
+        """
         super().__init__(name)
 
         self._linac = linac
