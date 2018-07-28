@@ -40,9 +40,8 @@ from .objective import Objective
 from ..config import Config
 from ..exceptions import *
 from ..simulation.simulation_utils import check_templates
-from ..logging import create_logger, opt_logger
+from ..logging import logger, opt_logger
 
-logger = create_logger(__name__)
 INF = Config.INF
 
 

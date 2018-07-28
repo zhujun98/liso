@@ -1,7 +1,5 @@
-from ..logging import create_logger
+from ..logging import logger
 
-
-logger = create_logger(__name__)
 
 __all__ = []
 

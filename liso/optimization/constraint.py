@@ -16,10 +16,8 @@ Author: Jun Zhu
 """
 from ..elements import EvaluatedElement
 from ..config import Config
-from ..logging import create_logger, opt_logger
+from ..logging import logger, opt_logger
 
-
-logger = create_logger(__name__)
 
 INF = Config.INF
 
@@ -52,8 +50,8 @@ class IConstraint(EvaluatedElement):
         if len(kwargs) > 1:
             info = "Constraint '{}': 'lb' is ignored since 'ub' is specified!"\
                    .format(self.name)
-            logger.warn(info)
-            opt_logger.warn(info)
+            logger.warning(info)
+            opt_logger.warning(info)
 
     @property
     def ub(self):

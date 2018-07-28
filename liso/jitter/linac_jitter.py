@@ -9,11 +9,8 @@ import numpy as np
 from ..operation import Operation
 from .jitter import Jitter
 from .response import Response
-from ..logging import create_logger
+from ..logging import logger
 from ..simulation.simulation_utils import check_templates
-
-
-logger = create_logger(__name__)
 
 
 class LinacJitter(Operation):
