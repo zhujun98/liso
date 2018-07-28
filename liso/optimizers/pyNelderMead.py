@@ -19,7 +19,8 @@ class NelderMead(Optimizer):
     Attributes:
         rtol (float): Relative tolerance for Lagrange function. Default = 1e-3.
         atol (float): Absolute tolerance for Lagrange function. Default = 1e-4.
-        max_stag (int): Maximum number of stagnation (no improvement). Default = 10.
+        max_stag (int): Maximum number of stagnation (no improvement).
+                        Default = 10.
         max_iter (int): Maximum number of iterations. Default = 10000.
 
     """
@@ -119,26 +120,6 @@ class NelderMead(Optimizer):
         misc_info += "No. of inner contraction operation(s): %d\n" % k_misc[2]
         misc_info += "No. of outer contraction operation(s): %d\n" % k_misc[3]
         misc_info += "No. of shrink operation(s): %d\n" % k_misc[4]
-
-        if self.printout > 0:
-            self._print_title(opt_prob.name)
-
-            print(self.__str__())
-            print(misc_info)
-
-            text = ''
-
-            text += "\nBest position:\n"
-            for j in range(n_vars):
-                text += ("    P(%d) = %11.4e" % (j, opt_x[j]))
-                if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
-                    text += "\n"
-            text += "\n"
-
-            text += "\nObjective function value:\n"
-            text += "    F = %11.4e\n" % opt_f
-
-            print(text)
 
         return opt_f, opt_x, misc_info
 

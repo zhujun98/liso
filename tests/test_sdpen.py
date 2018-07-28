@@ -22,8 +22,7 @@ class TestSDPEN(unittest.TestCase):
     def setUp(self):
         self.optimizer = SDPEN()
 
-    def _setup_test(self, cls, x_init, *,
-                    atol=None, rtol=1e-3, dtol=1e-4, printout=1):
+    def _setup_test(self, cls, x_init, *, atol=None, rtol=1e-3, dtol=1e-4):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance
@@ -36,11 +35,7 @@ class TestSDPEN(unittest.TestCase):
             Relative tolerance of the objective.
         :param dtol: float
             Absolute tolerance of the position (L2 norm).
-        :param printout: int
-            Printout level of the optimizer.
         """
-        self.optimizer.printout = printout
-
         opt_prob = Optimization(cls.name, opt_func=cls())
 
         opt_prob.add_obj('f')
@@ -52,7 +47,7 @@ class TestSDPEN(unittest.TestCase):
         for i in range(cls.n_eq_cons, cls.n_cons):
             opt_prob.add_icon('g' + str(i + 1))
 
-        opt_f, opt_x, _ = self.optimizer(opt_prob)
+        opt_f, opt_x = opt_prob.solve(self.optimizer)
 
         # Check the solution
 

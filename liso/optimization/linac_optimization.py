@@ -40,9 +40,8 @@ from .objective import Objective
 from ..config import Config
 from ..exceptions import *
 from ..simulation.simulation_utils import check_templates
-from ..logging import create_logger, opt_logger
+from ..logging import logger, opt_logger
 
-logger = create_logger(__name__)
 INF = Config.INF
 
 
@@ -56,10 +55,10 @@ class Optimization(Operation):
         e_constraints (OrderedDict): equality constraint set.
         i_constraints (OrderedDict): inequality constraint set.
     """
-    def __init__(self, name='unnamed', *, opt_func=None):
+    def __init__(self, name='opt_prob', *, opt_func=None):
         """Initialization.
 
-        :param str name: Name of the optimization problem (arbitrary).
+        :param str name: Name of the optimization problem. Default = 'opt_prob'.
         :param callable opt_func: A callable object which returns (objective,
                                   constraints).
         """
@@ -268,6 +267,8 @@ class Optimization(Operation):
         self.eval_objs_cons(opt_x)
         self._verify_solution(opt_f)
 
+        return opt_f, opt_x
+
     def _get_objs_cons(self):
         """Get the values of all objectives and constraints."""
         f = []
@@ -284,21 +285,28 @@ class Optimization(Operation):
     def _verify_solution(self, opt_f):
         """Verify the solution.
 
-        :param opt_f: list
-            Optimized objective value(s).
+        :param list opt_f: Optimized objective value(s).
         """
         f = [item.value for item in self.objectives.values()]
         np.testing.assert_almost_equal(f, opt_f)
+
+    def _get_info(self, is_solution):
+        text = '\n' + '=' * 80 + '\n'
+        if is_solution is False:
+            text += 'Optimization problem: %s\n' % self.name
+        else:
+            text += 'Solution for optimization problem: %s\n' % self.name
+        text += self.__str__()
+        text += '\n' + '=' * 80 + '\n'
+        return text
 
     @staticmethod
     def _format_item(instance_set, name):
         """Return structured list of parameters.
 
-        :param instance_set: OrderedDict
-            Should be either self.objectives, self.constraints or
-            self.variables.
-        :param name: string
-            Name of the instance set.
+        :param OrderedDict instance_set: Should be either self.objectives,
+               self.e_constraints, self.i_constraints or self.variables.
+        :param str name: Name of the instance set.
         """
         is_first = True
         text = ''
@@ -309,16 +317,6 @@ class Optimization(Operation):
                 is_first = False
             else:
                 text += ele.list_item()
-        return text
-
-    def _get_info(self, is_solution):
-        text = '\n' + '=' * 80 + '\n'
-        if is_solution is False:
-            text += 'Optimization problem: %s\n' % self.name
-        else:
-            text += 'Solution for optimization problem: %s\n' % self.name
-        text += self.__str__()
-        text += '\n' + '=' * 80 + '\n'
         return text
 
     def __str__(self):
@@ -332,14 +330,14 @@ class Optimization(Operation):
 
 class LinacOptimization(Optimization):
     """Inherited from Optimization."""
-    def __init__(self, linac, name='unnamed', *, max_nf=20):
+    def __init__(self, linac, *, max_nf=20, **kwargs):
         """Initialization.
 
         :param Linac linac: Linac instance.
         :param int max_nf: Max number of allowed successive failures of of
-                           calling Linac.update() method.
+                           calling Linac.update() method. Default = 20.
         """
-        super().__init__(name)
+        super().__init__(**kwargs)
 
         self._linac = linac
         # No. of consecutive failures of calling Linac.update() method
@@ -373,20 +371,22 @@ class LinacOptimization(Optimization):
             self._nf = 0
         # exception propagates from Beamline.simulate() method
         except SimulationNotFinishedProperlyError as e:
-            print(e)
+            logger.info("{:05d}: {}".format(self._nfeval, e))
         # exception propagates from Beamline.update() method
         except LISOWatchUpdateError as e:
             self._nf += 1
-            logger.info("Watch update failed: {}".format(e))
+            logger.info("{:05d}: Watch update failed: {}".format(self._nfeval, e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
         except LISOLineUpdateError as e:
             self._nf += 1
-            logger.info("Line update failed: {}".format(e))
+            logger.info("{:05d}: Line update failed: {}"
+                        .format(self._nfeval, e))
         except Exception as e:
             self._nf += 1
-            logger.info("Unknown exceptions:\n {}".format(e))
+            logger.info("{:05d}: Unknown exceptions:\n {}"
+                        .format(self._nfeval, e))
             raise
         finally:
             if self._nf > self._max_nf:
@@ -403,8 +403,8 @@ class LinacOptimization(Optimization):
         if self.monitor_time is True:
             dt = time.perf_counter() - t0
             dt_cpu = time.process_time() - t0_cpu
-            logger.debug('elapsed time: {:.4f} s, cpu time: {:.4f} s'
-                         .format(dt, dt_cpu))
+            logger.debug('{:05d}: elapsed time: {:.4f} s, cpu time: {:.4f} s'
+                         .format(self._nfeval, dt, dt_cpu))
 
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)

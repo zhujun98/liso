@@ -29,8 +29,6 @@ class Optimizer(ABC):
         if self.seed is None:
             self.seed = int(time.time())
 
-        self.printout = 0
-
     @abstractmethod
     def __call__(self, opt_problem):
         """Run Optimizer (Calling Routine)
@@ -47,16 +45,3 @@ class Optimizer(ABC):
     @abstractmethod
     def __str__(self):
         pass
-
-    @staticmethod
-    def _print_title(opt_prob_name):
-        print("\n\nSolution for optimization problem '%s' using:" % opt_prob_name)
-        print("=" * 80)
-        print()
-
-    @staticmethod
-    def _print_additional_info(info_list):
-        print("\nAdditional information:")
-        for info in info_list:
-            print('- ' + info)
-        print()

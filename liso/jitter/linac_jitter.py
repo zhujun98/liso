@@ -9,17 +9,18 @@ import numpy as np
 from ..operation import Operation
 from .jitter import Jitter
 from .response import Response
-from ..logging import create_logger
+from ..logging import logger
 from ..simulation.simulation_utils import check_templates
-
-
-logger = create_logger(__name__)
 
 
 class LinacJitter(Operation):
     """Inherited from LinacOperation."""
-    def __init__(self, linac, *, name='unnamed'):
-        """Initialization."""
+    def __init__(self, linac, *, name='jitter_prob'):
+        """Initialization.
+
+        :param Linac linac: Linac instance.
+        :param str name: Name of the jitter problem. Default = 'jitter_prob'.
+        """
         super().__init__(name)
 
         self._linac = linac

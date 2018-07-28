@@ -3,12 +3,12 @@ import logging
 from .config import Config
 
 
-def create_logger(name, filemode="w"):
-    """"""
-    logger = logging.getLogger(name)
+def create_logger():
+    """General logger."""
+    logger = logging.getLogger("liso")
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(Config.LOG_FILENAME, mode=filemode)
+    fh = logging.FileHandler(Config.LOG_FILENAME, mode='w')
     fh.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -26,9 +26,12 @@ def create_logger(name, filemode="w"):
     return logger
 
 
+logger = create_logger()
+
+
 def create_opt_logger():
     """Logger for optimization information."""
-    logger = logging.getLogger("opt")
+    logger = logging.getLogger("liso_opt")
     logger.setLevel(logging.DEBUG)
 
     fh = logging.FileHandler(Config.OPT_LOG_FILENAME, mode="w")

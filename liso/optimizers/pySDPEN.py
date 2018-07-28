@@ -5,7 +5,6 @@ SDPEN - An LISO interface for optimizer - pyOpt.SDPEN.
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import time
-import numpy as np
 
 from pyOpt import SDPEN as pyoptSDPEN
 
@@ -60,16 +59,17 @@ class SDPEN(PyoptOptimizer):
             # Constraints
             if opt_prob.e_constraints:
                 raise OptimizationConstraintSupportError(
-                    "{} optimizer does not support equality constraints!".format(self.name))
+                    "{} optimizer does not support equality constraints!"
+                    .format(self.name))
         else:
-            # The implementation of SDPEN in pyOpt actually supports inequality constraint,
-            # but the performance is very poor (see tests/test_sdpen). Therefore, we suspend
-            # the constraint in LISO.
+            # The implementation of SDPEN in pyOpt actually supports
+            # inequality constraint, but the performance is very poor
+            # (see tests/test_sdpen). Therefore, we suspend the
+            # constraint in LISO.
             if opt_prob.e_constraints or opt_prob.i_constraints:
                 raise OptimizationConstraintSupportError(
-                    "{} optimizer does not support constraints!".format(self.name))
-
-        n_vars = len(opt_prob.variables)
+                    "{} optimizer does not support constraints!"
+                    .format(self.name))
 
         pyopt_prob = self._to_pyopt_optimization(opt_prob)
 
@@ -82,25 +82,6 @@ class SDPEN(PyoptOptimizer):
         misc_info = ""
         misc_info += "%s\n\n" % pyopt_info['text']
         misc_info += "Time consumed: %f second(s)\n" % delta_t
-
-        if self.printout > 0:
-            self._print_title(opt_prob.name)
-            print(self.__str__())
-            print(misc_info)
-
-            text = ''
-
-            text += "\nBest position:\n"
-            for j in range(n_vars):
-                text += ("    P(%d) = %11.4e" % (j, opt_x[j]))
-                if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
-                    text += "\n"
-            text += "\n"
-
-            text += "\nObjective function value:\n"
-            text += "    F = %11.4e\n" % opt_f
-
-            print(text)
 
         return opt_f, opt_x, misc_info
 
