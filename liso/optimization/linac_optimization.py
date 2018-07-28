@@ -372,20 +372,22 @@ class LinacOptimization(Optimization):
             self._nf = 0
         # exception propagates from Beamline.simulate() method
         except SimulationNotFinishedProperlyError as e:
-            print(e)
+            logger.info("{:05d}: {}".format(self._nfeval, e))
         # exception propagates from Beamline.update() method
         except LISOWatchUpdateError as e:
             self._nf += 1
-            logger.info("Watch update failed: {}".format(e))
+            logger.info("{:05d}: Watch update failed: {}".format(self._nfeval, e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
         except LISOLineUpdateError as e:
             self._nf += 1
-            logger.info("Line update failed: {}".format(e))
+            logger.info("{:05d}: Line update failed: {}"
+                        .format(self._nfeval, e))
         except Exception as e:
             self._nf += 1
-            logger.info("Unknown exceptions:\n {}".format(e))
+            logger.info("{:05d}: Unknown exceptions:\n {}"
+                        .format(self._nfeval, e))
             raise
         finally:
             if self._nf > self._max_nf:
@@ -402,8 +404,8 @@ class LinacOptimization(Optimization):
         if self.monitor_time is True:
             dt = time.perf_counter() - t0
             dt_cpu = time.process_time() - t0_cpu
-            logger.debug('elapsed time: {:.4f} s, cpu time: {:.4f} s'
-                         .format(dt, dt_cpu))
+            logger.debug('{:05d}: elapsed time: {:.4f} s, cpu time: {:.4f} s'
+                         .format(self._nfeval, dt, dt_cpu))
 
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)

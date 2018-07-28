@@ -14,8 +14,6 @@ the standard constraint.
 
 Author: Jun Zhu
 """
-import warnings
-
 from ..elements import EvaluatedElement
 from ..config import Config
 from ..logging import create_logger, opt_logger
@@ -33,10 +31,13 @@ class IConstraint(EvaluatedElement):
         super().__init__(name, expr=expr, scale=scale, func=func)
 
         self._value = None  # the real value
-        self.value = None  # the value seen by the optimizer
-
+        self.value = INF  # the value seen by the optimizer
+        # lb and ub are both properties, only one of them is allowed to be
+        # specified since all inequality constraint must be normalized to
+        # [-INF, 0]. Namely, if lb is specified, then ub will be reset to
+        # INF; however, if ub is specified, then lb will be reset to -INF.
         self._lb = -INF
-        self.lb = INF
+        self.lb = -INF
         self._ub = 0.0
         self.ub = 0.0
 
@@ -49,7 +50,8 @@ class IConstraint(EvaluatedElement):
                 raise ValueError("Unknown keyword argument!")
 
         if len(kwargs) > 1:
-            info = "'lb' is ignored since 'ub' is specified!"
+            info = "Constraint '{}': 'lb' is ignored since 'ub' is specified!"\
+                   .format(self.name)
             logger.warn(info)
             opt_logger.warn(info)
 
@@ -61,7 +63,7 @@ class IConstraint(EvaluatedElement):
     def ub(self, value):
         self._ub = value
         self._lb = -INF
-        self._value = INF
+        self._value = INF  # reset _value to upset the inequality condition
 
     @property
     def lb(self):
@@ -71,15 +73,15 @@ class IConstraint(EvaluatedElement):
     def lb(self, value):
         self._lb = value
         self._ub = INF
-        self._value = -INF
+        self._value = -INF  # reset _value to upset the inequality condition
 
     @property
     def value(self):
         # The value is normalized to(-INF, 0]
         if self.ub == INF:
-            return self.lb - self._value
+            return self._lb - self._value
         if self.lb == -INF:
-            return self._value - self.ub
+            return self._value - self._ub
         raise ValueError("Wrong boundary values in IConstraint!")
 
     @value.setter
