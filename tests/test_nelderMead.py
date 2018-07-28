@@ -54,8 +54,7 @@ class TestNelderMead(unittest.TestCase):
         self.assertAlmostEqual(vertices[2][0], self.shrink3[2][0][0], 1e-7)
         self.assertAlmostEqual(vertices[2][1], self.shrink3[2][0][1], 1e-7)
 
-    def _setup_test(self, cls, x_init, *,
-                    atol=None, rtol=1e-3, dtol=1e-4, printout=1):
+    def _setup_test(self, cls, x_init, *, atol=None, rtol=1e-3, dtol=1e-4):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance
@@ -68,11 +67,7 @@ class TestNelderMead(unittest.TestCase):
             Relative tolerance of the objective.
         :param dtol: float
             Absolute tolerance of the position (L2 norm).
-        :param printout: int
-            Printout level of the optimizer.
         """
-        self.optimizer.printout = printout
-
         opt_prob = Optimization(cls.name, opt_func=cls())
 
         opt_prob.add_obj('f')

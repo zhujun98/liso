@@ -21,7 +21,7 @@ class TestALPSO(unittest.TestCase):
         self.optimizer = ALPSO()
 
     def _setup_test(self, cls, swarm_size=100, *,
-                    atol=None, rtol=1e-3, dtol=1e-4, printout=1):
+                    atol=None, rtol=1e-3, dtol=1e-4):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance
@@ -34,11 +34,8 @@ class TestALPSO(unittest.TestCase):
             Relative tolerance of the objective.
         :param dtol: float
             Absolute tolerance of the position (L2 norm).
-        :param printout: int
-            Printout level of the optimizer.
         """
         self.optimizer.seed = 2  # Get consistent result
-        self.optimizer.printout = printout
         self.optimizer.swarm_size = swarm_size
 
         opt_func = cls()

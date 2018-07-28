@@ -147,55 +147,47 @@ class ALPSO(Optimizer):
         misc_info += "Time consumed: %f second(s)\n" % delta_t
         misc_info += "No. of outer iteration(s): %d\n" % k_out
 
-        if self.printout > 0:
-            self._print_title(opt_prob.name)
-
-            print(self.__str__())
-            print(misc_info)
-
-            text = ''
-
-            text += "\nBest position:\n"
-            for j in range(n_vars):
-                text += ("    P(%d) = %11.4e" % (j, opt_x[j]))
-                if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
-                    text += "\n"
-            text += "\n"
-
-            text += "\nObjective function value:\n"
-            text += "    F = %11.4e\n" % opt_f
-
-            if n_cons > 0:
-                text += "\nAugmented Lagrangian function value:\n"
-                text += "    L = %11.4e\n" % opt_L
-
-                if n_eq_cons > 0:
-                    text += "\nEquality constraint violation value(s):\n"
-                    for j in range(n_eq_cons):
-                        text += "    H(%d) = %11.4e" % (j, opt_g[j])
-                    text += "\n"
-
-                if n_cons > n_eq_cons:
-                    text += "\nInequality constraint violation value(s):\n"
-                    for j in range(n_eq_cons, n_cons):
-                        text += "    G(%d) = %11.4e" % (j, opt_g[j])
-                    text += "\n"
-
-                text += "\nLagrangian multiplier value(s):\n"
-                for j in range(n_cons):
-                    text += "    M(%d) = %11.4e" % (j, opt_lambda[j])
-                    if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
-                        text += "\n"
-                text += "\n"
-
-                text += "\nPenalty factor value(s):\n"
-                for j in range(n_cons):
-                    text += "    R(%d) = %11.4e" % (j, opt_rp[j])
-                    if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
-                        text += "\n"
-                text += "\n"
-
-            print(text)
+        # text = ''
+        #
+        # text += "\nBest position:\n"
+        # for j in range(n_vars):
+        #     text += ("    P(%d) = %11.4e" % (j, opt_x[j]))
+        #     if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
+        #         text += "\n"
+        # text += "\n"
+        #
+        # text += "\nObjective function value:\n"
+        # text += "    F = %11.4e\n" % opt_f
+        #
+        # if n_cons > 0:
+        #     text += "\nAugmented Lagrangian function value:\n"
+        #     text += "    L = %11.4e\n" % opt_L
+        #
+        #     if n_eq_cons > 0:
+        #         text += "\nEquality constraint violation value(s):\n"
+        #         for j in range(n_eq_cons):
+        #             text += "    H(%d) = %11.4e" % (j, opt_g[j])
+        #         text += "\n"
+        #
+        #     if n_cons > n_eq_cons:
+        #         text += "\nInequality constraint violation value(s):\n"
+        #         for j in range(n_eq_cons, n_cons):
+        #             text += "    G(%d) = %11.4e" % (j, opt_g[j])
+        #         text += "\n"
+        #
+        #     text += "\nLagrangian multiplier value(s):\n"
+        #     for j in range(n_cons):
+        #         text += "    M(%d) = %11.4e" % (j, opt_lambda[j])
+        #         if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
+        #             text += "\n"
+        #     text += "\n"
+        #
+        #     text += "\nPenalty factor value(s):\n"
+        #     for j in range(n_cons):
+        #         text += "    R(%d) = %11.4e" % (j, opt_rp[j])
+        #         if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
+        #             text += "\n"
+        #     text += "\n"
 
         return opt_f, opt_x, misc_info
 
