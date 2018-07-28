@@ -5,7 +5,7 @@ from .config import Config
 
 def create_logger():
     """General logger."""
-    logger = logging.getLogger("liso")
+    logger = logging.getLogger("LISO")
     logger.setLevel(logging.DEBUG)
 
     fh = logging.FileHandler(Config.LOG_FILENAME, mode='w')
@@ -31,7 +31,7 @@ logger = create_logger()
 
 def create_opt_logger():
     """Logger for optimization information."""
-    logger = logging.getLogger("liso_opt")
+    logger = logging.getLogger("LISO-Opt")
     logger.setLevel(logging.DEBUG)
 
     fh = logging.FileHandler(Config.OPT_LOG_FILENAME, mode="w")
