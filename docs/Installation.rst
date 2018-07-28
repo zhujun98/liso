@@ -8,7 +8,11 @@ Install LISO
 
     $ git clone https://github.com/zhujun98/liso.git
     $ cd liso
-    $ sudo pip3 install .
+    $ sudo pip3 install -e .
+
+    # To update
+    $ git pull origin master  # re-installation is not necessary
+
     # To uninstall
     $ sudo pip3 uninstall liso
 
