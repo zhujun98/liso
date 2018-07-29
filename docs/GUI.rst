@@ -13,3 +13,11 @@ Main control pannel
     from liso import gui
 
     gui()
+
+or
+
+Use the following console-command:
+
+.. code-block:: bash
+
+    $ liso-gui

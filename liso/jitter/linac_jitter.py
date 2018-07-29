@@ -138,7 +138,7 @@ class LinacJitter(Operation):
     def _get_info(self, is_result):
         text = '\n' + '=' * 80 + '\n'
         if is_result is False:
-            text += 'Optimization problem: %s\n' % self.name
+            text += 'Jitter problem: %s\n' % self.name
         else:
             text += 'Outcome for jitter problem: %s\n' % self.name
         text += self.__str__()

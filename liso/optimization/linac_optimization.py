@@ -202,6 +202,19 @@ class Optimization(Operation):
 
         return f, g
 
+    def _get_objs_cons(self):
+        """Get the values of all objectives and constraints."""
+        f = []
+        for obj in self.objectives.values():
+            f.append(obj.value)
+
+        g = []
+        for con in chain(self.e_constraints.values(),
+                         self.i_constraints.values()):
+            g.append(con.value)
+
+        return f, g
+
     def eval_objs_cons(self, x):
         """Objective-constraint function.
 
@@ -258,29 +271,16 @@ class Optimization(Operation):
 
         opt_f, opt_x, misc_info = optimizer(self)
 
-        text = "\n" + self._get_info(True) + "\n" + misc_info
-        logger.info(text)
-        opt_logger.info(text)
-
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
         self.eval_objs_cons(opt_x)
         self._verify_solution(opt_f)
 
+        text = "\n" + self._get_info(True) + "\n" + misc_info
+        logger.info(text)
+        opt_logger.info(text)
+
         return opt_f, opt_x
-
-    def _get_objs_cons(self):
-        """Get the values of all objectives and constraints."""
-        f = []
-        for obj in self.objectives.values():
-            f.append(obj.value)
-
-        g = []
-        for con in chain(self.e_constraints.values(),
-                         self.i_constraints.values()):
-            g.append(con.value)
-
-        return f, g
 
     def _verify_solution(self, opt_f):
         """Verify the solution.

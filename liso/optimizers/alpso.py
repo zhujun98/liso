@@ -19,6 +19,7 @@ import numpy as np
 import h5py
 
 from ..config import Config
+from ..logging import opt_logger
 
 INF = Config.INF
 
@@ -315,6 +316,48 @@ def alpso(x0,
         # End of inner loop
         # -------------------------------------------------------------
 
+        # log each outer loop
+        text = '\n' + '-' * 23 + ' Outer loop %.03d finished! ' % k_out + '-' * 23
+        text += "\nBest position:\n"
+        for j in range(n_vars):
+            text += ("    P(%d) = %11.4e" % (j, gbest_x[j]))
+            if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
+                text += "\n"
+        text += "\n"
+        text += "\nObjective function value:\n"
+        text += "    F = %11.4e\n" % gbest_f
+        if n_cons > 0:
+            text += "\nAugmented Lagrangian function value:\n"
+            text += "    L = %11.4e\n" % gbest_L
+
+            if n_eq_cons > 0:
+                text += "\nEquality constraint violation value(s):\n"
+                for j in range(n_eq_cons):
+                    text += "    H(%d) = %11.4e" % (j, gbest_g[j])
+                text += "\n"
+
+            if n_cons > n_eq_cons:
+                text += "\nInequality constraint violation value(s):\n"
+                for j in range(n_eq_cons, n_cons):
+                    text += "    G(%d) = %11.4e" % (j, gbest_g[j])
+                text += "\n"
+
+            text += "\nLagrangian multiplier value(s):\n"
+            for j in range(n_cons):
+                text += "    M(%d) = %11.4e" % (j, lambda_[j])
+                if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
+                    text += "\n"
+            text += "\n"
+
+            text += "\nPenalty factor value(s):\n"
+            for j in range(n_cons):
+                text += "    R(%d) = %11.4e" % (j, rp[j])
+                if np.mod(j + 1, 3) == 0 and j != n_cons - 1:
+                    text += "\n"
+            text += "\n"
+        text += '-' * 72 + '\n'
+        opt_logger.info(text)
+
         # -------------------------------------------------------------
         # Check constraints
         # -------------------------------------------------------------
@@ -414,4 +457,4 @@ def alpso(x0,
 
     # End of outer loop
     # -------------------------------------------------------------
-    return gbest_x, gbest_L, gbest_f, gbest_g, lambda_, rp, k_out, nfeval, stop_info
+    return gbest_x, gbest_f, k_out, nfeval, stop_info
