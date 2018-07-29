@@ -32,12 +32,15 @@ linac = Linac()
 # fin: simulation input file path
 # template: simulation input template file path.
 # pout: output file name. It is assumed and must be in the same folder as 'fin'.
+# timeout: used to deal with the bug in parallel-astra, the code may be stuck at
+#          with certain parameter. So, please ensure timeout is longer than the
+#          time required for one simulation.
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
                    template='astra_advanced/injector.in.000',
                    pout='injector.0450.001',
-                   timeout=60)
+                   timeout=90)
 
 # set the optimizer
 optimizer = ALPSO()
