@@ -271,14 +271,14 @@ class Optimization(Operation):
 
         opt_f, opt_x, misc_info = optimizer(self)
 
-        text = "\n" + self._get_info(True) + "\n" + misc_info
-        logger.info(text)
-        opt_logger.info(text)
-
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
         self.eval_objs_cons(opt_x)
         self._verify_solution(opt_f)
+
+        text = "\n" + self._get_info(True) + "\n" + misc_info
+        logger.info(text)
+        opt_logger.info(text)
 
         return opt_f, opt_x
 
