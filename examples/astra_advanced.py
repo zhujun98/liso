@@ -4,17 +4,17 @@ This is an advanced example showing how to optimize the bunch length
 as well as how to set equality and inequality constraints in with a
 global optimizer.
 
-Result after 14 outer iterations and 1800 function evaluations
+Result after 15 outer iterations and 1880 function evaluations
 
-St 116.22 fs
+St 64.916 fs
 
-emitx 0.2687
-gamma 22.259
-max_Sx 1.3640
+emitx 0.28011
+gamma 22.242
+max_Sx 1.3777
 
 laser_spot 0.0400
-main_sole_b 0.2702
-gun_phase 10.0000
+main_sole_b 0.2674
+gun_phase -10.0000
 tws_phase -90.0000
 
 Author: Jun Zhu
