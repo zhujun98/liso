@@ -38,7 +38,7 @@ class Beamline(ABC):
                  pout=None,
                  charge=None,
                  z0=None,
-                 timeout=300):
+                 timeout=600):
         """Initialization.
 
         :param name: string
