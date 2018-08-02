@@ -5,18 +5,15 @@ This is a basic example showing how to study jitter.
 from liso import Linac, LinacJitter
 
 
-# set up a linac
-linac = Linac()
+linac = Linac()  # instantiate a Linac
 
-# add a beamline (the same as 'astra_basic.py')
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
                    template='astra_jitter/injector.in.000',
                    pout='injector.0450.001')
 
-# set an jitter problem
-jt = LinacJitter(linac)
+jt = LinacJitter(linac)  # instantiate a Jitter (problem)
 
 jt.add_response('emitx', expr='gun.out.emitx', scale=1e6)  # response, which is the horizontal emittance in micro-meter
 jt.add_response('Ct', expr='gun.out.Ct', scale=1e15)  # response, which is the timing in fs
