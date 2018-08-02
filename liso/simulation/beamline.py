@@ -41,30 +41,22 @@ class Beamline(ABC):
                  timeout=600):
         """Initialization.
 
-        :param name: string
-            Name of the beamline.
-        :param gin: InputGenerator object
-            An input generator. If given, all the other keyword
-            arguments are omitted.
-        :param fin: string
-            The path of the input file.
-        :param template: string
-            The path of the template file.
-        :param pin: string
-            Filename of the initial particle file.
-        :param pout: string
-            Filename of the output particle file.
-        :param charge: float
-            Bunch charge at the beginning of the beamline. Only used
-            for certain codes (e.g. ImpactT).
-        :param z0: float
-            Starting z coordinate in meter. Used for concatenated
-            simulation. Default = None, inherit z coordinate from the
-            upstream beamline. However, for instance, when the second
-            beamline is defined from z0 = 0.0, z0 is required to
-            generate a correct initial particle distribution.
-        :param timeout: float
-            Maximum allowed duration in seconds of the simulation.
+        :param str name: Name of the beamline.
+        :param InputGenerator gin: An input generator. If given, all
+            the other keyword arguments are omitted.
+        :param str fin: The path of the input file.
+        :param str template: The path of the template file.
+        :param str pin: Filename of the initial particle file.
+        :param str pout: Filename of the output particle file.
+        :param float charge: Bunch charge at the beginning of the beamline.
+            Only used for certain codes (e.g. ImpactT).
+        :param float z0: Starting z coordinate in meter. Used for concatenated
+            simulation. Default = None, inherit z coordinate from the upstream
+            beamline. However, for instance, when the second beamline is
+            defined from z0 = 0.0, z0 is required to generate a correct initial
+            particle distribution.
+        :param float timeout: Maximum allowed duration in seconds of the
+            simulation.
         """
         self.name = name
         if isinstance(gin, InputGenerator):
