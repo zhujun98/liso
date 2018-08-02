@@ -9,10 +9,8 @@ does a concatenated optimization work.
 from liso import Linac, LinacOptimization, NelderMead
 
 
-# Set up the linac
 linac = Linac()
 
-# Add the first beamline
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
@@ -32,21 +30,20 @@ linac.add_beamline('impactt',
 
 opt = LinacOptimization(linac)
 
-opt.add_obj('St_betaxy', func=lambda a: max(a.chicane.out.emitx*1e6, 
-                                     a.chicane.out.betax, 
-                                     a.chicane.out.betay))  # objective
+opt.add_obj('St_betaxy', func=lambda a: max(a.chicane.out.emitx*1e6,
+                                            a.chicane.out.betax,
+                                            a.chicane.out.betay))
 
-opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.30)  # variable
-opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)  # variable
-opt.add_var('MQZM1_G', value=0.0, lb=-10, ub=10)  # variable
-opt.add_var('MQZM3_G', value=0.0, lb=-10, ub=10)  # variable
+opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.30)
+opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)
+opt.add_var('MQZM1_G', value=0.0, lb=-10, ub=10)
+opt.add_var('MQZM3_G', value=0.0, lb=-10, ub=10)
 
-opt.add_covar('MQZM2_G', 'MQZM1_G', scale=-1)  # covariable
-opt.add_covar('MQZM4_G', 'MQZM3_G', scale=-1)  # covariable
+opt.add_covar('MQZM2_G', 'MQZM1_G', scale=-1)
+opt.add_covar('MQZM4_G', 'MQZM3_G', scale=-1)
 
 opt.workers = 12
 opt.printout = 1
 
 optimizer = NelderMead()
 opt.solve(optimizer)
-

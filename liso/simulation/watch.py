@@ -32,29 +32,22 @@ class Watch(ABC):
                  slice_with_peak_current=True):
         """Initialization.
 
-        :param name: string
-            Name of the Watch object.
-        :param pfile: string
-            Path name of the particle file.
-        :param halo: float
-            Percentage of particles to be removed based on their
+        :param str name: Name of the Watch object.
+        :param str pfile: Path name of the particle file.
+        :param float halo: Percentage of particles to be removed based on their
             transverse distance to the bunch centroid. Applied
             before tail cutting.
-        :param tail: float
-            Percentage of particles to be removed in the tail.
-        :param rotation: float
-            Angle of the rotation in rad.
-        :param current_bins: int/'auto'
-            No. of bins to calculate the current profile.
-        :param filter_size: int/float
-            Standard deviation of the Gaussian kernel of the 1D Gaussian
-            filter used for current profile calculation.
+        :param float tail: Percentage of particles to be removed in the tail.
+        :param float rotation: Angle of the rotation in rad.
+        :param int/'auto' current_bins: No. of bins to calculate the current
+            profile.
+        :param float filter_size: Standard deviation of the Gaussian kernel
+            of the 1D Gaussian filter used for current profile calculation.
         :param slice_percent: float
             Percent of the slice bunch length to the total bunch length.
-        :param slice_with_peak_current: Boolean
-            True for calculating slice properties of the slice with peak
-            current; False for calculating slice properties of the slice
-            in the center of the bunch.
+        :param bool slice_with_peak_current: True for calculating slice
+            properties of the slice with peak current; False for calculating
+            slice properties of the slice in the center of the bunch.
         """
         self.name = name
         self.pfile = pfile

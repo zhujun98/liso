@@ -24,10 +24,11 @@ class Linac(object):
     def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
 
-        :param str code: Code used to simulate the beamline. ASTRA:
-                         'astra' or 'a'; IMPACT-T: 'impactt' or 't'; IMPACT-Z:
-                         'impactz' or 'z'; GENESIS: 'genesis' or 'g'. Case
-                         Insensitive.
+        :param str code: Code used to simulate the beamline. ASTRA: 'astra'
+            or 'a'; IMPACT-T: 'impactt' or 't'; IMPACT-Z: 'impactz' or 'z';
+            GENESIS: 'genesis' or 'g'. Case Insensitive.
+        :param \*args: Pass to the __init__ method of Beamline.
+        :param \*\*kwargs: Pass to the __init__ method of Beamline.
         """
         bl = create_beamline(code, *args, **kwargs)
 
@@ -47,7 +48,9 @@ class Linac(object):
     def add_watch(self, beamline, *args, **kwargs):
         """Add a Watch object to a Beamline of the Linac.
 
-        :param string beamline: Name of the Beamline object.
+        :param str beamline: Name of the Beamline object.
+        :param \*args: Pass to the __init__ method of Watch.
+        :param \*\*kwargs: Pass to the __init__ method of Watch.
         """
         self._beamlines[beamline].add_watch(*args, **kwargs)
 
