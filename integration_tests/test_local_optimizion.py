@@ -47,7 +47,6 @@ class TestLocalOptimizer(unittest.TestCase):
     def test_nelderMead(self):
         optimizer = NelderMead()
 
-        self.opt.monitor_time = True
         self.opt.solve(optimizer)
 
     @unittest.skipIf(SKIP_SDPEN_TEST is True, "Failed to import library")
@@ -55,7 +54,6 @@ class TestLocalOptimizer(unittest.TestCase):
         optimizer = SDPEN()
         optimizer.rtol = 1e-3
 
-        self.opt.monitor_time = True
         self.opt.solve(optimizer)
 
 

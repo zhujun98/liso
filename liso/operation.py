@@ -11,7 +11,6 @@ class Operation(ABC):
         name (str): Name of the operation.
         workers (int): Number of processes for parallel accelerator codes.
         printout (int): Level of printout.
-        monitor_time (bool):
     """
     def __init__(self, name):
         """Initialization.
@@ -21,7 +20,6 @@ class Operation(ABC):
         self.name = name
         self.workers = 1
         self.printout = 0
-        self.monitor_time = False
 
     @property
     def workers(self):

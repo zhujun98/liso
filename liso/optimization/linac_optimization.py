@@ -400,11 +400,11 @@ class LinacOptimization(Optimization):
             f = [INF] * len(self.objectives)
             g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
 
-        if self.monitor_time is True:
-            dt = time.perf_counter() - t0
-            dt_cpu = time.process_time() - t0_cpu
-            logger.debug('{:05d}: elapsed time: {:.4f} s, cpu time: {:.4f} s'
-                         .format(self._nfeval, dt, dt_cpu))
+        # monitor time consumption
+        dt = time.perf_counter() - t0
+        dt_cpu = time.process_time() - t0_cpu
+        logger.debug('{:05d}: elapsed time: {:.4f} s, cpu time: {:.4f} s'
+                     .format(self._nfeval, dt, dt_cpu))
 
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)

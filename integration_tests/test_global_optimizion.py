@@ -51,7 +51,6 @@ class TestGlobalOptimizer(unittest.TestCase):
         optimizer.min_inner_iter = 1
         optimizer.max_outer_iter = 3
 
-        self.opt.monitor_time = True
         self.opt.solve(optimizer)
 
 
