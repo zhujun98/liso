@@ -25,11 +25,12 @@ class NelderMead(Optimizer):
 
     """
     category = 'local'
-    _name = 'Nelder-Mead'
+    name = 'Nelder-Mead'
+    multiprocessing = False
 
     def __init__(self):
         """Initialization"""
-        super().__init__(self._name)
+        super().__init__()
 
         # -------------------------------------------------------------
         # default optimizer settings
@@ -50,11 +51,13 @@ class NelderMead(Optimizer):
         # Absolution change of position at initialization when it is zero
         self._absolute_delta = 0.00025
 
-    def __call__(self, opt_prob):
+    def __call__(self, opt_prob, workers=1):
         """Run Optimizer (Optimize Routine)
 
         Override.
         """
+        self._check_workers(opt_prob)
+
         # Constraints
         if opt_prob.e_constraints or opt_prob.i_constraints:
             raise OptimizationConstraintSupportError(

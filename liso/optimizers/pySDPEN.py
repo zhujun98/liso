@@ -32,7 +32,8 @@ class SDPENOption(object):
 class SDPEN(PyoptOptimizer):
     """SDPEN optimizer class."""
     category = 'local'
-    _name = 'pyOpt_SDPEN'
+    name = 'pyOpt_SDPEN'
+    multiprocessing = False
 
     rtol = SDPENOption('alfa_stop')
     max_iter = SDPENOption('nf_max')
@@ -42,7 +43,7 @@ class SDPEN(PyoptOptimizer):
 
     def __init__(self):
         """Initialization."""
-        super().__init__(self._name)
+        super().__init__()
 
         self._sdpen = pyoptSDPEN()
         self._sdpen.setOption('iprint', -1)
@@ -50,11 +51,13 @@ class SDPEN(PyoptOptimizer):
         self.rtol = 1.0e-6
         self.max_iter = 5000
 
-    def __call__(self, opt_prob):
+    def __call__(self, opt_prob, workers=1):
         """Run Optimizer (Optimize Routine)
 
         Override.
         """
+        self._check_workers(opt_prob)
+
         if self.__class__.__dict__['_constraint_on'] is True:
             # Constraints
             if opt_prob.e_constraints:

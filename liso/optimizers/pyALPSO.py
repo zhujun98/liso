@@ -42,11 +42,12 @@ class ALPSO(Optimizer):
 
     """
     category = 'global'
-    _name = 'ALPSO'
+    name = 'ALPSO'
+    multiprocessing = False
 
     def __init__(self):
         """Initialization"""
-        super().__init__(self._name)
+        super().__init__()
 
         # -------------------------------------------------------------
         # default optimizer settings
@@ -87,6 +88,8 @@ class ALPSO(Optimizer):
 
         Override.
         """
+        self._check_workers(opt_prob)
+
         n_vars = len(opt_prob.variables)
         x_min = np.zeros(n_vars, float)
         x_max = np.zeros(n_vars, float)

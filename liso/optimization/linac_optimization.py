@@ -182,39 +182,6 @@ class Optimization(Operation):
                 b = self.covariables[key].shift
                 self._x_map[key] = a * self._x_map[var] + b
 
-    def _update_objs_cons(self):
-        """Update all Objective and Constraints.
-
-        Invoked in self.eval_objs_cons().
-        """
-        x = list(self._x_map.values())
-        f_eval, g_eval = self._opt_func(x)
-        self._nfeval += 1
-
-        for i, item in enumerate(self.objectives.values()):
-            item.value = f_eval[i]
-
-        for i, item in enumerate(chain(self.e_constraints.values(),
-                                       self.i_constraints.values())):
-            item.value = g_eval[i]
-
-        f, g = self._get_objs_cons()
-
-        return f, g
-
-    def _get_objs_cons(self):
-        """Get the values of all objectives and constraints."""
-        f = []
-        for obj in self.objectives.values():
-            f.append(obj.value)
-
-        g = []
-        for con in chain(self.e_constraints.values(),
-                         self.i_constraints.values()):
-            g.append(con.value)
-
-        return f, g
-
     def eval_objs_cons(self, x):
         """Objective-constraint function.
 
@@ -232,7 +199,22 @@ class Optimization(Operation):
             An indicator which indicates whether the function evaluation fails.
         """
         self._update_x_map(x)
-        f, g = self._update_objs_cons()
+
+        x = list(self._x_map.values())
+        f_eval, g_eval = self._opt_func(x)
+        self._nfeval += 1
+
+        # update objective values
+        for i, item in enumerate(self.objectives.values()):
+            item.value = f_eval[i]
+        # update constraint values
+        for i, item in enumerate(chain(self.e_constraints.values(),
+                                       self.i_constraints.values())):
+            item.value = g_eval[i]
+
+        f = [obj.value for obj in self.objectives.values()]
+        g = [con.value for con in chain(self.e_constraints.values(),
+                                        self.i_constraints.values())]
 
         text = self._get_eval_info(f, g, False)
         opt_logger.info(text)
@@ -263,7 +245,7 @@ class Optimization(Operation):
         :param Optimizer optimizer: Optimizer instance.
         """
         text = "\n\n***Start solving***\n" \
-               + self._get_info(False) \
+               + self.summarize(False) \
                + "\n***with***\n" \
                + str(optimizer)
         logger.info(text)
@@ -274,23 +256,18 @@ class Optimization(Operation):
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
         self.eval_objs_cons(opt_x)
-        self._verify_solution(opt_f)
 
-        text = "\n" + self._get_info(True) + "\n" + misc_info
+        # verify solution
+        f = [item.value for item in self.objectives.values()]
+        np.testing.assert_almost_equal(f, opt_f)
+
+        text = "\n" + self.summarize(True) + "\n" + misc_info
         logger.info(text)
         opt_logger.info(text)
 
         return opt_f, opt_x
 
-    def _verify_solution(self, opt_f):
-        """Verify the solution.
-
-        :param list opt_f: Optimized objective value(s).
-        """
-        f = [item.value for item in self.objectives.values()]
-        np.testing.assert_almost_equal(f, opt_f)
-
-    def _get_info(self, is_solution):
+    def summarize(self, is_solution):
         text = '\n' + '=' * 80 + '\n'
         if is_solution is False:
             text += 'Optimization problem: %s\n' % self.name
@@ -366,7 +343,7 @@ class LinacOptimization(Optimization):
         t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            self._linac.simulate(self._x_map, self.workers)
+            self._linac.simulate(self._x_map, self.external_workers)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
@@ -375,7 +352,8 @@ class LinacOptimization(Optimization):
         # exception propagates from Beamline.update() method
         except LISOWatchUpdateError as e:
             self._nf += 1
-            logger.info("{:05d}: Watch update failed: {}".format(self._nfeval, e))
+            logger.info("{:05d}: Watch update failed: {}".
+                        format(self._nfeval, e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
@@ -394,7 +372,27 @@ class LinacOptimization(Optimization):
                     "Maximum allowed number of successive failures reached!")
 
         if is_update_failed is False:
-            f, g = self._update_objs_cons()
+            # update objective and constraint values
+            for item in chain(self.objectives.values(),
+                              self.e_constraints.values(),
+                              self.i_constraints.values()):
+                if item.func is not None:
+                    item.value = item.func(self._linac)
+                else:
+                    keys = item.expr
+                    if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
+                        item.value = self._linac.__getattr__(
+                            keys[0]).__getattribute__(
+                            keys[1]).__getattribute__(keys[2]) * item.scale
+                    else:
+                        item.value = self._linac.__getattr__(
+                            keys[0]).__getattr__(
+                            keys[1]).__getattribute__(keys[2]) * item.scale
+
+            f = [obj.value for obj in self.objectives.values()]
+            g = [con.value for con in chain(self.e_constraints.values(),
+                                            self.i_constraints.values())]
+
             self._nf = 0
         else:
             f = [INF] * len(self.objectives)
@@ -413,26 +411,3 @@ class LinacOptimization(Optimization):
             print(text)
 
         return f, g, is_update_failed
-
-    def _update_objs_cons(self):
-        """Update all Objectives and Constraints.
-
-        Override the method in the parent class.
-        """
-        for item in chain(self.objectives.values(),
-                          self.e_constraints.values(),
-                          self.i_constraints.values()):
-            if item.func is not None:
-                item.value = item.func(self._linac)
-            else:
-                keys = item.expr
-                if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
-                    item.value = self._linac.__getattr__(keys[0]).__getattribute__(
-                        keys[1]).__getattribute__(keys[2]) * item.scale
-                else:
-                    item.value = self._linac.__getattr__(keys[0]).__getattr__(
-                        keys[1]).__getattribute__(keys[2]) * item.scale
-
-        f, g = self._get_objs_cons()
-
-        return f, g
