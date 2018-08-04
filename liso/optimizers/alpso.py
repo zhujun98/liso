@@ -323,7 +323,11 @@ def alpso(x0,
             text += ("    P(%d) = %11.4e" % (j, gbest_x[j]))
             if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
                 text += "\n"
+
         text += "\n"
+        text += "\nParticle distribution divergence:\n"
+        text += "    F = %11.4e\n" % divergence
+
         text += "\nObjective function value:\n"
         text += "    F = %11.4e\n" % gbest_f
         if n_cons > 0:
@@ -451,9 +455,9 @@ def alpso(x0,
             pbest_L = np.copy(L)
 
     # save the optimization history to an hdf5 file
-    with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:
-        for key in params_history.keys():
-            fp.create_dataset(key, data=np.array(params_history[key]))
+    # with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:
+    #     for key in params_history.keys():
+    #         fp.create_dataset(key, data=np.array(params_history[key]))
 
     # End of outer loop
     # -------------------------------------------------------------
