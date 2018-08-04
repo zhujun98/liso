@@ -53,10 +53,13 @@ class Optimizer(ABC):
         codes. Otherwise, the API will use parallel version external
         codes.
 
-        :param Optimization opt_problem: Optimization instance.
+        :param Optimization opt_prob: Optimization instance.
         """
         if self.multiprocessing is False:
-            opt_prob.external_workers = opt_prob.workers
+            opt_prob.external_workers = max(opt_prob.external_workers,
+                                            opt_prob.workers)
             opt_prob.workers = 1
         else:
+            opt_prob.workers = max(opt_prob.external_workers, opt_prob.workers)
+            opt_prob.external_workers = 1
             logger.info("Use parallelized {}.".format(self.name))
