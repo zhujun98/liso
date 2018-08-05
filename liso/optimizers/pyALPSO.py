@@ -24,13 +24,13 @@ class ALPSO(Optimizer):
                               Default = 3.
         min_inner_iter (int): Minimum Number of Inner Loop Iterations.
         etol (float): Absolute tolerance for equality constraints.
-                      Default = 1e-3.
+                      Default = 1e-4.
         itol (float): Absolute tolerance for inequality constraints.
-                      Default = 1e-3.
+                      Default = 1e-4.
         rtol (float): Relative tolerance for Lagrange function. Default = 1e-3.
-        atol (float): Absolute tolerance for Lagrange function. Default = 1e-3.
+        atol (float): Absolute tolerance for Lagrange function. Default = 1e-4.
         dtol (float): Absolute tolerance for position deviation of all particles
-                      . Default = 1e-2.
+                      . Default = 5e-2.
         c1 (float): Cognitive Parameter. Default = 1.5.
         c2 (float): Social Parameter. Default = 1.5.
         w0 (float): Initial Inertia Weight. Default = 0.90.
@@ -57,13 +57,13 @@ class ALPSO(Optimizer):
         self.topology = 'gbest'
         self.max_outer_iter = 100
         self.max_inner_iter = 6
-        self.min_inner_iter = 3
+        self.min_inner_iter = 1
 
-        self.etol = 1e-3
-        self.itol = 1e-3
-        self.rtol = 1e-3
+        self.etol = 1e-4
+        self.itol = 1e-4
+        self.rtol = 1e-2
         self.atol = 1e-4
-        self.dtol = 1e-2
+        self.dtol = 5e-2
 
         self.c1 = 1.5
         self.c2 = 1.5
@@ -79,7 +79,7 @@ class ALPSO(Optimizer):
         # of Best Particle Before Search Radius will be Increased (GCPSO)
         self._nf = 5
         # Maximum search radius (GCPSO)
-        self._rho_max = 0.05
+        self._rho_max = 0.5
         # Minimum search radius (GCPSO)
         self._rho_min = 0.0001
 
