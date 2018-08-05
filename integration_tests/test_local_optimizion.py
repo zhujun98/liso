@@ -31,6 +31,7 @@ class TestLocalOptimizer(unittest.TestCase):
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)
+        # self.opt.printout = 1
 
         self.opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
@@ -47,16 +48,19 @@ class TestLocalOptimizer(unittest.TestCase):
     def test_nelderMead(self):
         optimizer = NelderMead()
 
-        self.opt.monitor_time = True
-        self.opt.solve(optimizer)
+        opt_f, opt_x = self.opt.solve(optimizer)
+        self.assertAlmostEqual(opt_f, 0.03964, delta=0.0001)
+        self.assertAlmostEqual(opt_x[0], 0.04000, delta=0.0001)
+        self.assertAlmostEqual(opt_x[1], 0.23000, delta=0.01)
 
     @unittest.skipIf(SKIP_SDPEN_TEST is True, "Failed to import library")
     def test_sdpen(self):
         optimizer = SDPEN()
-        optimizer.rtol = 1e-3
 
-        self.opt.monitor_time = True
-        self.opt.solve(optimizer)
+        opt_f, opt_x = self.opt.solve(optimizer)
+        self.assertAlmostEqual(opt_f, 0.03964, delta=0.0001)
+        self.assertAlmostEqual(opt_x[0], 0.04000, delta=0.0001)
+        self.assertAlmostEqual(opt_x[1], 0.23000, delta=0.01)
 
 
 if __name__ == "__main__":

@@ -36,19 +36,21 @@ class TestMultiCodeOptimization(unittest.TestCase):
             charge=10e-12)
 
         self.opt = LinacOptimization(linac)
+        # self.opt.printout = 1
 
-        self.opt.add_obj('emitx_um', expr='matching.out.emitx', scale=1.0e6)
-        self.opt.add_icon('g1', func=lambda a: max(a.gun.max.Sx,
-                                                   a.matching.max.Sx),
-                          scale=1.0e3, ub=1.5)
-        self.opt.add_icon('g2', func=lambda a: a.matching.out.betax, lb=40)
-        self.opt.add_icon('g3', func=lambda a: a.matching.out.betax, ub=60)
-        self.opt.add_icon('g4', func=lambda a: a.matching.out.betay, ub=20)
+        self.opt.add_obj('f', expr='matching.out.emitx', scale=1e6)
 
-        self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.50)
-        self.opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)
-        self.opt.add_var('MQZM1_G', value=0.0, lb=-6.0, ub=6.0)
-        self.opt.add_var('MQZM2_G', value=0.0, lb=-6.0, ub=6.0)
+        self.opt.add_icon('g1', func=lambda a: a.gun.out.Sx * 1e3, ub=0.2)
+        self.opt.add_icon('g2', func=lambda a: a.matching.out.betax, ub=0.2)
+        self.opt.add_icon('g3', func=lambda a: a.matching.out.betay, ub=0.2)
+        self.opt.add_icon(
+            'g4',
+            func=lambda a: abs(a.matching.out.betax - a.matching.out.betay),
+            ub=0.01)
+
+        self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.30)
+        self.opt.add_var('MQZM1_G', value=0.0, lb=-6.0, ub=0.0)
+        self.opt.add_var('MQZM2_G', value=0.0, lb=0.0, ub=6.0)
 
     def tearDown(self):
         for file in glob.glob(os.path.join(test_path, "astra/injector.*.001")):
@@ -60,13 +62,13 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
     def test_not_raise(self):
         optimizer = ALPSO()
-        optimizer.swarm_size = 20
-        optimizer.max_inner_iter = 3
-        optimizer.min_inner_iter = 1
-        optimizer.max_outer_iter = 3
 
-        self.opt.monitor_time = True
-        self.opt.solve(optimizer)
+        opt_f, opt_x = self.opt.solve(optimizer)
+
+        self.assertAlmostEqual(opt_f, 0.04025, delta=0.00020)
+        self.assertAlmostEqual(opt_x[0], 0.04000, delta=0.00010)
+        self.assertAlmostEqual(opt_x[1], -0.78, delta=0.030)
+        self.assertAlmostEqual(opt_x[2], 0.96, delta=0.040)
 
 
 if __name__ == "__main__":

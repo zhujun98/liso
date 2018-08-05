@@ -38,7 +38,6 @@ class TestJitter(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def test_not_raise(self):
-        self.jt.monitor_time = True
         self.jt.run(5)
 
 

@@ -57,9 +57,9 @@
     
     File_Efield(1) = '../astra_gun/gun.dat', Nue(1) = 2.998, C_pos(1) = 0.0
     C_smooth(1) = 10, C_higher_order(1) = .T
-    MaxE(1) = <gun_gradient>, Phi(1) = <gun_phase>
+    MaxE(1) = <gun_gradient>, Phi(1) = 0.0
 /
- 
+
 &SOLENOID
     Loop = .F 
     LBfield = .T

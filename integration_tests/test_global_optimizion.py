@@ -29,15 +29,15 @@ class TestGlobalOptimizer(unittest.TestCase):
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)
+        # self.opt.printout = 1
 
-        self.opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)
-        self.opt.add_icon('g1', func=lambda a: a.gun.max.Sx * 1e3, ub=0.2)
+        self.opt.add_obj('f', expr='gun.out.Sx', scale=1.e6)
+        self.opt.add_icon('g1', func=lambda a: a.gun.max.emitx*1e6, ub=0.041)
         self.opt.add_econ('g2', func=lambda a: a.gun.out.gamma, eq=10.0)
 
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
-        self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.4)
+        self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.3)
         self.opt.add_var('gun_gradient', value=130, lb=90.0, ub=130.0)
-        self.opt.add_var('gun_phase', value=0.0, lb=-90.0, ub=0.0)
 
     def tearDown(self):
         for file in glob.glob(os.path.join(test_path, "injector.*.001")):
@@ -46,13 +46,13 @@ class TestGlobalOptimizer(unittest.TestCase):
 
     def test_not_raise(self):
         optimizer = ALPSO()
-        optimizer.swarm_size = 10
-        optimizer.max_inner_iter = 3
-        optimizer.min_inner_iter = 1
-        optimizer.max_outer_iter = 3
 
-        self.opt.monitor_time = True
-        self.opt.solve(optimizer)
+        opt_f, opt_x = self.opt.solve(optimizer)
+
+        self.assertAlmostEqual(opt_f, 65.62, delta=0.10)
+        self.assertAlmostEqual(opt_x[0], 0.040000, delta=0.00010)
+        self.assertAlmostEqual(opt_x[1], 0.2521, delta=0.0010)
+        self.assertAlmostEqual(opt_x[2], 100.4, delta=1.0)
 
 
 if __name__ == "__main__":

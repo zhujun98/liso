@@ -12,8 +12,6 @@ The optimizer solves problems of the form:
 
 Author: Jun Zhu
 
-
-TODO: Improve convergence condition.
 """
 import numpy as np
 import h5py
@@ -213,17 +211,20 @@ def alpso(x0,
     k_out = 0  # outer loop count
     k_success = 0  # consecutive success count
     k_failure = 0  # consecutive failure count
+    k_convergence_satisfied = 0  # No. of successive convergence count
     while k_out < max_outer_iter:
         k_out += 1
 
         # -------------------------------------------------------------
-        # Each inner loop can be seen as a sub-problem. Lagrangian
-        # multiplier, the penalty factor and inertial weight will
-        # not be updated in the inner loop
+        # Important! Each inner loop is a new unconstrained PSO problem
+        # with different objective function (new Lagrangian multiplier
+        # and penalty factor). Lagrangian multiplier, the penalty factor
+        # and inertial weight will be updated after each inner loop.
         # -------------------------------------------------------------
-        gbest_L_old = np.copy(gbest_L)
-        gbest_g_old = np.copy(gbest_g)
+
         k_inn = 0   # inner loop count
+        gbest_L_old = gbest_L
+        gbest_g_old = np.copy(gbest_g)
         while k_inn < max_inner_iter:
             k_inn += 1
 
@@ -244,10 +245,15 @@ def alpso(x0,
                                 + c1*r1*(pbest_x[i, :] - x_k[i, :]) \
                                 + c2*r2*(gbest_x - x_k[i, :])
 
+                # It is redundant to set the velocity limit to 1 since the
+                # particle will hit the boundary anyhow.
                 x_k[i, :] += v_k[i, :]
 
                 # check fitness
                 x_k[i, :] = np.maximum(np.minimum(x_k[i, :], 1), 0)
+                # set the velocity of the particle at the boundary to zero
+                v_k[i, x_k[i, :] == 1] = 0
+                v_k[i, x_k[i, :] == 0] = 0
 
                 # update Lagrangian function values
                 f[i], g[i, :] = f_obj_con(x_k[i, :])
@@ -262,7 +268,7 @@ def alpso(x0,
                     else:
                         theta = max(g[i, j], -lambda_[j] / (2.0 * rp[j]))
 
-                    L[i] += lambda_[j]*theta + rp[j]*theta**2
+                    L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
                 # update particle best
                 if L[i] < pbest_L[i]:
@@ -323,7 +329,11 @@ def alpso(x0,
             text += ("    P(%d) = %11.4e" % (j, gbest_x[j]))
             if np.mod(j + 1, 3) == 0 and j != n_vars - 1:
                 text += "\n"
+
         text += "\n"
+        text += "\nParticle distribution divergence:\n"
+        text += "    F = %11.4e\n" % divergence
+
         text += "\nObjective function value:\n"
         text += "    F = %11.4e\n" % gbest_f
         if n_cons > 0:
@@ -372,17 +382,34 @@ def alpso(x0,
                     constraints_satisfied = False
                     break
 
+        # -------------------------------------------------------------
         # Check position and objective convergence
+        #
+        # Note: when convergening, gbest_L could be much smaller than
+        #       gbest_f. It happens when the constraints g turn negative
+        #       while lambda_ is very large. rp can push lambda_ back
+        #       to positive, but sometimes it is very slow or gets
+        #       stagnated.
+        # -------------------------------------------------------------
         convergence_satisfied = False
         if constraints_satisfied is True and abs(divergence) <= dtol:
-            if abs(gbest_L - gbest_L_old) <= rtol*abs(gbest_L_old):
+            # delta_L is the difference of gbest_L achieved after two
+            # consecutive inner loops.
+            delta_L = abs(gbest_L - gbest_L_old)
+            if delta_L <= rtol*abs(gbest_L_old):
                 stop_info = "Relative change of Lagrangian function < %f" % rtol
                 convergence_satisfied = True
-            elif abs(gbest_L - gbest_L_old) <= atol:
+            elif delta_L <= atol:
                 stop_info = "Absolute change of Lagrangian function < %f" % atol
                 convergence_satisfied = True
 
-        if constraints_satisfied is True and convergence_satisfied is True:
+        if convergence_satisfied is True:
+            k_convergence_satisfied += 1
+        else:
+            k_convergence_satisfied = 0
+
+        if k_convergence_satisfied >= 3 and convergence_satisfied is True:
+            # break the outer loop
             break
         elif k_out == max_outer_iter:
             stop_info = "Maximum number of iteration reached!"
@@ -391,12 +418,24 @@ def alpso(x0,
             # update inertial weight
             w = update_inertial_weight(w0, w1, divergence / divergence0)
 
-            # Update Lagrange multiplier and penalty factor rp
+            # Update Lagrange multiplier
             for j in range(n_cons):
                 # Equality constraints
                 if j < n_eq_cons:
                     theta = gbest_g[j]
-                    if abs(gbest_g[j]) > abs(gbest_g_old[j]) and abs(gbest_g[j]) > etol:
+
+                # Inequality constraints
+                else:
+                    theta = max(gbest_g[j], -lambda_[j] / (2.0 * rp[j]))
+
+                # use rp used in the last inner loop to update lambda_
+                lambda_[j] += 2.0 * rp[j] * theta
+
+            # Update penalty factor rp
+            for j in range(n_cons):
+                # Equality constraints
+                if j < n_eq_cons:
+                    if abs(gbest_g[j]) > etol and abs(gbest_g[j]) > abs(gbest_g_old[j]):
                         rp[j] *= 2.0
                     elif abs(gbest_g[j]) <= etol:
                         rp[j] *= 0.5
@@ -404,23 +443,22 @@ def alpso(x0,
 
                 # Inequality constraints
                 else:
-                    theta = max(gbest_g[j], -lambda_[j] / (2.0 * rp[j]))
-
-                    if gbest_g[j] > gbest_g_old[j] and gbest_g[j] > itol:
+                    if gbest_g[j] > itol and gbest_g[j] > gbest_g_old[j]:
                         rp[j] *= 2.0
                     elif gbest_g[j] <= itol:
                         rp[j] *= 0.5
                     rp[j] = max(rp[j], 0.5 * (abs(lambda_[j]) / itol) ** 0.5)
 
-                lambda_[j] += 2.0 * rp[j] * theta
+                # If rp is too small, it could result in a very large theta
+                # if lambda_ is negative
+                rp[j] = max(1.0, rp[j])
 
             # update history record only updated every outer loop
             params_history['lambda'].append(lambda_.tolist())
             params_history['rp'].append(rp.tolist())
             params_history['w'].append(w)
 
-            # Update the Lagrangian since the Lagrangian multiplier and the
-            # penalty factor could have changed.
+            # Update the Lagrangian for the next inner run.
             for i in range(swarm_size):
                 L[i] = f[i]
                 for j in range(n_cons):
@@ -433,12 +471,6 @@ def alpso(x0,
 
                     L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
-            # *********************************************************
-            # Important! Since each inner loop is a new unconstrained
-            # PSO problem with different objective function (new
-            # Lagrangian multiplier and penalty factor).
-            # *********************************************************
-
             # reset swarm's best for the next inner loop
             gbest_i = L.argmin()
             gbest_x = np.copy(x_k[gbest_i, :])
@@ -446,14 +478,15 @@ def alpso(x0,
             gbest_f = f[gbest_i]
             gbest_g = np.copy(g[gbest_i, :])
 
-            # reset particles' best for the next inner loop
+            # reset particles' memory (i.e. particle's best for the next
+            # inner loop)
             pbest_x = np.copy(x_k)
             pbest_L = np.copy(L)
 
     # save the optimization history to an hdf5 file
-    with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:
-        for key in params_history.keys():
-            fp.create_dataset(key, data=np.array(params_history[key]))
+    # with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:
+    #     for key in params_history.keys():
+    #         fp.create_dataset(key, data=np.array(params_history[key]))
 
     # End of outer loop
     # -------------------------------------------------------------
