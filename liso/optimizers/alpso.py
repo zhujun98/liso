@@ -262,7 +262,7 @@ def alpso(x0,
                     else:
                         theta = max(g[i, j], -lambda_[j] / (2.0 * rp[j]))
 
-                    L[i] += lambda_[j]*theta + rp[j]*theta**2
+                    L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
                 # update particle best
                 if L[i] < pbest_L[i]:
@@ -438,7 +438,7 @@ def alpso(x0,
                     L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
             # *********************************************************
-            # Important! Since each inner loop is a new unconstrained
+            # Important! Each inner loop is a new unconstrained
             # PSO problem with different objective function (new
             # Lagrangian multiplier and penalty factor).
             # *********************************************************
