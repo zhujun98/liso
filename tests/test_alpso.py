@@ -20,8 +20,8 @@ class TestALPSO(unittest.TestCase):
     def setUp(self):
         self.optimizer = ALPSO()
 
-    def _setup_test(self, cls, swarm_size=100, *,
-                    atol=None, relative_tol=1e-3, absolute_tol=1e-4):
+    def _setup_test(self, cls, *,
+                    swarm_size=100, atol=None, rtol=1e-2, dtol=0.01):
         """Set up a test.
 
         :param cls: OptimizationTestProblem instance
@@ -30,9 +30,9 @@ class TestALPSO(unittest.TestCase):
             Swarm size for ALPSO.
         :param atol: float
             Absolute tolerance of the objective.
-        :param relative_tol: float
+        :param rtol: float
             Relative tolerance of the objective.
-        :param absolute_tol: float
+        :param dtol: float
             Absolute tolerance of the position (L2 norm).
         """
         self.optimizer.seed = 2  # Get consistent result
@@ -53,37 +53,37 @@ class TestALPSO(unittest.TestCase):
 
         # Check the solution
 
-        self.assertLessEqual(np.linalg.norm(opt_x - cls.opt_x), absolute_tol)
+        self.assertLessEqual(np.linalg.norm(opt_x - cls.opt_x), dtol)
 
         if atol is None:
             self.assertLessEqual(abs(opt_f - cls.opt_f),
-                                 relative_tol*abs(cls.opt_f))
+                                 rtol*abs(cls.opt_f))
         else:
             self.assertLessEqual(abs(opt_f - cls.opt_f), atol)
 
     def test_rastrigin(self):
-        self._setup_test(Rastrigin, 150, atol=0.002, absolute_tol=0.001)
+        self._setup_test(Rastrigin, atol=0.002, dtol=0.001)
 
     def test_rosenbrock(self):
-        self._setup_test(Rosenbrock, 150, atol=0.002, absolute_tol=0.05)
+        self._setup_test(Rosenbrock, atol=0.002)
 
     def test_eggholder(self):
-        self._setup_test(EggHolder, 150, relative_tol=0.01, absolute_tol=0.1)
+        self._setup_test(EggHolder, swarm_size=150)
 
     def test_tp08(self):
-        self._setup_test(TP08, relative_tol=0.01, absolute_tol=0.5)
+        self._setup_test(TP08, dtol=0.1)
 
     def test_tp14(self):
-        self._setup_test(TP14, 150, relative_tol=0.02, absolute_tol=0.01)
+        self._setup_test(TP14)
 
     def test_tp32(self):
-        self._setup_test(TP32, relative_tol=0.01, absolute_tol=0.01)
+        self._setup_test(TP32)
 
     def test_tp37(self):
-        self._setup_test(TP37, 150, relative_tol=0.02, absolute_tol=0.3)
+        self._setup_test(TP37, dtol=0.1)
 
     def test_tp43(self):
-        self._setup_test(TP43, relative_tol=0.02, absolute_tol=0.3)
+        self._setup_test(TP43, dtol=0.1)
 
 
 if __name__ == "__main__":
