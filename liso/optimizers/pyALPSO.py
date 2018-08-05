@@ -62,7 +62,7 @@ class ALPSO(Optimizer):
         self.etol = 1e-3
         self.itol = 1e-3
         self.rtol = 1e-3
-        self.atol = 1e-3
+        self.atol = 1e-4
         self.dtol = 1e-2
 
         self.c1 = 1.5
@@ -79,9 +79,9 @@ class ALPSO(Optimizer):
         # of Best Particle Before Search Radius will be Increased (GCPSO)
         self._nf = 5
         # Maximum search radius (GCPSO)
-        self._rho_max = 5e-2
+        self._rho_max = 0.05
         # Minimum search radius (GCPSO)
-        self._rho_min = 1e-4
+        self._rho_min = 0.0001
 
     def __call__(self, opt_prob):
         """Run Optimizer (Optimize Routine)
