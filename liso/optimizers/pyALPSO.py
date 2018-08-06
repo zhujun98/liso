@@ -57,10 +57,10 @@ class ALPSO(Optimizer):
         self.topology = 'gbest'
         self.max_outer_iter = 100
         self.max_inner_iter = 6
-        self.min_inner_iter = 1
+        self.min_inner_iter = 3
 
-        self.etol = 1e-4
-        self.itol = 1e-4
+        self.etol = 1e-3
+        self.itol = 1e-3
         self.rtol = 1e-2
         self.atol = 1e-4
         self.dtol = 5e-2

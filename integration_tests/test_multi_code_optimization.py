@@ -65,7 +65,7 @@ class TestMultiCodeOptimization(unittest.TestCase):
 
         opt_f, opt_x = self.opt.solve(optimizer)
 
-        self.assertAlmostEqual(opt_f, 0.04025, delta=0.00020)
+        self.assertAlmostEqual(opt_f, 0.04025, delta=0.00040)
         self.assertAlmostEqual(opt_x[0], 0.04000, delta=0.00010)
         self.assertAlmostEqual(opt_x[1], -0.78, delta=0.030)
         self.assertAlmostEqual(opt_x[2], 0.96, delta=0.040)
