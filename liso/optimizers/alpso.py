@@ -408,7 +408,7 @@ def alpso(x0,
         else:
             k_convergence_satisfied = 0
 
-        if k_convergence_satisfied >= 3 and convergence_satisfied is True:
+        if k_convergence_satisfied >= 2 and convergence_satisfied is True:
             # break the outer loop
             break
         elif k_out == max_outer_iter:
