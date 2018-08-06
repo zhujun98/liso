@@ -63,7 +63,7 @@ class ALPSO(Optimizer):
         self.itol = 1e-3
         self.rtol = 1e-2
         self.atol = 1e-4
-        self.dtol = 5e-2
+        self.dtol = 1e-1
 
         self.c1 = 1.5
         self.c2 = 1.5

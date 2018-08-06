@@ -255,10 +255,14 @@ def alpso(x0,
                 v_k[i, x_k[i, :] == 1] = 0
                 v_k[i, x_k[i, :] == 0] = 0
 
-                # update Lagrangian function values
+            # update Lagrangian function values
+            # TODO: parallelize this loop
+            for i in range(swarm_size):
                 f[i], g[i, :] = f_obj_con(x_k[i, :])
                 nfeval += 1
 
+            # update Lagrangian, particle best and global best
+            for i in range(swarm_size):
                 L[i] = f[i]
                 for j in range(n_cons):
                     # Equality Constraints
@@ -270,18 +274,16 @@ def alpso(x0,
 
                     L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
-                # update particle best
                 if L[i] < pbest_L[i]:
                     pbest_L[i] = L[i]
-                    pbest_x[i, :] = np.copy(x_k[i, :])
+                    pbest_x[i, :] = x_k[i, :]
 
-                # update global best
                 if L[i] < gbest_L:
                     gbest_i = i
-                    gbest_x = np.copy(x_k[i, :])
+                    gbest_x[:] = x_k[i, :]
                     gbest_L = L[i]
                     gbest_f = f[i]
-                    gbest_g = np.copy(g[i, :])
+                    gbest_g[:] = g[i, :]
 
             # update divergence
             divergence = np.sqrt(np.sum(np.var(x_k, axis=0)))
@@ -473,15 +475,15 @@ def alpso(x0,
 
             # reset swarm's best for the next inner loop
             gbest_i = L.argmin()
-            gbest_x = np.copy(x_k[gbest_i, :])
+            gbest_x[:] = x_k[gbest_i, :]
             gbest_L = L[gbest_i]
             gbest_f = f[gbest_i]
-            gbest_g = np.copy(g[gbest_i, :])
+            gbest_g[:] = g[gbest_i, :]
 
             # reset particles' memory (i.e. particle's best for the next
             # inner loop)
-            pbest_x = np.copy(x_k)
-            pbest_L = np.copy(L)
+            pbest_x[:, :] = x_k[:, :]
+            pbest_L[:] = L[:]
 
     # save the optimization history to an hdf5 file
     # with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:
