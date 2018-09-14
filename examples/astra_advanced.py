@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 This is an advanced example showing how to optimize the bunch length
 as well as how to set equality and inequality constraints in with a

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 This is a basic example showing how to optimize the emittance in ASTRA
 with a local search optimizer.

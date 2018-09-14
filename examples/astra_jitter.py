@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 This is a basic example showing how to study jitter.
 """

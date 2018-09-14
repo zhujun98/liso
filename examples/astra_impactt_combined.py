@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 This is an example showing how to simulate different part of a linac
 using different code.
