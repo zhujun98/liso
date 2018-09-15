@@ -13,7 +13,7 @@ from liso.optimizers.nelder_mead import (
 )
 from liso.exceptions import OptimizationConstraintSupportError
 
-from opt_problems import TP08, Rastrigin, Rosenbrock, EggHolder
+from .opt_problems import TP08, Rastrigin, Rosenbrock, EggHolder
 
 
 class TestNelderMead(unittest.TestCase):
