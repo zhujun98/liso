@@ -9,9 +9,6 @@ class Operation(ABC):
 
     Attributes:
         name (str): Name of the operation.
-        workers (int): Number of processes for parallel run.
-        external_workers (int): Number of processes for external codes, for
-            example, ASTRA.
         printout (int): Level of printout.
     """
     def __init__(self, name):
@@ -21,8 +18,6 @@ class Operation(ABC):
         """
         self.name = name
         self._workers = None
-        self.workers = 1
-        self.external_workers = 1
         self.printout = 0
 
     @property
@@ -31,8 +26,15 @@ class Operation(ABC):
 
     @workers.setter
     def workers(self, value):
-        if isinstance(value, int) and value > 0:
-            self._workers = value
+        raise SystemError(
+            "For parrallel run, you should set workers for Beamlines, for example:\n"
+            "linac.add_beamline('astra',\n"
+            "                   name='gun',\n"
+            "                   fin='astra_injector/injector.in',\n"
+            "                   template='astra_advanced/injector.in.000',\n"
+            "                   pout='injector.0450.001',\n"
+            "                   workers=12)\n"
+        )
 
     @abstractmethod
     def __str__(self):

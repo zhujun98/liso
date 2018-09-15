@@ -343,28 +343,37 @@ class LinacOptimization(Optimization):
         t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            self._linac.simulate(self._x_map, self.external_workers)
+            self._linac.simulate(self._x_map)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method
-        except SimulationNotFinishedProperlyError as e:
-            logger.info("{:05d}: {}".format(self._nfeval, e))
-        # exception propagates from Beamline.update() method
-        except LISOWatchUpdateError as e:
+        except (SimulationNotFinishedProperlyError,
+                InputFileNotFoundError,
+                InputFileEmptyError) as e:
             self._nf += 1
-            logger.info("{:05d}: Watch update failed: {}".
-                        format(self._nfeval, e))
+            logger.info("{:05d}: {}: {}".
+                        format(self._nfeval, e.__class__.__name__, e))
+        except CommandNotFoundError as e:
+            logger.info("{:05d}: {}: {}".
+                        format(self._nfeval, e.__class__.__name__, e))
+            # stop running
+            raise
+        # exception propagates from Beamline.update() method
+        except WatchUpdateError as e:
+            self._nf += 1
+            logger.info("{:05d}: {}: {}".
+                        format(self._nfeval, e.__class__.__name__, e))
         # exception propagates from Beamline.update() method
         # Note: In practice, only WatchUpdateFailError could be raised since
         # Watch is updated before Line!
-        except LISOLineUpdateError as e:
+        except LineUpdateError as e:
             self._nf += 1
-            logger.info("{:05d}: Line update failed: {}"
-                        .format(self._nfeval, e))
+            logger.info("{:05d}: {}: {}".
+                        format(self._nfeval, e.__class__.__name__, e))
         except Exception as e:
             self._nf += 1
-            logger.info("{:05d}: Unknown exceptions:\n {}"
-                        .format(self._nfeval, e))
+            logger.info("{:05d}: Unexpected exceptions {}: {}"
+                        .format(self._nfeval, e.__class__.__name__, e))
             raise
         finally:
             if self._nf > self._max_nf:

@@ -10,11 +10,15 @@ from liso import Linac, LinacOptimization, NelderMead
 
 linac = Linac()
 
+# The first beamline is run by parallel ASTRA but the second one is run
+# by series IMPACT-T
+
 linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
                    template='astra_impactt_combined/injector.in.000',
-                   pout='injector.0450.001')
+                   pout='injector.0450.001',
+                   workers=12)
 
 # Add the second beamline
 #
@@ -41,7 +45,6 @@ opt.add_var('MQZM3_G', value=0.0, lb=-10, ub=10)
 opt.add_covar('MQZM2_G', 'MQZM1_G', scale=-1)
 opt.add_covar('MQZM4_G', 'MQZM3_G', scale=-1)
 
-opt.workers = 12
 opt.printout = 1
 
 optimizer = NelderMead()

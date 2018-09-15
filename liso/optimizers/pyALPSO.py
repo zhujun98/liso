@@ -88,8 +88,6 @@ class ALPSO(Optimizer):
 
         Override.
         """
-        self._check_workers(opt_prob)
-
         n_vars = len(opt_prob.variables)
         x_min = np.zeros(n_vars, float)
         x_max = np.zeros(n_vars, float)

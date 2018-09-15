@@ -56,8 +56,6 @@ class NelderMead(Optimizer):
 
         Override.
         """
-        self._check_workers(opt_prob)
-
         # Constraints
         if opt_prob.e_constraints or opt_prob.i_constraints:
             raise OptimizationConstraintSupportError(

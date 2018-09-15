@@ -23,6 +23,7 @@ linac = Linac()  # instantiate a Linac
 # fin: simulation input file path
 # template: simulation input template file path.
 # pout: output file name. It must be in the same folder as 'fin'.
+# workers: number of threads for parallel ASTRA
 # timeout: used to deal with the bug in parallel-astra, the code may get
 #          stuck with certain parameters. So, please ensure the timeout
 #          is longer than the time required for one simulation.
@@ -31,6 +32,7 @@ linac.add_beamline('astra',
                    fin='astra_injector/injector.in',
                    template='astra_basic/injector.in.000',
                    pout='injector.0450.001',
+                   workers=12,
                    timeout=300)
 
 opt = LinacOptimization(linac)  # instantiate Optimization (problem)
@@ -50,7 +52,6 @@ opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1e6)
 opt.add_var('laser_spot',  value=0.10, lb=0.04, ub=0.3)
 opt.add_var('main_sole_b', value=0.20, lb=0.00, ub=0.4)
 
-opt.workers = 12  # use parallel Astra
 opt.printout = 1  # print the optimization process
 
 optimizer = NelderMead()  # instantiate an optimizer

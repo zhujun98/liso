@@ -21,7 +21,32 @@ class SimulationSuccessiveFailureError(SimulationError):
     """Inherited from SimulationError.
 
     Raised No. of successive failures exceeds the maximum allowed
-    number."""
+    number.
+    """
+    pass
+
+
+class CommandNotFoundError(SimulationError):
+    """Inherited from SimulationError.
+
+    Raised if a bash command is not found.
+    """
+    pass
+
+
+class InputFileNotFoundError(SimulationError):
+    """Inherited from SimulationError.
+
+    Raised if the simulation input file is not found.
+    """
+    pass
+
+
+class InputFileEmptyError(SimulationError):
+    """Inherited from SimulationError.
+
+    Raised if the simulation input file is empty.
+    """
     pass
 
 
@@ -38,7 +63,23 @@ class BeamParametersInconsistentError(BeamAnalysisError):
     pass
 
 
-class LISOWatchUpdateError(Exception):
+class DataFileNotFoundError(BeamAnalysisError):
+    """Inherited from BeamAnalysisError.
+
+    Raised if the data file is not found.
+    """
+    pass
+
+
+class DataFileEmptyError(BeamAnalysisError):
+    """Inherited from BeamAnalysisError.
+
+    Raised if the data file is empty.
+    """
+    pass
+
+
+class WatchUpdateError(Exception):
     """Raised if watch update fails.
 
     e.g. file is missing or data format is wrong
@@ -46,7 +87,7 @@ class LISOWatchUpdateError(Exception):
     pass
 
 
-class LISOLineUpdateError(Exception):
+class LineUpdateError(Exception):
     """Raise if line update fails.
 
     e.g file is missing or data format is wrong
@@ -61,9 +102,4 @@ class OptimizationError(Exception):
 
 class OptimizationConstraintSupportError(OptimizationError):
     """Raise if an optimizer does not support certain constraint."""
-    pass
-
-
-class LISOFileEmptyError(Exception):
-    """Raise if the file is empty."""
     pass

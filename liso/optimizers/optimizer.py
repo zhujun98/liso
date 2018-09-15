@@ -7,8 +7,6 @@ Author: Jun Zhu
 from abc import ABC, abstractmethod
 import time
 
-from ..logging import logger
-
 
 class Optimizer(ABC):
     """Abstract class for optimizers.
@@ -27,6 +25,22 @@ class Optimizer(ABC):
         self.seed = None
         if self.seed is None:
             self.seed = int(time.time())
+        self._workers = None
+        self.workers = 1
+
+    @property
+    def workers(self):
+        return self._workers
+
+    @workers.setter
+    def workers(self, value):
+        if isinstance(value, int) and value > 0:
+            if value > 1 and not self.multiprocessing:
+                raise ValueError("{} does not support parallel optimization!".
+                                 format(self.__class__.__name__))
+            self._workers = value
+        else:
+            raise ValueError("Invalid input {} for 'workers'!".format(value))
 
     @abstractmethod
     def __call__(self, opt_problem):
@@ -44,22 +58,3 @@ class Optimizer(ABC):
     @abstractmethod
     def __str__(self):
         pass
-
-    def _check_workers(self, opt_prob):
-        """Decide where to use multiprocessing.
-
-        If the optimizer itself supports multiprocessing, the API will
-        only use parallelized optimizer and serial version external
-        codes. Otherwise, the API will use parallel version external
-        codes.
-
-        :param Optimization opt_prob: Optimization instance.
-        """
-        if self.multiprocessing is False:
-            opt_prob.external_workers = max(opt_prob.external_workers,
-                                            opt_prob.workers)
-            opt_prob.workers = 1
-        else:
-            opt_prob.workers = max(opt_prob.external_workers, opt_prob.workers)
-            opt_prob.external_workers = 1
-            logger.info("Use parallelized {}.".format(self.name))

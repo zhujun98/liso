@@ -7,6 +7,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 import subprocess
+from distutils.spawn import find_executable
 
 import numpy as np
 
@@ -38,6 +39,7 @@ class Beamline(ABC):
                  pout=None,
                  charge=None,
                  z0=None,
+                 workers=1,
                  timeout=600):
         """Initialization.
 
@@ -55,6 +57,7 @@ class Beamline(ABC):
             beamline. However, for instance, when the second beamline is
             defined from z0 = 0.0, z0 is required to generate a correct initial
             particle distribution.
+        :param int workers: Number of processes for parallel run.
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
@@ -100,7 +103,21 @@ class Beamline(ABC):
         self.end = None  # LineParameters
         self.std = None  # LineParameters
 
+        self._workers = None
+        self.workers = workers
+
         self._timeout = timeout
+
+    @property
+    def workers(self):
+        return self._workers
+
+    @workers.setter
+    def workers(self, value):
+        if isinstance(value, int) and value > 0:
+            self._workers = value
+        else:
+            raise ValueError("Invalid input {} for 'workers'!".format(value))
 
     def __getattr__(self, item):
         return self._watches[item][1]
@@ -182,18 +199,31 @@ class Beamline(ABC):
             with open(self.next.pin, 'w') as fp:
                 fp.truncate()
 
-    def simulate(self, workers=1):
+    def simulate(self):
         """Simulate the beamline.
 
         :param int workers: Number of processes for parallel accelerator codes.
         """
-        if workers > 1:
+        if not os.path.isfile(self._fin):
+            raise InputFileNotFoundError(self._fin + " does not exist!")
+        if not os.path.getsize(self._fin):
+            raise InputFileEmptyError(self._fin + " is empty!")
+
+        if self.workers > 1:
+            if find_executable(self.__class__.exec_s) is None:
+                raise CommandNotFoundError(
+                    "{} is not a valid bash command".format(self.__class__.exec_s))
+
             command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
                 self._timeout,
-                workers,
+                self.workers,
                 self.__class__.exec_p,
                 self._fin)
         else:
+            if find_executable(self.__class__.exec_s) is None:
+                raise CommandNotFoundError(
+                    "{} is not a valid bash command".format(self.__class__.exec_s))
+
             command = "timeout {}s {} {}".format(
                 self._timeout,
                 self.__class__.exec_s,
@@ -217,7 +247,7 @@ class Beamline(ABC):
             data, charge, self._watches['out'][1] = \
                 self._process_watch(self._watches['out'][0])
         except Exception as e:
-            raise LISOWatchUpdateError(e)
+            raise WatchUpdateError(e)
 
         if self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
@@ -230,8 +260,8 @@ class Beamline(ABC):
             if name != 'out':
                 try:
                     _, _, item[1] = self._process_watch(item[0])
-                except (FileNotFoundError, LISOFileEmptyError) as e:
-                    raise LISOWatchUpdateError(e)
+                except (DataFileNotFoundError, DataFileEmptyError) as e:
+                    raise WatchUpdateError(e)
 
         # update lines
         try:
@@ -243,8 +273,8 @@ class Beamline(ABC):
             self.max = analyze_line(data, np.max)
             self.ave = analyze_line(data, np.average)
             self.std = analyze_line(data, np.std)
-        except (FileNotFoundError, LISOFileEmptyError) as e:
-            raise LISOLineUpdateError(e)
+        except (DataFileNotFoundError, DataFileEmptyError) as e:
+            raise LineUpdateError(e)
 
     def _process_watch(self, watch):
         """Process a Watch.

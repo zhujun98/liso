@@ -56,8 +56,6 @@ class SDPEN(PyoptOptimizer):
 
         Override.
         """
-        self._check_workers(opt_prob)
-
         if self.__class__.__dict__['_constraint_on'] is True:
             # Constraints
             if opt_prob.e_constraints:

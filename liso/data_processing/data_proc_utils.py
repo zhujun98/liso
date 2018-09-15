@@ -254,8 +254,8 @@ def analyze_beam(data, charge, *,
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
     if n0 < Config.MIN_PHASESPACE_PARTICLES:
-        raise LISOWatchUpdateError("Too few particles {} in the phasespace".
-                                   format(n0))
+        raise WatchUpdateError("Too few particles {} in the phasespace".
+                               format(n0))
 
     p = np.sqrt(data['pz'] ** 2 + data['px'] ** 2 + data['py'] ** 2)
 
@@ -312,8 +312,8 @@ def analyze_beam(data, charge, *,
                              (sorted_data.t < Ct_slice + dt_slice / 2)]
 
     if len(slice_data) < Config.MIN_PHASESPACE_PARTICLES:
-        raise LISOWatchUpdateError("Too few particles {} in the slice".
-                                   format(len(slice_data)))
+        raise WatchUpdateError("Too few particles {} in the slice".
+                               format(len(slice_data)))
 
     p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
 
@@ -342,8 +342,8 @@ def analyze_line(data, func):
     :return: A LineParameters instance.
     """
     if len(data) < Config.MIN_LINE_POINTS:
-        raise LISOLineUpdateError("Too few points {} in the line".
-                                  format(len(data)))
+        raise LineUpdateError("Too few points {} in the line".
+                              format(len(data)))
 
     params = LineParameters()
 
@@ -368,6 +368,6 @@ def analyze_line(data, func):
 def check_data_file(filepath):
     """Check the status of a given file."""
     if not os.path.isfile(filepath):
-        raise FileNotFoundError(filepath + " does not exist!")
+        raise DataFileNotFoundError(filepath + " does not exist!")
     if not os.path.getsize(filepath):
-        raise LISOFileEmptyError(filepath + " is empty!")
+        raise DataFileEmptyError(filepath + " is empty!")

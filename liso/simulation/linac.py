@@ -54,7 +54,7 @@ class Linac(object):
         """
         self._beamlines[beamline].add_watch(*args, **kwargs)
 
-    def simulate(self, mapping, workers=1):
+    def simulate(self, mapping):
         """Simulate and update all BeamParameters and LineParameters.
 
         Note:
@@ -64,7 +64,6 @@ class Linac(object):
 
         :param dict mapping: A dictionary for variables and covariables -
                              {name: value}.
-        :param int workers: Number of threads.
         """
         # First clean all the previous output
         for beamline in self._beamlines.values():
@@ -73,7 +72,7 @@ class Linac(object):
         # Run simulations, and update all the BeamParameters and LineParameters
         for i, beamline in enumerate(self._beamlines.values()):
             beamline.generate_input(mapping)
-            beamline.simulate(workers)
+            beamline.simulate()
             beamline.update_out()
             beamline.update_watches_and_lines()
 

@@ -28,6 +28,7 @@ linac.add_beamline('astra',
                    fin='astra_injector/injector.in',
                    template='astra_advanced/injector.in.000',
                    pout='injector.0450.001',
+                   workers=12,
                    timeout=90)
 
 opt = LinacOptimization(linac)
@@ -48,7 +49,6 @@ opt.add_var('main_sole_b', value=0.2, lb=0.00, ub=0.4)
 opt.add_var('gun_phase', value=0.0, lb=-10, ub=10)
 opt.add_var('tws_phase', value=0.0, lb=-90, ub=0)
 
-opt.workers = 12
 opt.printout = 1
 
 optimizer = ALPSO()
