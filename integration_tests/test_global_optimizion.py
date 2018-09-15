@@ -27,6 +27,7 @@ class TestGlobalOptimizer(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
+        print(linac)
 
         self.opt = LinacOptimization(linac)
         # self.opt.printout = 1
@@ -44,7 +45,7 @@ class TestGlobalOptimizer(unittest.TestCase):
             os.remove(file)
         os.remove(os.path.join(test_path, "injector.in"))
 
-    def test_not_raise(self):
+    def test_optimization(self):
         optimizer = ALPSO()
 
         opt_f, opt_x = self.opt.solve(optimizer)

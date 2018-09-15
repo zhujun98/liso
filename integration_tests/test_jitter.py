@@ -21,6 +21,7 @@ class TestJitter(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
+        print(linac)
 
         # set an jitter problem
         self.jt = LinacJitter(linac)

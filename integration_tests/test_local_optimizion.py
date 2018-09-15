@@ -29,6 +29,7 @@ class TestLocalOptimizer(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
+        print(linac)
 
         self.opt = LinacOptimization(linac)
         # self.opt.printout = 1
@@ -45,7 +46,7 @@ class TestLocalOptimizer(unittest.TestCase):
         except FileNotFoundError:
             pass
 
-    def test_nelderMead(self):
+    def test_optimization_nelderMead(self):
         optimizer = NelderMead()
 
         opt_f, opt_x = self.opt.solve(optimizer)
@@ -54,7 +55,7 @@ class TestLocalOptimizer(unittest.TestCase):
         self.assertAlmostEqual(opt_x[1], 0.23000, delta=0.01)
 
     @unittest.skipIf(SKIP_SDPEN_TEST is True, "Failed to import library")
-    def test_sdpen(self):
+    def test_optimization_sdpen(self):
         optimizer = SDPEN()
 
         opt_f, opt_x = self.opt.solve(optimizer)
