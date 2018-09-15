@@ -8,6 +8,6 @@ install:
   - pip install codecov
 
 script:
-  pytest --cov=liso tests
+  - py.test -v --cov=liso liso/tests
 
 after_success: codecov

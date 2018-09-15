@@ -47,6 +47,7 @@ setup(
 
     extras_require={
         'testing': [
+            'codecov',
             'pytest',
             'pytest-cov',
         ]

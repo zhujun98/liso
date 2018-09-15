@@ -8,7 +8,7 @@ import numpy as np
 
 from liso.exceptions import OptimizationConstraintSupportError
 
-from opt_problems import Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP37
+from .opt_problems import Rastrigin, Rosenbrock, EggHolder, TP08, TP14, TP37
 
 SKIP_TEST = False
 try:
