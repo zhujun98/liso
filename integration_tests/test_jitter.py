@@ -22,8 +22,11 @@ class TestJitter(unittest.TestCase):
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
+        print(linac)
+
         # set an jitter problem
         self.jt = LinacJitter(linac)
+        self.jt.printout = 1
 
         self.jt.add_response('emitx', expr='gun.out.emitx', scale=1e6)
         self.jt.add_response('Ct', expr='gun.out.Ct', scale=1e15)

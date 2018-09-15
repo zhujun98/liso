@@ -28,8 +28,10 @@ class TestGlobalOptimizer(unittest.TestCase):
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
+        print(linac)
+
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
+        self.opt.printout = 1
 
         self.opt.add_obj('f', expr='gun.out.Sx', scale=1.e6)
         self.opt.add_icon('g1', func=lambda a: a.gun.max.emitx*1e6, ub=0.041)
@@ -44,7 +46,7 @@ class TestGlobalOptimizer(unittest.TestCase):
             os.remove(file)
         os.remove(os.path.join(test_path, "injector.in"))
 
-    def test_not_raise(self):
+    def test_optimization(self):
         optimizer = ALPSO()
 
         opt_f, opt_x = self.opt.solve(optimizer)

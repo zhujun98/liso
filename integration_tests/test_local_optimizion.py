@@ -30,8 +30,10 @@ class TestLocalOptimizer(unittest.TestCase):
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
+        print(linac)
+
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
+        self.opt.printout = 1
 
         self.opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1.e6)
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
