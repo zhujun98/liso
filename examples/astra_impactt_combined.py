@@ -2,11 +2,28 @@
 This is an example showing how to simulate different part of a linac
 using different code.
 
+```
+python astra_impactt_combined.py --workers <number of cpu cores>
+```
+
 This may not be a good example for optimization. It simply shows how
 does a concatenated optimization work.
 """
+import argparse
+
 from liso import Linac, LinacOptimization, NelderMead
 
+
+parser = argparse.ArgumentParser(description='Resnet benchmark')
+parser.add_argument('--workers',
+                    type=int,
+                    nargs='?',
+                    default='1',
+                    help="Number of workers.")
+
+args = parser.parse_args()
+
+# ---------------------------------------------------------------------
 
 linac = Linac()
 
@@ -18,7 +35,7 @@ linac.add_beamline('astra',
                    fin='astra_injector/injector.in',
                    template='astra_impactt_combined/injector.in.000',
                    pout='injector.0450.001',
-                   workers=12)
+                   workers=args.workers)
 
 # Add the second beamline
 #

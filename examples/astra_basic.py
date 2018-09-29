@@ -2,6 +2,10 @@
 This is a basic example showing how to optimize the emittance in ASTRA
 with a local search optimizer.
 
+```
+python astra_basic.py --workers <number of cpu cores>
+```
+
 The solution of running the following code is 
     emitx_um    = 0.3195 
 at
@@ -11,8 +15,21 @@ at
 
 Author: Jun Zhu
 """
+import argparse
+
 from liso import Linac, LinacOptimization, NelderMead
 
+
+parser = argparse.ArgumentParser(description='Resnet benchmark')
+parser.add_argument('--workers',
+                    type=int,
+                    nargs='?',
+                    default='1',
+                    help="Number of workers.")
+
+args = parser.parse_args()
+
+# ---------------------------------------------------------------------
 
 linac = Linac()  # instantiate a Linac
 
@@ -32,7 +49,7 @@ linac.add_beamline('astra',
                    fin='astra_injector/injector.in',
                    template='astra_basic/injector.in.000',
                    pout='injector.0450.001',
-                   workers=12,
+                   workers=args.workers,
                    timeout=300)
 
 opt = LinacOptimization(linac)  # instantiate Optimization (problem)
