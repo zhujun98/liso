@@ -3,6 +3,10 @@ This is an advanced example showing how to optimize the bunch length
 as well as how to set equality and inequality constraints in with a
 global optimizer.
 
+```
+python astra_advanced.py --workers <number of cpu cores>
+```
+
 Result after 15 outer iterations and 1880 function evaluations
 
 St 64.916 fs
@@ -18,8 +22,21 @@ tws_phase -90.0000
 
 Author: Jun Zhu
 """
+import argparse
+
 from liso import Linac, LinacOptimization, ALPSO
 
+
+parser = argparse.ArgumentParser(description='Resnet benchmark')
+parser.add_argument('--workers',
+                    type=int,
+                    nargs='?',
+                    default='1',
+                    help="Number of workers.")
+
+args = parser.parse_args()
+
+# ---------------------------------------------------------------------
 
 linac = Linac()
 
@@ -28,7 +45,7 @@ linac.add_beamline('astra',
                    fin='astra_injector/injector.in',
                    template='astra_advanced/injector.in.000',
                    pout='injector.0450.001',
-                   workers=12,
+                   workers=args.workers,
                    timeout=90)
 
 opt = LinacOptimization(linac)
