@@ -1,37 +1,40 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
-Line data parser for different codes.
+The full license is in the file LICENSE, distributed with this software.
 
-Important note:
-_______________
-The calculated Twiss parameters are based on the canonical coordinates
-of the beam. Therefore, when the beam has a large energy spread or a
-big divergence angle, the result will be quite different from the
-true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
-get the very-close Twiss parameters even in extreme conditions.
-
-
-The data is a pandas.DataFrame containing the following columns:
-
-    z (m)
-    gamma
-    SdE (eV)
-    Sx (m)
-    Sy (m)
-    Sz (m),
-    emitx (m.rad)
-    emity (m.rad)
-    emitz (m.rad),
-    emitx_tr (m.rad)
-    emity_tr (m.rad)
-    betax (m)
-    betay (m)
-    alphax
-    alphay
-
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# Line data parser for different codes.
+#
+# Important note:
+# _______________
+# The calculated Twiss parameters are based on the canonical coordinates
+# of the beam. Therefore, when the beam has a large energy spread or a
+# big divergence angle, the result will be quite different from the
+# true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
+# get the very-close Twiss parameters even in extreme conditions.
+#
+#
+# The data is a pandas.DataFrame containing the following columns:
+#
+#     z (m)
+#     gamma
+#     SdE (eV)
+#     Sx (m)
+#     Sy (m)
+#     Sz (m),
+#     emitx (m.rad)
+#     emity (m.rad)
+#     emitz (m.rad),
+#     emitx_tr (m.rad)
+#     emity_tr (m.rad)
+#     betax (m)
+#     betay (m)
+#     alphax
+#     alphay
+
 import pandas as pd
 import numpy as np
 

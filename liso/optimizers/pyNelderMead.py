@@ -1,8 +1,9 @@
-#!/usr/bin/env python
 """
-NelderMead - An LISO interface for Nelder-Mead (simplex) algorithm.
+Distributed under the terms of the GNU General Public License v3.0.
 
-Author: Jun Zhu, zhujun981661@gmail.com
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import time
 

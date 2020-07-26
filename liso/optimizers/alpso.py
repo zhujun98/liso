@@ -1,18 +1,21 @@
-#!/usr/bin/env python
 """
-Single-objective Augmented Lagrangian Particle Swarm Optimizer (ALPSO)
+Distributed under the terms of the GNU General Public License v3.0.
 
-The optimizer solves problems of the form:
+The full license is in the file LICENSE, distributed with this software.
 
-    min F(x)
-
-    subject to: G_i(x)  = 0, i = 1, 2, ..., M_E
-                G_j(x) <= 0, j = M_E+1, M_E+2, ..., M
-                x_LB <= x <= x_UB
-
-Author: Jun Zhu
-
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# Single-objective Augmented Lagrangian Particle Swarm Optimizer (ALPSO)
+#
+# The optimizer solves problems of the form:
+#
+#     min F(x)
+#
+#     subject to: G_i(x)  = 0, i = 1, 2, ..., M_E
+#                 G_j(x) <= 0, j = M_E+1, M_E+2, ..., M
+#                 x_LB <= x <= x_UB
+
 import numpy as np
 import h5py
 

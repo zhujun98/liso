@@ -1,13 +1,18 @@
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
-Pure Python/Numpy implementation of the Nelder-Mead algorithm described in
+The full license is in the file LICENSE, distributed with this software.
 
-http://www.scholarpedia.org/article/Nelder-Mead_algorithm
-
-Other references:
-- https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# Pure Python/Numpy implementation of the Nelder-Mead algorithm described in
+#
+# http://www.scholarpedia.org/article/Nelder-Mead_algorithm
+#
+# Other references:
+# - https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
+
 import numpy as np
 
 

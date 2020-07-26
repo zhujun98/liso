@@ -1,8 +1,9 @@
-#!/usr/bin/env python
 """
-Optimizer class.
+Distributed under the terms of the GNU General Public License v3.0.
 
-Author: Jun Zhu
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import ABC, abstractmethod
 import time

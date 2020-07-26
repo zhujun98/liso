@@ -1,30 +1,31 @@
-#!/usr/bin/python
-
 """
-The optimization problem is define as:
+Distributed under the terms of the GNU General Public License v3.0.
 
-min f(x) w.r.t. x
+The full license is in the file LICENSE, distributed with this software.
 
-s.t. g_j(x) = 0, j = 1, ..., m_e
-
-    g_j(x) <= 0, j = m_e + 1, ..., m
-
-    x_i_L <= x_i <= x_i_U, i = 1, ..., n
-
-where:
-
-    x is the vector of design variables;
-    f(x) is a nonlinear function;
-    g(x) is a linear or nonlinear function;
-    n is the number of design variables;
-    m_e is the number of equality constraints;
-    m is the total number of constraints (number of equality
-    constraints: m_i = m - m_e).
-
-
-Author: Jun Zhu, zhujun981661@gmail.com
-
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# The optimization problem is define as:
+#
+# min f(x) w.r.t. x
+#
+# s.t. g_j(x) = 0, j = 1, ..., m_e
+#
+#     g_j(x) <= 0, j = m_e + 1, ..., m
+#
+#     x_i_L <= x_i <= x_i_U, i = 1, ..., n
+#
+# where:
+#
+#     x is the vector of design variables;
+#     f(x) is a nonlinear function;
+#     g(x) is a linear or nonlinear function;
+#     n is the number of design variables;
+#     m_e is the number of equality constraints;
+#     m is the total number of constraints (number of equality
+#     constraints: m_i = m - m_e).
+
 from collections import OrderedDict
 from itertools import chain
 import time

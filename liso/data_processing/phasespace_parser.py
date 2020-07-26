@@ -1,19 +1,23 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
-Line data parser for different codes.
+The full license is in the file LICENSE, distributed with this software.
 
-The returning data is a pandas.DataFrame containing the following columns:
-
-    x (m)
-    px (mc)
-    y (m)
-    py (mc)
-    z(m)
-    pz (mc)
-    t (s).
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# Line data parser for different codes.
+#
+# The returning data is a pandas.DataFrame containing the following columns:
+#
+#     x (m)
+#     px (mc)
+#     y (m)
+#     py (mc)
+#     z(m)
+#     pz (mc)
+#     t (s).
+
 import numpy as np
 import pandas as pd
 

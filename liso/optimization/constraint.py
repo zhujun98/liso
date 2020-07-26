@@ -1,19 +1,21 @@
-#!/usr/bin/env python
 """
-Constraint class
+Distributed under the terms of the GNU General Public License v3.0.
 
-In the optimization problem definition, the equality and inequality
-constraints are defined as:
+The full license is in the file LICENSE, distributed with this software.
 
-    g_j(x) = 0, j = 1, ..., m_e
-
-    g_j(x) <= 0, j = m_e + 1, ..., m
-
-respectively. We must convert the constraint defined by the client to
-the standard constraint.
-
-Author: Jun Zhu
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# In the optimization problem definition, the equality and inequality
+# constraints are defined as:
+#
+#     g_j(x) = 0, j = 1, ..., m_e
+#
+#     g_j(x) <= 0, j = m_e + 1, ..., m
+#
+# respectively. We must convert the constraint defined by the client to
+# the standard constraint.
+
 from ..elements import EvaluatedElement
 from ..config import Config
 from ..logging import logger, opt_logger

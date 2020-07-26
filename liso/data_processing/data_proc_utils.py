@@ -1,6 +1,9 @@
 """
-Author: Jun Zhu, zhujun981661@gmail.com
+Distributed under the terms of the GNU General Public License v3.0.
 
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import os
 import numpy as np

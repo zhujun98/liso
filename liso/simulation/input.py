@@ -1,11 +1,9 @@
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
+The full license is in the file LICENSE, distributed with this software.
 
-The InputGenerator class is preserved to provide a high level interface
-for producing input files for different simulations. An alternative
-way is to use a template and replace some keywords in the template
-each time.
+Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import abstractmethod
 
