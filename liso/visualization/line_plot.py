@@ -1,9 +1,9 @@
-#!/usr/bin/python
 """
-Classes for plotting parameters' evolution from different codes.
+Distributed under the terms of the GNU General Public License v3.0.
 
-Author: Jun Zhu
+The full license is in the file LICENSE, distributed with this software.
 
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import os
 from abc import abstractmethod
