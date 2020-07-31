@@ -28,6 +28,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 
 from collections import OrderedDict
 from itertools import chain
+import math
 import time
 
 import numpy as np
@@ -38,12 +39,9 @@ from ..covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
-from ..config import Config
 from ..exceptions import *
 from ..simulation.simulation_utils import check_templates
 from ..logging import logger, opt_logger
-
-INF = Config.INF
 
 
 class Optimization(Operation):
@@ -405,8 +403,8 @@ class LinacOptimization(Optimization):
 
             self._nf = 0
         else:
-            f = [INF] * len(self.objectives)
-            g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
+            f = [math.inf] * len(self.objectives)
+            g = [math.inf] * (len(self.i_constraints) + len(self.e_constraints))
 
         # monitor time consumption
         dt = time.perf_counter() - t0

@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import os
+import os.path as osp
 import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -14,6 +15,7 @@ from distutils.spawn import find_executable
 
 import numpy as np
 
+from ..config import config
 from .watch import AstraWatch, ImpacttWatch
 from .line import AstraLine, ImpacttLine
 from .input import InputGenerator
@@ -22,17 +24,10 @@ from ..data_processing import analyze_beam, analyze_line, tailor_beam, \
 from .simulation_utils import generate_input
 
 from ..exceptions import *
-from ..config import Config
-
-
-INF = Config.INF
 
 
 class Beamline(ABC):
     """Beamline abstraction class."""
-    code = None  # code name
-    exec_s = None  # series simulation exec
-    exec_p = None  # parallel simulation exec
 
     def __init__(self, name, *,
                  gin=None,
@@ -41,9 +36,7 @@ class Beamline(ABC):
                  pin=None,
                  pout=None,
                  charge=None,
-                 z0=None,
-                 workers=1,
-                 timeout=600):
+                 z0=None):
         """Initialization.
 
         :param str name: Name of the beamline.
@@ -60,9 +53,6 @@ class Beamline(ABC):
             beamline. However, for instance, when the second beamline is
             defined from z0 = 0.0, z0 is required to generate a correct initial
             particle distribution.
-        :param int workers: Number of processes for parallel run.
-        :param float timeout: Maximum allowed duration in seconds of the
-            simulation.
         """
         self.name = name
         if isinstance(gin, InputGenerator):
@@ -107,20 +97,6 @@ class Beamline(ABC):
         self.std = None  # LineParameters
 
         self._workers = None
-        self.workers = workers
-
-        self._timeout = timeout
-
-    @property
-    def workers(self):
-        return self._workers
-
-    @workers.setter
-    def workers(self, value):
-        if isinstance(value, int) and value > 0:
-            self._workers = value
-        else:
-            raise ValueError("Invalid input {} for 'workers'!".format(value))
 
     def __getattr__(self, item):
         return self._watches[item][1]
@@ -135,7 +111,7 @@ class Beamline(ABC):
             Filename of the Watch object. This file is assumed to be in
             the same folder of the input file of this object.
         """
-        pass
+        raise NotImplementedError
 
     def generate_input(self, mapping):
         """Generate input file.
@@ -202,35 +178,38 @@ class Beamline(ABC):
             with open(self.next.pin, 'w') as fp:
                 fp.truncate()
 
-    def simulate(self):
+    def simulate(self, n_workers, timeout):
         """Simulate the beamline.
 
-        :param int workers: Number of processes for parallel accelerator codes.
+        :param int n_workers: Number of processes for parallel run.
+        :param float timeout: Maximum allowed duration in seconds of the
+            simulation.
         """
+        if isinstance(n_workers, int) and n_workers > 0:
+            self._workers = n_workers
+        else:
+            raise ValueError("n_workers must be a positive integer!")
+
         if not os.path.isfile(self._fin):
             raise InputFileNotFoundError(self._fin + " does not exist!")
         if not os.path.getsize(self._fin):
             raise InputFileEmptyError(self._fin + " is empty!")
 
-        if self.workers > 1:
-            if find_executable(self.__class__.exec_s) is None:
+        if n_workers > 1:
+            executable = find_executable(config['EXECUTABLE_PARA']['ASTRA'])
+            if executable is None:
                 raise CommandNotFoundError(
-                    "{} is not a valid bash command".format(self.__class__.exec_s))
+                   f"{executable} is not a valid bash command")
 
-            command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
-                self._timeout,
-                self.workers,
-                self.__class__.exec_p,
-                self._fin)
+            command = f"timeout {timeout}s mpirun -np {n_workers} " \
+                      f"{executable} {self._fin} >/dev/null"
         else:
-            if find_executable(self.__class__.exec_s) is None:
+            executable = find_executable(config['EXECUTABLE']['ASTRA'])
+            if executable is None:
                 raise CommandNotFoundError(
-                    "{} is not a valid bash command".format(self.__class__.exec_s))
+                    f"{executable} is not a valid bash command")
 
-            command = "timeout {}s {} {}".format(
-                self._timeout,
-                self.__class__.exec_s,
-                os.path.basename(self._fin))
+            command = f"timeout {timeout}s {executable} {self._fin}"
 
         # TODO: understand how to understand the simulation process.
         try:
@@ -326,27 +305,19 @@ class Beamline(ABC):
         return text
 
 
-def create_beamline(code, *args, **kwargs):
-    """Create a Beamline instance.
+def create_beamline(bl_type, *args, **kwargs):
+    """Create and return a Beamline instance.
 
-    :param code: string
-        Code name.
+    :param str bl_type: beamline type
     """
     class AstraBeamline(Beamline):
-        """Beamline simulated by ASTRA.
-
-        Inherit from Beamline class.
-        """
-        code = 'a'
-        exec_s = Config.ASTRA
-        exec_p = Config.ASTRA_P
+        """Beamline simulated using ASTRA."""
 
         def __init__(self, *args, **kwargs):
-            """Initialization."""
             super().__init__(*args, **kwargs)
 
-            rootpath = os.path.join(self.dirname,
-                                    os.path.basename(self.pout.split('.')[0]))
+            rootpath = osp.join(
+                self.dirname, osp.basename(self.pout.split('.')[0]))
             self._all = AstraLine('all', rootpath)
             self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
                                      '.TRemit.001']
@@ -362,16 +333,8 @@ def create_beamline(code, *args, **kwargs):
                 ParticleFileGenerator(data, self.pin).to_astra_pfile(charge)
 
     class ImpacttBeamline(Beamline):
-        """Beamline simulated by IMPACT-T.
-
-        Inherit from Beamline class.
-        """
-        code = 't'
-        exec_s = Config.IMPACTT
-        exec_p = Config.IMPACTT_P
-
+        """Beamline simulated using IMPACT-T."""
         def __init__(self, pin='partcl.data', *args, **kwargs):
-            """Initialization."""
             super().__init__(pin=pin, *args, **kwargs)
             if self.pin is not None and os.path.basename(
                     self.pin) != 'partcl.data':
@@ -382,8 +345,8 @@ def create_beamline(code, *args, **kwargs):
                 raise ValueError(
                     "Bunch charge is required for ImpactT simulation!")
 
-            rootpath = os.path.join(self.dirname,
-                                    os.path.basename(self.pout.split('.')[0]))
+            rootpath = osp.join(
+                self.dirname, osp.basename(self.pout.split('.')[0]))
             self._all = ImpacttLine('all', rootpath)
             self._output_suffixes = ['.18', '.24', '.25', '.26']
 
@@ -397,36 +360,10 @@ def create_beamline(code, *args, **kwargs):
             if self.pin is not None:
                 ParticleFileGenerator(data, self.pin).to_impactt_pfile()
 
-    class ImpactzBeamline(Beamline):
-        """Beamline simulated by IMPACT-Z.
-
-        Inherit from Beamline class.
-        """
-        code = 'z'
-        exec_s = None
-        exec_p = None
-        pass
-
-    class GenesisBeamline(Beamline):
-        """Beamline simulated by GENESIS.
-
-        Inherit from Beamline class.
-        """
-        code = 'g'
-        exec_s = None
-        exec_p = None
-        pass
-
-    if code.lower() in ('astra', 'a'):
+    if bl_type.lower() in ('astra', 'a'):
         return AstraBeamline(*args, **kwargs)
 
-    if code.lower() in ('impactt', 't'):
+    if bl_type.lower() in ('impactt', 't'):
         return ImpacttBeamline(*args, **kwargs)
 
-    if code.lower() in ('impactz', 'z'):
-        return ImpactzBeamline(*args, **kwargs)
-
-    if code.lower() in ('genesis', 'g'):
-        return GenesisBeamline(*args, **kwargs)
-
-    raise ValueError("Unknown code!")
+    raise ValueError(f"Unknown beamline type {bl_type}!")

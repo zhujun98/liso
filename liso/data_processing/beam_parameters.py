@@ -18,9 +18,6 @@ class BeamParameters(object):
         self._n = 0
         self._q = 0.0
         self._charge = 0.0
-        self.n = 0
-        self.q = 0.0
-        self.charge = 0.0
 
         self.p = 0.0
         self.gamma = 0.0

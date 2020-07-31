@@ -15,14 +15,12 @@ Copyright (C) Jun Zhu. All rights reserved.
 #     subject to: G_i(x)  = 0, i = 1, 2, ..., M_E
 #                 G_j(x) <= 0, j = M_E+1, M_E+2, ..., M
 #                 x_LB <= x <= x_UB
+import math
 
 import numpy as np
 import h5py
 
-from ..config import Config
 from ..logging import opt_logger
-
-INF = Config.INF
 
 
 def update_inertial_weight(w0, w1, k):
@@ -161,9 +159,9 @@ def alpso(x0,
     rho = rho_max  # search radius for the global best particle (GCPSO)
     nfeval = 0  # No. of evaluations of the objective function
 
-    f = np.ones(swarm_size, float) * INF  # objective
-    L = np.ones(swarm_size, float) * INF  # Lagrangian function
-    g = np.ones([swarm_size, n_cons], float) * INF  # Constraint
+    f = np.ones(swarm_size, float) * math.inf  # objective
+    L = np.ones(swarm_size, float) * math.inf  # Lagrangian function
+    g = np.ones([swarm_size, n_cons], float) * math.inf  # Constraint
     for i in range(swarm_size):
         f[i], g[i, :] = f_obj_con(x_k[i, :])
         nfeval += 1

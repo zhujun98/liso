@@ -8,15 +8,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 from abc import abstractmethod, ABC
 
 from ..data_processing import parse_phasespace
-from ..config import Config
-
-
-V_LIGHT = Config.vLight
-M_E = Config.me
-Q_E = Config.qe
-INF = Config.INF
-
-CONST_E = M_E*V_LIGHT**2/Q_E
 
 
 class Watch(ABC):

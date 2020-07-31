@@ -18,18 +18,14 @@ Copyright (C) Jun Zhu. All rights reserved.
 #     pz (mc)
 #     t (s).
 
+from scipy import constants
 import numpy as np
 import pandas as pd
 
-from ..config import Config
 from .data_proc_utils import check_data_file
 
-
-V_LIGHT = Config.vLight
-M_E = Config.me
-Q_E = Config.qe
-
-CONST_E = M_E*V_LIGHT**2/Q_E
+V_LIGHT= constants.c
+MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
 def parse_astra_phasespace(particle_file):
@@ -52,10 +48,9 @@ def parse_astra_phasespace(particle_file):
     data.loc[0, 'pz'] = 0.0
     data['pz'] += pz_ref
 
-    tmp = M_E * V_LIGHT ** 2 / Q_E
-    data['px'] /= tmp
-    data['py'] /= tmp
-    data['pz'] /= tmp
+    data['px'] /= MC2_E
+    data['py'] /= MC2_E
+    data['pz'] /= MC2_E
 
     # ix will first try to act like loc to find the index label.
     # If the index label is not found, it will add an index label

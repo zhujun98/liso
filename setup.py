@@ -1,11 +1,6 @@
 import os.path as osp
 import re
-import sys
 from setuptools import setup, find_packages
-
-
-if sys.version_info < (3, 7):
-    raise SystemError("Python >= 3.7 is required!")
 
 
 def find_version():
@@ -40,6 +35,7 @@ setup(
         'Intended Audience :: Science/Research',
         'Intended Audience :: Developers',
         'License :: GNU',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering',
         'Operating System :: Microsoft :: Windows',
@@ -54,9 +50,6 @@ setup(
         'h5py>=2.10',
     ],
     entry_points={
-        'console_scripts': [
-            'liso-gui=liso.visualization.main_gui:main_gui'
-        ],
     },
     extras_require={
         'testing': [

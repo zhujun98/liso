@@ -2,9 +2,6 @@
 Author: Jun Zhu
 """
 from abc import ABC, abstractmethod
-from .config import Config
-
-INF = Config.INF
 
 
 class OperationalElement(ABC):

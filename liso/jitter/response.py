@@ -5,12 +5,11 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import math
+
 import numpy as np
 
-from ..config import Config
 from ..elements import EvaluatedElement
-
-INF = Config.INF
 
 
 class Response(EvaluatedElement):
@@ -28,7 +27,7 @@ class Response(EvaluatedElement):
     @property
     def sigma(self):
         if not self.values:
-            return INF
+            return math.inf
         return np.std(self.values)
 
     def list_item(self):

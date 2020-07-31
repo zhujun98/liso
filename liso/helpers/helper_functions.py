@@ -5,7 +5,7 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from ..config import Config
+from ..config import config
 
 V_LIGHT = Config.vLight
 M_E = Config.me

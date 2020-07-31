@@ -6,7 +6,6 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections import OrderedDict
-
 from .beamline import create_beamline
 
 
@@ -18,7 +17,6 @@ class Linac(object):
     simulated using different codes.
     """
     def __init__(self):
-        """Initialization."""
         self._beamlines = OrderedDict()
 
     def __getattr__(self, item):
@@ -35,8 +33,9 @@ class Linac(object):
         """
         bl = create_beamline(code, *args, **kwargs)
 
-        if bl.name in self._beamlines.keys():
-            raise ValueError("Beamline named {} already exists!".format(bl.name))
+        name = bl.name
+        if name in self._beamlines:
+            raise ValueError(f"Beamline {name} already exists!")
 
         # connect the new Beamline to the last added Beamline
         if len(self._beamlines) != 0:
@@ -46,16 +45,25 @@ class Linac(object):
                 raise ValueError("Initial particle file of the new Beamline must "
                                  "be specified for a concatenated simulation!")
 
-        self._beamlines[bl.name] = bl
+        self._beamlines[name] = bl
 
-    def add_watch(self, beamline, *args, **kwargs):
-        """Add a Watch object to a Beamline of the Linac.
+    def run(self, mapping, *, n_workers=1, timeout=600):
+        """Run simulation for the beamline
 
-        :param str beamline: Name of the Beamline object.
-        :param \*args: Pass to the __init__ method of Watch.
-        :param \*\*kwargs: Pass to the __init__ method of Watch.
+        :param int n_workers: Number of processes used in simulation.
+        :param float timeout: Maximum allowed duration in seconds of the
+            simulation.
         """
-        self._beamlines[beamline].add_watch(*args, **kwargs)
+        # First clean all the previous output
+        for beamline in self._beamlines.values():
+            beamline.clean()
+
+        # Run simulations, and update all the BeamParameters and LineParameters
+        for i, bl in enumerate(self._beamlines.values()):
+            bl.generate_input(mapping)
+            bl.simulate(n_workers, timeout)
+            bl.update_out()
+            bl.update_watches_and_lines()
 
     def simulate(self, mapping):
         """Simulate and update all BeamParameters and LineParameters.
@@ -73,18 +81,11 @@ class Linac(object):
             beamline.clean()
 
         # Run simulations, and update all the BeamParameters and LineParameters
-        for i, beamline in enumerate(self._beamlines.values()):
-            beamline.generate_input(mapping)
-            beamline.simulate()
-            beamline.update_out()
-            beamline.update_watches_and_lines()
-
-    def _get_templates(self):
-        """Get templates for all beamlines."""
-        templates = []
-        for beamline in self._beamlines.values():
-            templates.append(beamline.template)
-        return templates
+        for i, bl in enumerate(self._beamlines.values()):
+            bl.generate_input(mapping)
+            bl.simulate()
+            bl.update_out()
+            bl.update_watches_and_lines()
 
     def __str__(self):
         text = ''

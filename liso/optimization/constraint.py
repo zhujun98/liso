@@ -16,12 +16,10 @@ Copyright (C) Jun Zhu. All rights reserved.
 # respectively. We must convert the constraint defined by the client to
 # the standard constraint.
 
+import math
+
 from ..elements import EvaluatedElement
-from ..config import Config
 from ..logging import logger, opt_logger
-
-
-INF = Config.INF
 
 
 class IConstraint(EvaluatedElement):
@@ -31,13 +29,13 @@ class IConstraint(EvaluatedElement):
         super().__init__(name, expr=expr, scale=scale, func=func)
 
         self._value = None  # the real value
-        self.value = INF  # the value seen by the optimizer
+        self.value = math.inf  # the value seen by the optimizer
         # lb and ub are both properties, only one of them is allowed to be
         # specified since all inequality constraint must be normalized to
         # [-INF, 0]. Namely, if lb is specified, then ub will be reset to
         # INF; however, if ub is specified, then lb will be reset to -INF.
-        self._lb = -INF
-        self.lb = -INF
+        self._lb = -math.inf
+        self.lb = -math.inf
         self._ub = 0.0
         self.ub = 0.0
 
@@ -62,8 +60,8 @@ class IConstraint(EvaluatedElement):
     @ub.setter
     def ub(self, value):
         self._ub = value
-        self._lb = -INF
-        self._value = INF  # reset _value to upset the inequality condition
+        self._lb = -math.inf
+        self._value = math.inf  # reset _value to upset the inequality condition
 
     @property
     def lb(self):
@@ -72,15 +70,15 @@ class IConstraint(EvaluatedElement):
     @lb.setter
     def lb(self, value):
         self._lb = value
-        self._ub = INF
-        self._value = -INF  # reset _value to upset the inequality condition
+        self._ub = math.inf
+        self._value = -math.inf  # reset _value to upset the inequality condition
 
     @property
     def value(self):
         # The value is normalized to(-INF, 0]
-        if self.ub == INF:
+        if self.ub == math.inf:
             return self._lb - self._value
-        if self.lb == -INF:
+        if self.lb == -math.inf:
             return self._value - self._ub
         raise ValueError("Wrong boundary values in IConstraint!")
 
@@ -105,7 +103,7 @@ class EConstraint(EvaluatedElement):
         super().__init__(name, expr=expr, scale=scale, func=func)
         self.eq = eq
         self._value = None  # the real value
-        self.value = INF  # the value seen by the optimizer
+        self.value = math.inf  # the value seen by the optimizer
 
     @property
     def value(self):

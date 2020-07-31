@@ -35,20 +35,14 @@ Copyright (C) Jun Zhu. All rights reserved.
 #     alphax
 #     alphay
 
+from scipy import constants
 import pandas as pd
 import numpy as np
 
-
-from ..config import Config
 from .data_proc_utils import check_data_file
 from ..exceptions import *
 
-
-V_LIGHT = Config.vLight
-M_E = Config.me
-Q_E = Config.qe
-
-CONST_E = M_E*V_LIGHT**2/Q_E
+MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
 def parse_impactt_line(root_name):
@@ -96,7 +90,7 @@ def parse_impactt_line(root_name):
     data['gamma'] = np.sqrt(xdata['px'].pow(2) + ydata['py'].pow(2) +
                                  zdata['pz'].pow(2) + 1)
     data['sde'] = np.sqrt(xdata['spx'].pow(2) + ydata['spy'].pow(2) +
-                               zdata['spz'].pow(2))*CONST_E
+                               zdata['spz'].pow(2)) * MC2_E
 
     data['sx'] = xdata['sx']
     data['sy'] = ydata['sy']
@@ -191,7 +185,7 @@ def parse_astra_line(root_name):
     data['z'] = xdata['z']
     # data['t'] = xdata['t']*1.0e-9
 
-    data['gamma'] = zdata['ek']*1.0e6/CONST_E + 1
+    data['gamma'] = zdata['ek']*1.0e6 / MC2_E + 1
     data['sde'] = zdata['sde']*1.0e3
 
     data['sx'] = xdata['sx']*1.0e-3

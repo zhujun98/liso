@@ -5,18 +5,17 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from ..elements import EvaluatedElement
-from ..config import Config
+import math
 
-INF = Config.INF
+from ..elements import EvaluatedElement
 
 
 class Objective(EvaluatedElement):
     """Objective Class. Inherited from EvaluatedElement"""
-    def __init__(self, name, expr=None, scale=1.0, func=None, optimum=-INF):
+    def __init__(self, name, expr=None, scale=1.0, func=None, optimum=-math.inf):
         """Initialization."""
         super().__init__(name, expr=expr, scale=scale, func=func)
-        self.value = INF
+        self.value = math.inf
         self.optimum = optimum
 
     def list_item(self):

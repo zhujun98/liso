@@ -6,17 +6,9 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import abstractmethod, ABC
+import math
 
 from ..data_processing import parse_line
-from ..config import Config
-
-
-V_LIGHT = Config.vLight
-M_E = Config.me
-Q_E = Config.qe
-INF = Config.INF
-
-CONST_E = M_E*V_LIGHT**2/Q_E
 
 
 class Line(ABC):
@@ -25,7 +17,7 @@ class Line(ABC):
     This class has a method load_data() which reads data from the
     files which record the evolutions of beam parameters.
     """
-    def __init__(self, name, rootname, zlim=(-INF, INF)):
+    def __init__(self, name, rootname, zlim=(-math.inf, math.inf)):
         """Initialize BeamStats object
 
         :param name: string

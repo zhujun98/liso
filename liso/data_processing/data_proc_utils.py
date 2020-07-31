@@ -10,7 +10,6 @@ import numpy as np
 from .beam_parameters import BeamParameters
 from .line_parameters import LineParameters
 from ..exceptions import *
-from ..config import Config
 
 
 def compute_canonical_emit(x, px):
@@ -256,7 +255,7 @@ def analyze_beam(data, charge, *,
 
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
-    if n0 < Config.MIN_PHASESPACE_PARTICLES:
+    if n0 < 20:
         raise WatchUpdateError("Too few particles {} in the phasespace".
                                format(n0))
 
@@ -314,7 +313,7 @@ def analyze_beam(data, charge, *,
     slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
                              (sorted_data.t < Ct_slice + dt_slice / 2)]
 
-    if len(slice_data) < Config.MIN_PHASESPACE_PARTICLES:
+    if len(slice_data) < 20:
         raise WatchUpdateError("Too few particles {} in the slice".
                                format(len(slice_data)))
 
@@ -344,7 +343,7 @@ def analyze_line(data, func):
 
     :return: A LineParameters instance.
     """
-    if len(data) < Config.MIN_LINE_POINTS:
+    if len(data) < 5:
         raise LineUpdateError("Too few points {} in the line".
                               format(len(data)))
 

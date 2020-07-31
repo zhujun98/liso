@@ -10,9 +10,7 @@ import re
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
-
-from ..config import Config
-V_LIGHT = Config.vLight
+from scipy import constants
 
 
 def fast_sample_data(x, y, n=1):
@@ -305,6 +303,6 @@ def get_line_column_by_name(data, name):
     name = name.lower()
 
     if name == 'st':
-        return data['sz'] / V_LIGHT
+        return data['sz'] / constants.c
 
     return data[name]

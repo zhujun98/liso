@@ -5,10 +5,9 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from ..elements import OperationalElement
-from ..config import Config
+import math
 
-INF = Config.INF
+from ..elements import OperationalElement
 
 
 class Variable(OperationalElement):
@@ -31,8 +30,8 @@ class Variable(OperationalElement):
         self.type_ = type_[0].lower()
         if self.type_ == 'c':
             self.value = float(value)
-            self.lb = -INF
-            self.ub = INF
+            self.lb = -math.inf
+            self.ub = math.inf
             for key in kwargs.keys():
                 if key.lower() == 'lb':
                     self.lb = float(kwargs[key])

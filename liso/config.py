@@ -1,14 +1,35 @@
-class Config(object):
-    """"""
-    INF = 1.0e21
-    vLight = 299792458
-    me = 9.10938356e-31
-    qe = 1.60217662e-19
-    MIN_PHASESPACE_PARTICLES = 20  # minimum particles in phasespace analysis
-    MIN_LINE_POINTS = 5  # minimum points in line analysis
-    ASTRA = "astra"
-    ASTRA_P = "astra_r62_Linux_x86_64_OpenMPI_1.6.1"  # parallel ASTRA
-    IMPACTT = "ImpactTv1.7linux"
-    IMPACTT_P = "ImpactTv1.7linuxPara"  # paralle IMPACT-T
-    LOG_FILENAME = "liso.log"
-    OPT_LOG_FILENAME = "liso_opt.log"
+import configparser
+import os
+import os.path as osp
+
+
+_root_dir = osp.join(osp.expanduser("~"), ".liso")
+_config_file = osp.join(_root_dir, "config.ini")
+
+config = configparser.ConfigParser()
+
+if not osp.isfile(_config_file):
+
+    config['DEFAULT'] = {
+        'LOG_FILE': "liso.log",
+        'OPT_LOG_FILE': "liso_opt.log",
+    }
+
+    config['EXECUTABLE'] = {
+        'ASTRA': "astra",
+        'IMPACTT': "ImpactTv1.7linux",
+    }
+    config['EXECUTABLE_PARA'] = {
+        'ASTRA': "astra_r62_Linux_x86_64_OpenMPI_1.6.1",
+        'IMPACTT': "ImpactTv1.7linuxPara",
+    }
+
+    try:
+        os.makedirs(_root_dir)
+    except FileExistsError:
+        pass
+
+    with open(_config_file, "w") as fp:
+        config.write(fp)
+else:
+    config.read(_config_file)
