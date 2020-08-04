@@ -5,11 +5,13 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from collections.abc import Mapping
+
 from collections import OrderedDict
 from .beamline import create_beamline
 
 
-class Linac(object):
+class Linac(Mapping):
     """Linac class.
 
     The linac class is the abstraction of a linear accelerator. It
@@ -19,17 +21,23 @@ class Linac(object):
     def __init__(self):
         self._beamlines = OrderedDict()
 
-    def __getattr__(self, item):
+    def __getitem__(self, item):
+        """Override."""
         return self._beamlines[item]
+
+    def __iter__(self):
+        """Override."""
+        return self._beamlines.__iter__()
+
+    def __len__(self):
+        """Override."""
+        return self._beamlines.__len__()
 
     def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
 
         :param str code: Code used to simulate the beamline. ASTRA: 'astra'
-            or 'a'; IMPACT-T: 'impactt' or 't'; IMPACT-Z: 'impactz' or 'z';
-            GENESIS: 'genesis' or 'g'. Case Insensitive.
-        :param \*args: Pass to the __init__ method of Beamline.
-        :param \*\*kwargs: Pass to the __init__ method of Beamline.
+            or 'a'; IMPACT-T: 'impactt' or 't'. Case Insensitive.
         """
         bl = create_beamline(code, *args, **kwargs)
 
@@ -37,60 +45,41 @@ class Linac(object):
         if name in self._beamlines:
             raise ValueError(f"Beamline {name} already exists!")
 
-        # connect the new Beamline to the last added Beamline
-        if len(self._beamlines) != 0:
-            list(self._beamlines.values())[-1].next = bl
-
-            if bl.pin is None:
-                raise ValueError("Initial particle file of the new Beamline must "
-                                 "be specified for a concatenated simulation!")
-
         self._beamlines[name] = bl
 
-    def run(self, mapping, *, n_workers=1, timeout=600):
-        """Run simulation for the beamline
+    def add_watch(self, name, *args, **kwargs):
+        """Add a Watch object to a beamline of the Linac.
 
+        :param str name: beamline name.
+        """
+        try:
+            bl = self._beamlines[name]
+        except KeyError:
+            raise KeyError(f"Beamline {name} does not exist!")
+
+        bl.add_watch(*args, **kwargs)
+
+    def run(self, mapping, *, n_workers=1, timeout=None, cwd=None):
+        """Run simulation for all the beamlines.
+
+        :param dict mapping:
         :param int n_workers: Number of processes used in simulation.
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
+        :param str cwd: current working directory. If None, it is set to the
+            same directory as the input file.
         """
-        # First clean all the previous output
-        for beamline in self._beamlines.values():
-            beamline.clean()
+        for bl in self._beamlines.values():
+            bl.reset()
 
         # Run simulations, and update all the BeamParameters and LineParameters
         for i, bl in enumerate(self._beamlines.values()):
-            bl.generate_input(mapping)
-            bl.simulate(n_workers, timeout)
-            bl.update_out()
-            bl.update_watches_and_lines()
-
-    def simulate(self, mapping):
-        """Simulate and update all BeamParameters and LineParameters.
-
-        Note:
-        Even without space-charge effects, the code is ASTRA
-        (or other codes)-bound. The Beamline method `simulation` takes
-        most of the time.
-
-        :param dict mapping: A dictionary for variables and covariables -
-                             {name: value}.
-        """
-        # First clean all the previous output
-        for beamline in self._beamlines.values():
-            beamline.clean()
-
-        # Run simulations, and update all the BeamParameters and LineParameters
-        for i, bl in enumerate(self._beamlines.values()):
-            bl.generate_input(mapping)
-            bl.simulate()
-            bl.update_out()
-            bl.update_watches_and_lines()
+            bl.run(mapping, n_workers, timeout, cwd)
 
     def __str__(self):
         text = ''
         for i, beamline in enumerate(self._beamlines.values()):
             text += "\nBeamline {:02d}\n".format(i)
-            text += "-"*11 + "\n"
+            text += "-" * 11 + "\n"
             text += beamline.__str__()
         return text

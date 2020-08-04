@@ -181,7 +181,7 @@ class Optimization(Operation):
                 b = self.covariables[key].shift
                 self._x_map[key] = a * self._x_map[var] + b
 
-    def eval_objs_cons(self, x):
+    def eval_objs_cons(self, x, *args, **kwargs):
         """Objective-constraint function.
 
         This method will be called in the f_obj_con function defined within
@@ -238,7 +238,7 @@ class Optimization(Operation):
         text += "Failed" if is_failed is True else "Succeeded"
         return text
 
-    def solve(self, optimizer):
+    def solve(self, optimizer, *args, **kwargs):
         """Run the optimization and print the result.
 
         :param Optimizer optimizer: Optimizer instance.
@@ -254,7 +254,7 @@ class Optimization(Operation):
 
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
-        self.eval_objs_cons(opt_x)
+        self.eval_objs_cons(opt_x, *args, **kwargs)
 
         # verify solution
         f = [item.value for item in self.objectives.values()]
@@ -320,16 +320,15 @@ class LinacOptimization(Optimization):
         self._nf = 0
         self._max_nf = max_nf
 
-    def solve(self, optimizer):
+    def solve(self, optimizer, *args, **kwargs):
         """Run the optimization and print the result.
 
         Override.
         """
-        check_templates(self._linac._get_templates(), self._x_map)
         logger.debug("\n" + str(self._linac) + "\n")
-        return super().solve(optimizer)
+        return super().solve(optimizer, *args, **kwargs)
 
-    def eval_objs_cons(self, x):
+    def eval_objs_cons(self, x, *args, **kwargs):
         """Objective-constraint function.
 
         Override the method in the parent class.
@@ -342,7 +341,7 @@ class LinacOptimization(Optimization):
         t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            self._linac.simulate(self._x_map)
+            self._linac.run(self._x_map, *args, **kwargs)
             is_update_failed = False
             self._nf = 0
         # exception propagates from Beamline.simulate() method

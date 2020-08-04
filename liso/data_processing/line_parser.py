@@ -210,39 +210,3 @@ def parse_astra_line(root_name):
     data['alphay'] = -y_yp*gamma_beta/data['emity_tr']
 
     return data
-
-
-def parse_impactz_line(rootname):
-    raise NotImplemented
-
-
-def parse_genesis_line(rootname):
-    raise NotImplemented
-
-
-def parse_line(code, rootname):
-    """Parse output files from different code.
-
-    :param code: string
-        Name of the code.
-    :param rootname: string
-        Pathname of the output files.
-
-    :return data: pandas.dataframe
-        Data for each particle.
-    :return charge: float / None
-        Charge (C) of the bunch.
-    """
-    if code.lower() in ("astra", "a"):
-        return parse_astra_line(rootname)
-
-    if code.lower() in ('impactt', 't'):
-        return parse_impactt_line(rootname)
-
-    if code.lower() in ('impactz', 'z'):
-        raise NotImplementedError
-
-    if code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-
-    raise ValueError("Unknown code!")

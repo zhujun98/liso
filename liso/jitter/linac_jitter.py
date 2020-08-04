@@ -64,22 +64,19 @@ class LinacJitter(Operation):
         except KeyError:
             raise KeyError("{} is not a response!".format(name))
 
-    def run(self, passes):
+    def run(self, n, *args, **kwargs):
         """Run the simulations.
 
-        :param passes: int
-            Number of independent runs.
+        :param int n: number of independent runs.
         """
-        check_templates(self._linac._get_templates(), self._x_map)
-
         logger.info('\n' + self._get_info(False))
 
         # Generate random numbers for all passes
-        random_numbers = self._generate_randoms(len(self.jitters), passes)
+        random_numbers = self._generate_randoms(len(self.jitters), n)
 
-        for i in range(passes):
+        for i in range(n):
             self._update_x_map(random_numbers[i, :])
-            self._linac.simulate(self._x_map)
+            self._linac.run(self._x_map)
             self._update_response(i+1)
 
         logger.info('\n' + self._get_info(True))

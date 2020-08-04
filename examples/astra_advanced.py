@@ -44,9 +44,7 @@ linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
                    template='astra_advanced/injector.in.000',
-                   pout='injector.0450.001',
-                   workers=args.workers,
-                   timeout=90)
+                   pout='injector.0450.001')
 
 opt = LinacOptimization(linac)
 

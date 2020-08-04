@@ -84,6 +84,8 @@ def parse_impactt_phasespace(particle_file):
 
     :return data: pandas.DataFrame
         Phase-space data.
+    :return charge: None
+        Impact-T particle file does not contain charge information.
     """
     # Units: m, /mc, m, /mc, m, /mc
     col_names = ['x', 'px', 'y', 'py', 'z', 'pz']
@@ -98,43 +100,4 @@ def parse_impactt_phasespace(particle_file):
     # Impact-T does not support timing, here 't' is the relative number
     data['t'] = (data['z'].mean() - data['z']) / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
 
-    return data
-
-
-def parse_impactz_phasespace(particle_file):
-    raise NotImplemented
-
-
-def parse_genesis_phasespace(particle_file):
-    raise NotImplemented
-
-
-def parse_phasespace(code, particle_file):
-    """Parse a particle file from different code.
-
-    :param code: string
-        Name of the code.
-    :param particle_file: string
-        Pathname of the particle file.
-
-    :return data: pandas.dataframe
-        Data for each particle.
-    :return charge: float / None
-        Charge (C) of the bunch.
-    """
-    check_data_file(particle_file)
-
-    if code.lower() in ("astra", "a"):
-        data, charge = parse_astra_phasespace(particle_file)
-    elif code.lower() in ('impactt', 't'):
-        data = parse_impactt_phasespace(particle_file)
-        charge = None
-    elif code.lower() in ('impactz', 'z'):
-        data = parse_impactz_phasespace(particle_file)
-        charge = None
-    elif code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-    else:
-        raise ValueError("Unknown code!")
-
-    return data, charge
+    return data, None

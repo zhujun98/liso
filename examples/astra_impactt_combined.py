@@ -34,8 +34,7 @@ linac.add_beamline('astra',
                    name='gun',
                    fin='astra_injector/injector.in',
                    template='astra_impactt_combined/injector.in.000',
-                   pout='injector.0450.001',
-                   workers=args.workers)
+                   pout='injector.0450.001')
 
 # Add the second beamline
 #
