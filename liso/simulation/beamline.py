@@ -235,58 +235,60 @@ class Beamline(ABC):
         return text
 
 
+class AstraBeamline(Beamline):
+    """Beamline simulated using ASTRA."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
+                                 '.TRemit.001']
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_astra_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        return parse_astra_line(rootname)
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        if self._pin is not None:
+            ParticleFileGenerator(data, self._pin).to_astra_pfile(charge)
+
+class ImpacttBeamline(Beamline):
+    """Beamline simulated using IMPACT-T."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._pin = 'partcl.data'
+
+        if self._charge is None:
+            raise ValueError(
+                "Bunch charge is required for ImpactT simulation!")
+
+        self._output_suffixes = ['.18', '.24', '.25', '.26']
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_impactt_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        return parse_impactt_line(rootname)
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        if self._pin is not None:
+            ParticleFileGenerator(data, self._pin).to_impactt_pfile()
+
+
 def create_beamline(bl_type, *args, **kwargs):
     """Create and return a Beamline instance.
 
     :param str bl_type: beamline type
     """
-    class AstraBeamline(Beamline):
-        """Beamline simulated using ASTRA."""
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-            self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
-                                     '.TRemit.001']
-
-        def _parse_phasespace(self, pfile):
-            """Override."""
-            return parse_astra_phasespace(pfile)
-
-        def _parse_line(self, rootname):
-            """Override."""
-            return parse_astra_line(rootname)
-
-        def generate_initial_particle_file(self, data, charge):
-            """Implement the abstract method."""
-            if self._pin is not None:
-                ParticleFileGenerator(data, self._pin).to_astra_pfile(charge)
-
-    class ImpacttBeamline(Beamline):
-        """Beamline simulated using IMPACT-T."""
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-            self._pin = 'partcl.data'
-
-            if self._charge is None:
-                raise ValueError(
-                    "Bunch charge is required for ImpactT simulation!")
-
-            self._output_suffixes = ['.18', '.24', '.25', '.26']
-
-        def _parse_phasespace(self, pfile):
-            """Override."""
-            return parse_impactt_phasespace(pfile)
-
-        def _parse_line(self, rootname):
-            """Override."""
-            return parse_impactt_line(rootname)
-
-        def generate_initial_particle_file(self, data, charge):
-            """Implement the abstract method."""
-            if self._pin is not None:
-                ParticleFileGenerator(data, self._pin).to_impactt_pfile()
 
     if bl_type.lower() in ('astra', 'a'):
         return AstraBeamline(*args, **kwargs)
