@@ -216,24 +216,23 @@ class Optimization(object):
 
         text = self._get_eval_info(f, g, False)
         opt_logger.info(text)
-        if self.printout > 0:
-            print(text)
+        print(text)
 
         return f, g, False
 
     def _get_eval_info(self, f, g, is_failed):
         """Optimization result after each step."""
         text = '{:05d} - '.format(self._nfeval)
-        text += "variable(s): "
-        for value in self._x_map.values():
-            text += '{:11.4e}, '.format(value)
-        text += "objective(s): "
+        text += "obj(s): "
         for v in f:
             text += '{:11.4e}, '.format(v)
         if g:
-            text += "constraint(s): "
+            text += "con(s): "
         for v in g:
             text += '{:11.4e}, '.format(v)
+        text += "var(s): "
+        for value in self._x_map.values():
+            text += '{:11.4e}, '.format(value)
         text += "Failed" if is_failed is True else "Succeeded"
         return text
 
@@ -385,15 +384,13 @@ class LinacOptimization(Optimization):
                 if item.func is not None:
                     item.value = item.func(self._linac)
                 else:
-                    keys = item.expr
-                    if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
-                        item.value = self._linac.__getattr__(
-                            keys[0]).__getattribute__(
-                            keys[1]).__getattribute__(keys[2]) * item.scale
+                    bl, src, ppt = item.expr
+                    if src in ('max', 'min', 'start', 'end', 'ave', 'std'):
+                        item.value = self._linac[bl].__getattribute__(
+                            src).__getattribute__(ppt) * item.scale
                     else:
-                        item.value = self._linac.__getattr__(
-                            keys[0]).__getattr__(
-                            keys[1]).__getattribute__(keys[2]) * item.scale
+                        beam_params = getattr(self._linac[bl], src)
+                        item.value = getattr(beam_params, ppt) * item.scale
 
             f = [obj.value for obj in self.objectives.values()]
             g = [con.value for con in chain(self.e_constraints.values(),
@@ -413,7 +410,6 @@ class LinacOptimization(Optimization):
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)
         opt_logger.info(text)
-        if self.printout > 0:
-            print(text)
+        print(text)
 
         return f, g, is_update_failed

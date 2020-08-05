@@ -55,16 +55,14 @@ opt.add_econ('n_pars', expr='gun.out.n', eq=2000)
 # inequality constraint (the beta [x] function at the end of the 'gun' beamline) with the upper boundary.
 opt.add_icon('emitx', expr='gun.out.emitx', scale=1e6,  ub=0.3)
 # inequality constraint (the Lorentz factor at the end of the 'gun' beamline) with the lower boundary.
-opt.add_icon('gamma', func=lambda a: a.gun.out.gamma,  lb=20.0)
+opt.add_icon('gamma', func=lambda a: a['gun'].out.gamma,  lb=20.0)
 # inequality constraint (the maximum beam size [x] throughout the 'gun' beamline) with upper boundary.
-opt.add_icon('max_Sx', func=lambda a: a.gun.max.Sx*1e3, ub=3.0)
+opt.add_icon('max_Sx', func=lambda a: a['gun'].max.Sx*1e3, ub=3.0)
 
 opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.5)
 opt.add_var('main_sole_b', value=0.2, lb=0.00, ub=0.4)
 opt.add_var('gun_phase', value=0.0, lb=-10, ub=10)
 opt.add_var('tws_phase', value=0.0, lb=-90, ub=0)
-
-opt.printout = 1
 
 optimizer = ALPSO()
 optimizer.swarm_size = 40  # configure the optimizer

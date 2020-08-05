@@ -69,17 +69,19 @@ class Beamline(ABC):
 
         self.z0 = z0  # starting z coordinate (m)
 
-        self._out = None  # BeamParameters
+        # BeamParameters
+        self._out = None
+
+        # LineParameters
+        self._start = None
+        self._end = None
+        self._min = None
+        self._max = None
+        self._avg = None
+        self._std = None
 
         # suffixes for the output files related to Line instance.
         self._output_suffixes = []
-
-        self._max = None  # LineParameters
-        self._min = None  # LineParameters
-        self._ave = None  # LineParameters
-        self._start = None  # LineParameters
-        self._end = None  # LineParameters
-        self._std = None  # LineParameters
 
     @property
     def out(self):
@@ -87,58 +89,52 @@ class Beamline(ABC):
             data, charge = self._parse_phasespace(self._pout)
             charge = self._charge if charge is None else charge
             self._out = analyze_beam(data, charge)
-        return None
+        return self._out
 
     @property
     def start(self):
         if self._start is None:
             self._update_statistics()
-            return self._start
-        return None
+        return self._start
 
     @property
     def end(self):
         if self._end is None:
             self._update_statistics()
-            return self._end
-        return None
+        return self._end
 
     @property
     def min(self):
         if self._min is None:
             self._update_statistics()
-            return self._min
-        return None
+        return self._min
 
     @property
     def max(self):
         if self._max is None:
             self._update_statistics()
-            return self._max
-        return None
+        return self._max
 
     @property
-    def ave(self):
-        if self._ave is None:
+    def avg(self):
+        if self._avg is None:
             self._update_statistics()
-            return self._ave
-        return None
+        return self._avg
 
     @property
     def std(self):
         if self._std is None:
             self._update_statistics()
-            return self._std
-        return None
+        return self._std
 
     def _update_statistics(self):
-        data = self._parse_line('...')
+        data = self._parse_line()
 
         self._start = analyze_line(data, lambda x: x.iloc[0])
         self._end = analyze_line(data, lambda x: x.iloc[-1])
         self._min = analyze_line(data, np.min)
         self._max = analyze_line(data, np.max)
-        self._ave = analyze_line(data, np.average)
+        self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
     @abstractmethod
@@ -164,10 +160,8 @@ class Beamline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _parse_line(self, rootname):
+    def _parse_line(self):
         """Parse files which record beam evolutions..
-
-        :param str rootname: rootname of those files.
 
         :returns: data.
         """
@@ -177,11 +171,11 @@ class Beamline(ABC):
         """Reset output parameters."""
         self._out = None
 
-        self._max = None
-        self._min = None
         self._start = None
         self._end = None
-        self._ave = None
+        self._min = None
+        self._max = None
+        self._avg = None
         self._std = None
 
     def run(self, mapping, n_workers, timeout):
@@ -224,6 +218,18 @@ class Beamline(ABC):
         finally:
             time.sleep(1)
 
+    def status(self):
+        """Return the status of the beamline."""
+        return {
+            'out': self._out,
+            'start': self._start,
+            'end': self._end,
+            'min': self._min,
+            'max': self._max,
+            'avg': self._avg,
+            'std': self._std,
+        }
+
     def __str__(self):
         text = 'Beamline: %s\n' % self.name
         text += f'Simulation working directory: {self._swd}\n'
@@ -241,21 +247,25 @@ class AstraBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
-                                 '.TRemit.001']
+        self._output_suffixes = [
+            '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
+        ]
 
     def _parse_phasespace(self, pfile):
         """Override."""
         return parse_astra_phasespace(pfile)
 
-    def _parse_line(self, rootname):
+    def _parse_line(self):
         """Override."""
-        return parse_astra_line(rootname)
+        root_name = osp.join(
+            self._swd, osp.basename(self._pout.split('.')[0]))
+        return parse_astra_line(root_name)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""
         if self._pin is not None:
             ParticleFileGenerator(data, self._pin).to_astra_pfile(charge)
+
 
 class ImpacttBeamline(Beamline):
     """Beamline simulated using IMPACT-T."""
@@ -274,9 +284,10 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_phasespace(pfile)
 
-    def _parse_line(self, rootname):
+    def _parse_line(self):
         """Override."""
-        return parse_impactt_line(rootname)
+        root_name = osp.join(self._swd, 'fort')
+        return parse_impactt_line(root_name)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""

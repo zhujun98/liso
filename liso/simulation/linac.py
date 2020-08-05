@@ -74,6 +74,13 @@ class Linac(Mapping):
         for i, bl in enumerate(self._beamlines.values()):
             bl.run(mapping, n_workers, timeout)
 
+    def status(self):
+        """Return the status of the linac."""
+        ret = OrderedDict()
+        for name, bl in self._beamlines.items():
+            ret[name] = bl.status()
+        return ret
+
     def __str__(self):
         text = '\n' + '=' * 80 + '\n'
         text += 'Linac definition:\n\n'

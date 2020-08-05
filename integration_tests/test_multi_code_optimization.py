@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Unittest of optimization with two simulation codes for two different
 parts of a linac.
@@ -35,10 +34,7 @@ class TestMultiCodeOptimization(unittest.TestCase):
             pout='fort.106',
             charge=10e-12)
 
-        print(linac)
-
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
 
         self.opt.add_obj('f', expr='matching.out.emitx', scale=1e6)
 

@@ -6,8 +6,9 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 import os
 
-from liso.data_processing import analyze_beam, parse_phasespace, tailor_beam
-
+from liso.data_processing import (
+    analyze_beam, parse_astra_phasespace, parse_impactt_phasespace, tailor_beam
+)
 
 test_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'files4test'
@@ -17,11 +18,11 @@ test_path = os.path.abspath(os.path.join(
 class TestAnalyzeBeam(unittest.TestCase):
     def setUp(self):
         pfile = os.path.join(test_path, "impactt.out")
-        self.impactt_data, _ = parse_phasespace('t', pfile)
+        self.impactt_data, _ = parse_impactt_phasespace(pfile)
         self.impactt_charge = 1e-11
 
         pfile = os.path.join(test_path, "astra.out")
-        self.astra_data, self.astra_charge = parse_phasespace('a', pfile)
+        self.astra_data, self.astra_charge = parse_astra_phasespace(pfile)
 
     def test_astra(self):
         params = analyze_beam(self.astra_data, self.astra_charge)

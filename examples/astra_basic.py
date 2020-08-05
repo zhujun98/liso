@@ -72,7 +72,5 @@ opt.add_obj('emitx_um', expr='gun.out.emitx', scale=1e6)
 opt.add_var('laser_spot',  value=0.10, lb=0.04, ub=0.3)
 opt.add_var('main_sole_b', value=0.20, lb=0.00, ub=0.4)
 
-opt.printout = 1  # print the optimization process
-
 optimizer = NelderMead()  # instantiate an optimizer
 opt.solve(optimizer)  # run the optimization

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Unittest of local optimization of a linac with different optimizers.
 
@@ -29,7 +28,6 @@ class TestLocalOptimizer(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
-        print(linac)
 
         self.opt = LinacOptimization(linac)
         # self.opt.printout = 1

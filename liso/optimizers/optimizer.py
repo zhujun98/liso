@@ -15,7 +15,6 @@ class Optimizer(ABC):
     Attributes:
         name (str): Name of the optimizer.
         seed (int): Seed for random number. Default = None.
-        printout (int): Level of printout.
     """
     category = None  # should be either 'global' or 'local'.
     name = None

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Unittest of global optimization of a linac.
 
@@ -27,14 +26,12 @@ class TestGlobalOptimizer(unittest.TestCase):
                            fin=os.path.join(test_path, 'injector.in'),
                            template=os.path.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
-        print(linac)
 
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
 
         self.opt.add_obj('f', expr='gun.out.Sx', scale=1.e6)
-        self.opt.add_icon('g1', func=lambda a: a.gun.max.emitx*1e6, ub=0.041)
-        self.opt.add_econ('g2', func=lambda a: a.gun.out.gamma, eq=10.0)
+        self.opt.add_icon('g1', func=lambda a: a['gun'].max.emitx*1e6, ub=0.041)
+        self.opt.add_econ('g2', func=lambda a: a['gun'].out.gamma, eq=10.0)
 
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.3)
