@@ -83,7 +83,7 @@ class MainGUI(QWidget):
         optmization_btn = MainGUIButton('Optimization\n Tracker', self)
         optmization_btn.setStyleSheet(get_style_sheet("#7DB039"))
 
-        # Button for jitter study visualization
+        # Button for parameter_scan study visualization
         jitter_btn = MainGUIButton('Jitter Tracker', self)
         jitter_btn.setStyleSheet(get_style_sheet("#222760"))
 

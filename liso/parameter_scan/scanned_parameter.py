@@ -8,16 +8,17 @@ Copyright (C) Jun Zhu. All rights reserved.
 from ..elements import OperationalElement
 
 
-class Jitter(OperationalElement):
-    """Inherited from OperationalElement."""
-    def __init__(self, name, *, value=0.0, sigma=0.0, cutoff=2):
+class ScannedParameter(OperationalElement):
+    def __init__(self, name, *, range=None, value=0.0, sigma=1.0, cutoff=2):
         """Initialization.
 
+        :param tuple range:
+            Range of the parameter.
         :param value: float
             Nominal value.
         :param sigma: float
-            Standard deviation of the jitter.
-            Positive for absolute jitter and negative for relative jitter.
+            Standard deviation of the scan.
+            Positive for absolute scan and negative for relative scan.
         :param cutoff: int
             Cutoff of the standard deviation.
         """

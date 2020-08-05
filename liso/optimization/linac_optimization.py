@@ -33,7 +33,6 @@ import time
 
 import numpy as np
 
-from ..operation import Operation
 from .variable import Variable
 from ..covariable import Covariable
 from .constraint import EConstraint
@@ -44,7 +43,7 @@ from ..simulation.simulation_utils import check_templates
 from ..logging import logger, opt_logger
 
 
-class Optimization(Operation):
+class Optimization(object):
     """Inherited from Operation.
 
     Attributes:
@@ -61,7 +60,7 @@ class Optimization(Operation):
         :param callable opt_func: A callable object which returns (objective,
                                   constraints).
         """
-        super().__init__(name)
+        self.name = name
 
         self.variables = OrderedDict()
         self.covariables = OrderedDict()

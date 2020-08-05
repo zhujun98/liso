@@ -24,7 +24,7 @@ import pandas as pd
 
 from .data_proc_utils import check_data_file
 
-V_LIGHT= constants.c
+V_LIGHT = constants.c
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
@@ -66,7 +66,7 @@ def parse_astra_phasespace(particle_file):
 
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
-    # At this step, the timing can be used for timing jitter study.
+    # At this step, the timing can be used for timing parameter_scan study.
     t_ref = data['t'].iloc[0]/1.e9
     data['t'] = t_ref - (data['z'] - z_ref)/(V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
     charge = -1e-9 * data['charge'].sum()

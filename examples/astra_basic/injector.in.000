@@ -3,7 +3,7 @@
     Head='test for linac optimization'
     RUN = 1
     Distribution = 'Radial2k_1G3ps.ini'
-    Qbunch = 0.1
+    Qbunch = 0.0
     XYrms = <laser_spot>
     Trms = 0.003
     TRACK_ALL = .T 

@@ -24,8 +24,8 @@ examples/astra_injector/*
 examples/impactt_lattice/*
 !examples/impactt_lattice/.gitkeep
 
-integration_tests/jitter/*
-!integration_tests/jitter/injector.in.000
+integration_tests/scan/*
+!integration_tests/scan/injector.in.000
 
 integration_tests/local_optimizer/*
 !integration_tests/local_optimizer/injector.in.000

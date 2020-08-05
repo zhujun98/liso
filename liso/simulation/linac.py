@@ -59,27 +59,25 @@ class Linac(Mapping):
 
         bl.add_watch(*args, **kwargs)
 
-    def run(self, mapping, *, n_workers=1, timeout=None, cwd=None):
+    def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
 
         :param dict mapping:
         :param int n_workers: Number of processes used in simulation.
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
-        :param str cwd: current working directory. If None, it is set to the
-            same directory as the input file.
         """
         for bl in self._beamlines.values():
             bl.reset()
 
         # Run simulations, and update all the BeamParameters and LineParameters
         for i, bl in enumerate(self._beamlines.values()):
-            bl.run(mapping, n_workers, timeout, cwd)
+            bl.run(mapping, n_workers, timeout)
 
     def __str__(self):
-        text = ''
-        for i, beamline in enumerate(self._beamlines.values()):
-            text += "\nBeamline {:02d}\n".format(i)
-            text += "-" * 11 + "\n"
-            text += beamline.__str__()
+        text = '\n' + '=' * 80 + '\n'
+        text += 'Linac definition:\n\n'
+        for bl in self._beamlines.values():
+            text += bl.__str__()
+        text += '=' * 80 + '\n'
         return text

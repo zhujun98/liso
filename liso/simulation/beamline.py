@@ -5,7 +5,6 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import os
 import os.path as osp
 import time
 from abc import ABC, abstractmethod
@@ -31,22 +30,19 @@ class Beamline(ABC):
     """Beamline abstraction class."""
 
     def __init__(self, name, *,
-                 gin=None,
-                 fin=None,
                  template=None,
-                 pin=None,
+                 fin=None,
                  pout=None,
                  charge=None,
                  z0=None):
         """Initialization.
 
         :param str name: Name of the beamline.
-        :param InputGenerator gin: An input generator. If given, all
-            the other keyword arguments are omitted.
-        :param str fin: The path of the input file.
-        :param str template: The path of the template file.
-        :param str pin: name of the initial particle file.
-        :param str pout: name of the output particle file.
+        :param str template: path of the template of the input file.
+        :param str fin: path of the input file. The simulation working directory
+            is assumed to be the directory of the input file.
+        :param str pout: final particle file name. It must be located in the
+            simulation working directory.
         :param float charge: Bunch charge at the beginning of the beamline.
             Only used for certain codes (e.g. ImpactT).
         :param float z0: Starting z coordinate in meter. Used for concatenated
@@ -56,19 +52,20 @@ class Beamline(ABC):
             particle distribution.
         """
         self.name = name
-        if isinstance(gin, InputGenerator):
-            self._gin = gin
-
-        self._fin = fin
 
         # Read the template file only once. Make the 'template' read-only by
         # converting it to a tuple.
         with open(template) as fp:
             self.template = tuple(fp.readlines())
-        self._charge = charge
 
-        self._pin = pin
-        self._pout = pout
+        self._swd = osp.dirname(osp.abspath(fin))
+        self._fin = osp.join(self._swd, osp.basename(fin))
+
+        # Initial particle distribution file name.
+        self._pin = None
+        self._pout = osp.join(self._swd, pout)
+
+        self._charge = charge
 
         self.z0 = z0  # starting z coordinate (m)
 
@@ -187,7 +184,7 @@ class Beamline(ABC):
         self._ave = None
         self._std = None
 
-    def run(self, mapping, n_workers, timeout, cwd):
+    def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
         generate_input(self.template, mapping, self._fin)
 
@@ -211,31 +208,30 @@ class Beamline(ABC):
         if timeout is not None:
             command = f"timeout {timeout}s " + command
 
-        if not os.path.isfile(self._fin):
-            raise InputFileNotFoundError(self._fin + " does not exist!")
-        if not os.path.getsize(self._fin):
-            raise InputFileEmptyError(self._fin + " is empty!")
-        if cwd is None:
-            cwd = os.path.dirname(os.path.abspath(self._fin))
+        if not osp.isfile(self._fin):
+            raise FileNotFoundError(f"Input file {self._fin} does not exist!")
+        if not osp.getsize(self._fin):
+            raise RuntimeError(f"Input file {self._fin} is empty!")
 
         try:
             subprocess.check_output(command,
                                     stderr=subprocess.STDOUT,
                                     universal_newlines=True,
                                     shell=True,
-                                    cwd=cwd)
+                                    cwd=self._swd)
         except subprocess.CalledProcessError as e:
             raise SimulationNotFinishedProperlyError(e)
         finally:
             time.sleep(1)
 
     def __str__(self):
-        text = 'Name: %s\n' % self.name
-        text += 'Input file: %s\n' % self._fin
+        text = 'Beamline: %s\n' % self.name
+        text += f'Simulation working directory: {self._swd}\n'
+        text += f'Input file: {osp.basename(self._fin)}\n'
         if self._pin is not None:
             text += 'Input particle file: %s\n' % self._pin
         if self._pout is not None:
-            text += 'Output particle file: %s\n' % self._pout
+            text += f'Output particle file: {osp.basename(self._pout)}\n'
         return text
 
 
@@ -268,13 +264,10 @@ def create_beamline(bl_type, *args, **kwargs):
 
     class ImpacttBeamline(Beamline):
         """Beamline simulated using IMPACT-T."""
-        def __init__(self, pin='partcl.data', *args, **kwargs):
-            super().__init__(pin=pin, *args, **kwargs)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
 
-            if self._pin is not None and os.path.basename(
-                    self._pin) != 'partcl.data':
-                raise ValueError(
-                    "Input particle file for ImpactT must be 'partcl.data'!")
+            self._pin = 'partcl.data'
 
             if self._charge is None:
                 raise ValueError(
