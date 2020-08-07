@@ -29,7 +29,9 @@ Copyright (C) Jun Zhu. All rights reserved.
 from collections import OrderedDict
 from itertools import chain
 import math
+import sys
 import time
+import traceback
 
 import numpy as np
 
@@ -355,12 +357,14 @@ class LinacOptimization(Optimization):
                         format(self._nfeval, e.__class__.__name__, e))
         except RuntimeError as e:
             self._nf += 1
-            logger.info("{:05d}: {}: {}"
-                        .format(self._nfeval, e.__class__.__name__, e))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logger.info(f"{self._nfeval:05d}: " +
+                        repr(traceback.format_tb(exc_traceback)))
         except Exception as e:
             self._nf += 1
-            logger.info("{:05d}: Unexpected exceptions {}: {}"
-                        .format(self._nfeval, e.__class__.__name__, e))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logger.info("{self._nfeval:05d}: Unexpected exceptions: " +
+                        repr(traceback.format_tb(exc_traceback)))
             raise
         finally:
             if self._nf > self._max_nf:

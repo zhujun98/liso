@@ -39,7 +39,7 @@
 /
 
 &CHARGE 
-    LSPCH = .T
+    LSPCH = .F
     Max_scale = 0.1
     Max_Count = 100
     Exp_Control = 0.1

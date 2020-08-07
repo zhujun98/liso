@@ -10,7 +10,8 @@ linac = Linac()  # instantiate a Linac
 
 linac.add_beamline('astra',
                    name='gun',
-                   fin='astra_injector/injector.in',
+                   swd='astra_injector',
+                   fin='injector.in',
                    template='astra_scan/injector.in.000',
                    pout='injector.0450.001')
 
