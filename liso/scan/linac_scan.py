@@ -5,12 +5,27 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import asyncio
 from collections import OrderedDict
+import functools
+from threading import Thread
 
 import numpy as np
 
 from ..logging import logger
 from ..simulation.simulation_utils import check_templates
+
+
+def run_in_thread(daemon=False):
+    """Run a function/method in a thread."""
+    def wrap(f):
+        @functools.wraps(f)
+        def threaded_f(*args, **kwargs):
+            t = Thread(target=f, daemon=daemon, args=args, kwargs=kwargs)
+            t.start()
+            return t
+        return threaded_f
+    return wrap
 
 
 class LinacScan(object):
@@ -47,17 +62,41 @@ class LinacScan(object):
 
         self._params[name] = values
 
-    def scan(self, *args, **kwargs):
-        """Start a parameter scan."""
+    async def _async_scan(self, n_tasks, *args, **kwargs):
+        tasks = set()
+        count = 0
+        while True:
+            if count < self._n:
+                for k, v in self._params.items():
+                    self._x_map[k] = v[count]
+
+                logger.info(f"Simulation {count+1:07d}: "
+                            + str(self._x_map)[1:-1].replace(': ', ' = '))
+
+                task = asyncio.ensure_future(
+                    self._linac.async_run(self._x_map, *args, **kwargs))
+                tasks.add(task)
+
+                count += 1
+
+            if len(tasks) == 0:
+                break
+
+            if len(tasks) >= n_tasks or count == self._n:
+                done, _ = await asyncio.wait(
+                    tasks, return_when=asyncio.FIRST_COMPLETED)
+
+                for task in done:
+                    tasks.remove(task)
+
+    def scan(self, n_tasks=1, *args, **kwargs):
+        """Start a parameter scan.
+
+        :param int n_tasks: maximum number of concurrent tasks.
+        """
         logger.info(str(self._linac) + self._get_info())
 
-        for i in range(self._n):
-            for k, v in self._params.items():
-                self._x_map[k] = v[i]
-
-            logger.info(f"Simulation {i+1:07d}: "
-                        + str(self._x_map)[1:-1].replace(': ', ' = '))
-            self._linac.run(self._x_map, *args, **kwargs)
+        asyncio.run(self._async_scan(n_tasks, *args, **kwargs))
 
         logger.info(f"Scan finished!")
 

@@ -59,6 +59,10 @@ class Linac(Mapping):
 
         bl.add_watch(*args, **kwargs)
 
+    def _prepare_run(self):
+        for bl in self._beamlines.values():
+            bl.reset()
+
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
 
@@ -67,12 +71,14 @@ class Linac(Mapping):
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
-        for bl in self._beamlines.values():
-            bl.reset()
-
-        # Run simulations, and update all the BeamParameters and LineParameters
+        self._prepare_run()
         for i, bl in enumerate(self._beamlines.values()):
             bl.run(mapping, n_workers, timeout)
+
+    async def async_run(self, mapping, *, timeout=None):
+        self._prepare_run()
+        for i, bl in enumerate(self._beamlines.values()):
+            await bl.async_run(mapping, timeout)
 
     def status(self):
         """Return the status of the linac."""

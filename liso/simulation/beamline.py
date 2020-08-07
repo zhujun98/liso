@@ -5,6 +5,7 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import asyncio
 import os.path as osp
 import time
 from abc import ABC, abstractmethod
@@ -178,6 +179,16 @@ class Beamline(ABC):
         self._avg = None
         self._std = None
 
+    def _check_run(self, executable):
+        if executable is None:
+            raise CommandNotFoundError(
+               f"{executable} is not a valid bash command")
+
+        if not osp.isfile(self._fin):
+            raise FileNotFoundError(f"Input file {self._fin} does not exist!")
+        if not osp.getsize(self._fin):
+            raise RuntimeError(f"Input file {self._fin} is empty!")
+
     def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
         generate_input(self.template, mapping, self._fin)
@@ -189,23 +200,14 @@ class Beamline(ABC):
             executable = find_executable(config['EXECUTABLE_PARA']['ASTRA'])
         else:
             executable = find_executable(config['EXECUTABLE']['ASTRA'])
-
-        if executable is None:
-            raise CommandNotFoundError(
-               f"{executable} is not a valid bash command")
-        else:
-            command = f"{executable} {self._fin}"
+        self._check_run(executable)
+        command = f"{executable} {self._fin}"
 
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
 
         if timeout is not None:
             command = f"timeout {timeout}s " + command
-
-        if not osp.isfile(self._fin):
-            raise FileNotFoundError(f"Input file {self._fin} does not exist!")
-        if not osp.getsize(self._fin):
-            raise RuntimeError(f"Input file {self._fin} is empty!")
 
         try:
             subprocess.check_output(command,
@@ -217,6 +219,27 @@ class Beamline(ABC):
             raise SimulationNotFinishedProperlyError(e)
         finally:
             time.sleep(1)
+
+    async def async_run(self, mapping, timeout):
+        """Run simulation asynchronously for the beamline."""
+        generate_input(self.template, mapping, self._fin)
+
+        executable = find_executable(config['EXECUTABLE']['ASTRA'])
+        self._check_run(executable)
+        command = f"{executable} {self._fin}"
+
+        if timeout is not None:
+            command = f"timeout {timeout}s " + command
+
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=self._swd
+        )
+
+        stdout, stderr = await proc.communicate()
+        # TODO: process the data
 
     def status(self):
         """Return the status of the beamline."""
