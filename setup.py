@@ -44,8 +44,8 @@ setup(
         'Operating System :: MacOS',
     ],
     install_requires=[
-        'numpy>=1.19',
-        'pandas>=1.0',
+        'numpy>=1.18',
+        'pandas>=1.1',
         'scipy>=1.5',
         'h5py>=2.10',
     ],
@@ -56,6 +56,11 @@ setup(
             'codecov',
             'pytest',
             'pytest-cov',
-        ]
+        ],
+        'docs': [
+            'sphinx',
+            'nbsphinx',
+            'ipython',  # For nbsphinx syntax highlighting
+        ],
     }
 )
