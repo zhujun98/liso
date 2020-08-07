@@ -1,8 +1,8 @@
 Optimization
 ============
 
-Guid for beginners
-------------------
+Guide for beginners
+-------------------
 
 - Test your optimization problem without collective effects first;
 - Try to find a trade-off between speed and accuracy. In ASTRA simulation, for instance, the knobs are "H_MAX", "MAX_SCALE", "MAX_COUNT", "NRAD", "NLONG_IN", etc.;

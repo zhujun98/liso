@@ -14,12 +14,11 @@ from ..simulation.simulation_utils import check_templates
 
 
 class LinacScan(object):
-    def __init__(self, linac, *, name='jitter_prob'):
+    def __init__(self, linac, *, name='scan_prob'):
         """Initialization.
 
         :param Linac linac: Linac instance.
         :param str name: Name of the parameter_scan problem.
-            Default = 'jitter_prob'.
         """
         self.name = name
 

@@ -56,7 +56,7 @@ class Optimization(object):
     def __init__(self, name='opt_prob', *, opt_func=None):
         """Initialization.
 
-        :param str name: Name of the optimization problem. Default = 'opt_prob'.
+        :param str name: Name of the optimization problem.
         :param callable opt_func: A callable object which returns (objective,
                                   constraints).
         """
