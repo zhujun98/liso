@@ -36,7 +36,6 @@ class ParticleFileGenerator(object):
         with open(self._fpath, 'w') as fp:
             if header is True:
                 fp.write(str(self._data.shape[0]) + '\n')
-
             self._data.to_csv(fp,
                               header=None,
                               index=False,

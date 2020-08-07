@@ -32,7 +32,7 @@ linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
-                   fin='injector.in',
+                   fin='astra_injector/injector.in',
                    template='astra_impactt_combined/injector.in.000',
                    pout='injector.0450.001')
 

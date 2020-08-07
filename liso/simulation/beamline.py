@@ -52,7 +52,7 @@ class Beamline(ABC):
         # Read the template file only once. Make the 'template' read-only by
         # converting it to a tuple.
         with open(template) as fp:
-            self.template = tuple(fp.readlines())
+            self._template = tuple(fp.readlines())
 
         self._swd = osp.dirname(osp.abspath(fin))
         self._fin = osp.join(self._swd, osp.basename(fin))
@@ -80,12 +80,12 @@ class Beamline(ABC):
         # suffixes for the output files related to Line instance.
         self._output_suffixes = []
 
+        self.next = None  # downstream beamline
+
     @property
     def out(self):
         if self._out is None:
-            data, charge = self._parse_phasespace(self._pout)
-            charge = self._charge if charge is None else charge
-            self._out = analyze_beam(data, charge)
+            self._update_output()
         return self._out
 
     @property
@@ -144,7 +144,7 @@ class Beamline(ABC):
         :param charge: float / None
             Charge of the beam.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def _parse_phasespace(self, pfile):
@@ -205,17 +205,28 @@ class Beamline(ABC):
 
         return executable
 
-    def _check_output(self):
-        """Check output files."""
+    def _update_output(self, generate_input=False):
+        """Update output particle file.
+
+        :param bool generate_input: generate input for the next beamline if
+            given.
+        """
         pout = self._pout
         if not osp.isfile(pout):
             raise RuntimeError(f"Output particle file {pout} does not exist!")
         if not osp.getsize(pout):
             raise RuntimeError(f"Output particle file {pout} is empty!")
 
+        data, charge = self._parse_phasespace(pout)
+        charge = self._charge if charge is None else charge
+        self._out = analyze_beam(data, charge)
+
+        if generate_input and self.next is not None:
+            self.next.generate_initial_particle_file(data, charge)
+
     def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
-        generate_input(self.template, mapping, self._fin)
+        generate_input(self._template, mapping, self._fin)
 
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
@@ -238,13 +249,11 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
-        self._check_output()
-
-        # TODO: process the data
+        self._update_output(generate_input=True)
 
     async def async_run(self, mapping, timeout):
         """Run simulation asynchronously for the beamline."""
-        generate_input(self.template, mapping, self._fin)
+        generate_input(self._template, mapping, self._fin)
 
         executable = self._check_run()
         command = f"{executable} {self._fin}"
@@ -263,9 +272,7 @@ class Beamline(ABC):
         if stderr:
             raise RuntimeError(stderr)
 
-        self._check_output()
-
-        # TODO: process the data
+        self._update_output(generate_input=True)
 
     def status(self):
         """Return the status of the beamline."""
@@ -328,7 +335,7 @@ class ImpacttBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._pin = 'partcl.data'
+        self._pin = osp.join(self._swd, 'partcl.data')
 
         self._rootname = osp.join(self._swd, 'fort')
 

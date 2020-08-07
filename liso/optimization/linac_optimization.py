@@ -353,10 +353,15 @@ class LinacOptimization(Optimization):
             self._nf += 1
             logger.info("{:05d}: {}: {}".
                         format(self._nfeval, e.__class__.__name__, e))
+        except RuntimeError as e:
+            self._nf += 1
+            logger.info("{:05d}: {}: {}"
+                        .format(self._nfeval, e.__class__.__name__, e))
         except Exception as e:
             self._nf += 1
             logger.info("{:05d}: Unexpected exceptions {}: {}"
                         .format(self._nfeval, e.__class__.__name__, e))
+            raise
         finally:
             if self._nf > self._max_nf:
                 logger.info("Maximum allowed number of successive failures "

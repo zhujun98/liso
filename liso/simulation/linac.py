@@ -45,6 +45,9 @@ class Linac(Mapping):
         if name in self._beamlines:
             raise ValueError(f"Beamline {name} already exists!")
 
+        lst = list(self._beamlines.keys())
+        if len(lst) > 0:
+            self._beamlines[lst[-1]].next = bl
         self._beamlines[name] = bl
 
     def add_watch(self, name, *args, **kwargs):
