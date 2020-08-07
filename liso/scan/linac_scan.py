@@ -13,7 +13,6 @@ from threading import Thread
 import numpy as np
 
 from ..logging import logger
-from ..simulation.simulation_utils import check_templates
 
 
 def run_in_thread(daemon=False):

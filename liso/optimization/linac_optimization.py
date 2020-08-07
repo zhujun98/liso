@@ -342,19 +342,6 @@ class LinacOptimization(Optimization):
             self._linac.run(self._x_map, *args, **kwargs)
             is_update_failed = False
             self._nf = 0
-        # exception propagates from Beamline.simulate() method
-        except (SimulationNotFinishedProperlyError,
-                InputFileNotFoundError,
-                InputFileEmptyError) as e:
-            self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-        except CommandNotFoundError as e:
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-            # stop running
-            raise
-        # exception propagates from Beamline.update() method
         except WatchUpdateError as e:
             self._nf += 1
             logger.info("{:05d}: {}: {}".
@@ -370,11 +357,10 @@ class LinacOptimization(Optimization):
             self._nf += 1
             logger.info("{:05d}: Unexpected exceptions {}: {}"
                         .format(self._nfeval, e.__class__.__name__, e))
-            raise
         finally:
             if self._nf > self._max_nf:
-                raise SimulationSuccessiveFailureError(
-                    "Maximum allowed number of successive failures reached!")
+                logger.info("Maximum allowed number of successive failures "
+                            "reached!")
 
         if is_update_failed is False:
             # update objective and constraint values
@@ -409,7 +395,7 @@ class LinacOptimization(Optimization):
 
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)
+        logger.info(text)
         opt_logger.info(text)
-        print(text)
 
         return f, g, is_update_failed

@@ -9,43 +9,11 @@ class SimulationError(Exception):
     pass
 
 
-class SimulationNotFinishedProperlyError(SimulationError):
-    """Inherited from SimulationError.
-
-    Raised when there is error in Beamline.simulate().
-    """
-    pass
-
-
 class SimulationSuccessiveFailureError(SimulationError):
     """Inherited from SimulationError.
 
     Raised No. of successive failures exceeds the maximum allowed
     number.
-    """
-    pass
-
-
-class CommandNotFoundError(SimulationError):
-    """Inherited from SimulationError.
-
-    Raised if a bash command is not found.
-    """
-    pass
-
-
-class InputFileNotFoundError(SimulationError):
-    """Inherited from SimulationError.
-
-    Raised if the simulation input file is not found.
-    """
-    pass
-
-
-class InputFileEmptyError(SimulationError):
-    """Inherited from SimulationError.
-
-    Raised if the simulation input file is empty.
     """
     pass
 

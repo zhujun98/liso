@@ -7,24 +7,19 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
 import os.path as osp
-import time
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 import subprocess
 from distutils.spawn import find_executable
 
 import numpy as np
 
 from ..config import config
-from .input import InputGenerator
 from ..data_processing import (
-    analyze_beam, analyze_line, tailor_beam, ParticleFileGenerator,
+    analyze_beam, analyze_line, ParticleFileGenerator,
     parse_astra_phasespace, parse_impactt_phasespace,
     parse_astra_line, parse_impactt_line,
 )
 from .simulation_utils import generate_input
-
-from ..exceptions import *
 
 
 class Beamline(ABC):
@@ -65,6 +60,7 @@ class Beamline(ABC):
         # Initial particle distribution file name.
         self._pin = None
         self._pout = osp.join(self._swd, pout)
+        self._rootname = None
 
         self._charge = charge
 
@@ -169,7 +165,20 @@ class Beamline(ABC):
         raise NotImplementedError
 
     def reset(self):
-        """Reset output parameters."""
+        """Reset status and output files."""
+        # input file
+        with open(self._fin, 'w') as fp:
+            fp.truncate()
+
+        # output particle file
+        with open(self._pout, 'w') as fp:
+            fp.truncate()
+
+        # Empty Line files and set LineParameter instances None
+        for suffix in self._output_suffixes:
+            with open(self._rootname + suffix, 'w') as fp:
+                fp.truncate()
+
         self._out = None
 
         self._start = None
@@ -179,15 +188,30 @@ class Beamline(ABC):
         self._avg = None
         self._std = None
 
-    def _check_run(self, executable):
+    @abstractmethod
+    def _get_executable(self, parallel):
+        raise NotImplementedError
+
+    def _check_run(self, parallel=False):
+        executable = find_executable(self._get_executable(parallel))
         if executable is None:
-            raise CommandNotFoundError(
-               f"{executable} is not a valid bash command")
+            raise RuntimeError(
+               f"{executable} is not a valid bash command!")
 
         if not osp.isfile(self._fin):
-            raise FileNotFoundError(f"Input file {self._fin} does not exist!")
+            raise RuntimeError(f"Input file {self._fin} does not exist!")
         if not osp.getsize(self._fin):
             raise RuntimeError(f"Input file {self._fin} is empty!")
+
+        return executable
+
+    def _check_output(self):
+        """Check output files."""
+        pout = self._pout
+        if not osp.isfile(pout):
+            raise RuntimeError(f"Output particle file {pout} does not exist!")
+        if not osp.getsize(pout):
+            raise RuntimeError(f"Output particle file {pout} is empty!")
 
     def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
@@ -196,11 +220,7 @@ class Beamline(ABC):
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
 
-        if n_workers > 1:
-            executable = find_executable(config['EXECUTABLE_PARA']['ASTRA'])
-        else:
-            executable = find_executable(config['EXECUTABLE']['ASTRA'])
-        self._check_run(executable)
+        executable = self._check_run(n_workers > 1)
         command = f"{executable} {self._fin}"
 
         if n_workers > 1:
@@ -216,16 +236,17 @@ class Beamline(ABC):
                                     shell=True,
                                     cwd=self._swd)
         except subprocess.CalledProcessError as e:
-            raise SimulationNotFinishedProperlyError(e)
-        finally:
-            time.sleep(1)
+            raise RuntimeError(repr(e))
+
+        self._check_output()
+
+        # TODO: process the data
 
     async def async_run(self, mapping, timeout):
         """Run simulation asynchronously for the beamline."""
         generate_input(self.template, mapping, self._fin)
 
-        executable = find_executable(config['EXECUTABLE']['ASTRA'])
-        self._check_run(executable)
+        executable = self._check_run()
         command = f"{executable} {self._fin}"
 
         if timeout is not None:
@@ -234,11 +255,16 @@ class Beamline(ABC):
         proc = await asyncio.create_subprocess_shell(
             command,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.PIPE,
             cwd=self._swd
         )
 
-        stdout, stderr = await proc.communicate()
+        _, stderr = await proc.communicate()
+        if stderr:
+            raise RuntimeError(stderr)
+
+        self._check_output()
+
         # TODO: process the data
 
     def status(self):
@@ -270,9 +296,18 @@ class AstraBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self._rootname = osp.join(
+            self._swd, osp.basename(self._pout.split('.')[0]))
+
         self._output_suffixes = [
             '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
         ]
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            return config['EXECUTABLE_PARA']['ASTRA']
+        return config['EXECUTABLE']['ASTRA']
 
     def _parse_phasespace(self, pfile):
         """Override."""
@@ -280,9 +315,7 @@ class AstraBeamline(Beamline):
 
     def _parse_line(self):
         """Override."""
-        root_name = osp.join(
-            self._swd, osp.basename(self._pout.split('.')[0]))
-        return parse_astra_line(root_name)
+        return parse_astra_line(self._rootname)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""
@@ -297,11 +330,19 @@ class ImpacttBeamline(Beamline):
 
         self._pin = 'partcl.data'
 
+        self._rootname = osp.join(self._swd, 'fort')
+
         if self._charge is None:
             raise ValueError(
                 "Bunch charge is required for ImpactT simulation!")
 
         self._output_suffixes = ['.18', '.24', '.25', '.26']
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            return config['EXECUTABLE_PARA']['IMPACTT']
+        return config['EXECUTABLE']['IMPACTT']
 
     def _parse_phasespace(self, pfile):
         """Override."""
@@ -309,8 +350,7 @@ class ImpacttBeamline(Beamline):
 
     def _parse_line(self):
         """Override."""
-        root_name = osp.join(self._swd, 'fort')
-        return parse_impactt_line(root_name)
+        return parse_impactt_line(self._rootname)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""
@@ -323,7 +363,6 @@ def create_beamline(bl_type, *args, **kwargs):
 
     :param str bl_type: beamline type
     """
-
     if bl_type.lower() in ('astra', 'a'):
         return AstraBeamline(*args, **kwargs)
 

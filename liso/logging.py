@@ -10,14 +10,12 @@ def create_logger():
 
     fh = logging.FileHandler(config['DEFAULT']['LOG_FILE'], mode='w')
     fh.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
 
     logger.addHandler(fh)
