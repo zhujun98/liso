@@ -20,11 +20,10 @@ class Optimizer(ABC):
     name = None
     multiprocessing = False
 
-    def __init__(self):
+    def __init__(self, seed=None):
         """Optimizer Class Initialization."""
-        self.seed = None
-        if self.seed is None:
-            self.seed = int(time.time())
+        self._seed = int(time.time()) if seed is None else int(seed)
+
         self._workers = None
         self.workers = 1
 

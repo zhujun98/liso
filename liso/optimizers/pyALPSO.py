@@ -46,9 +46,8 @@ class ALPSO(Optimizer):
     name = 'ALPSO'
     multiprocessing = False
 
-    def __init__(self):
-        """Initialization"""
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # -------------------------------------------------------------
         # default optimizer settings
@@ -109,7 +108,7 @@ class ALPSO(Optimizer):
         # =============================================================
         # Run ALPSO
         # =============================================================
-        np.random.seed(self.seed)  # Set random number generator
+        np.random.seed(self._seed)  # Set random number generator
         x0 = np.random.rand(self.swarm_size, n_vars)
         v0 = np.zeros([self.swarm_size, n_vars], float)
 

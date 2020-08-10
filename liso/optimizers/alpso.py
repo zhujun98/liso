@@ -18,7 +18,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 import math
 
 import numpy as np
-import h5py
 
 from ..logging import opt_logger
 
