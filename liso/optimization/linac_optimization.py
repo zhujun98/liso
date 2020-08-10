@@ -40,8 +40,6 @@ from ..covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
-from ..exceptions import *
-from ..simulation.simulation_utils import check_templates
 from ..logging import logger, opt_logger
 
 
@@ -344,27 +342,19 @@ class LinacOptimization(Optimization):
             self._linac.run(self._x_map, *args, **kwargs)
             is_update_failed = False
             self._nf = 0
-        except WatchUpdateError as e:
-            self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-        # exception propagates from Beamline.update() method
-        # Note: In practice, only WatchUpdateFailError could be raised since
-        # Watch is updated before Line!
-        except LineUpdateError as e:
-            self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
         except RuntimeError as e:
             self._nf += 1
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.info(f"{self._nfeval:05d}: " +
-                        repr(traceback.format_tb(exc_traceback)))
+            logger.debug(f"{self._nfeval:05d}: " +
+                         repr(traceback.format_tb(exc_traceback)) +
+                         str(e))
+            logger.warning(str(e))
         except Exception as e:
             self._nf += 1
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.info("{self._nfeval:05d}: Unexpected exceptions: " +
-                        repr(traceback.format_tb(exc_traceback)))
+            logger.error("{self._nfeval:05d}: Unexpected exceptions: " +
+                         repr(traceback.format_tb(exc_traceback)) +
+                         str(e))
             raise
         finally:
             if self._nf > self._max_nf:

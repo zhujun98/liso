@@ -47,22 +47,6 @@ class DataFileEmptyError(BeamAnalysisError):
     pass
 
 
-class WatchUpdateError(Exception):
-    """Raised if watch update fails.
-
-    e.g. file is missing or data format is wrong
-    """
-    pass
-
-
-class LineUpdateError(Exception):
-    """Raise if line update fails.
-
-    e.g file is missing or data format is wrong
-    """
-    pass
-
-
 class OptimizationError(Exception):
     """Raise if there is error in optimization."""
     pass

@@ -8,6 +8,8 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 import functools
+import sys
+import traceback
 from threading import Thread
 
 import numpy as np
@@ -87,6 +89,20 @@ class LinacScan(object):
                     tasks, return_when=asyncio.FIRST_COMPLETED)
 
                 for task in done:
+                    try:
+                        print(task.result())
+                    except RuntimeError as e:
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        logger.debug(repr(traceback.format_tb(exc_traceback)) +
+                                     str(e))
+                        logger.warning(str(e))
+                    except Exception as e:
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        logger.error("Unexpected exceptions: " +
+                                     repr(traceback.format_tb(exc_traceback)) +
+                                     str(e))
+                        raise
+
                     tasks.remove(task)
 
     def scan(self, n_tasks=1, tmp_dir=None, *args, **kwargs):
