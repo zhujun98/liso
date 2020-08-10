@@ -61,22 +61,23 @@ class LinacScan(object):
 
         self._params[name] = values
 
-    async def _async_scan(self, n_tasks, *args, **kwargs):
+    async def _async_scan(self, n_tasks, tmp_dir, *args, **kwargs):
         tasks = set()
         count = 0
         while True:
             if count < self._n:
                 for k, v in self._params.items():
                     self._x_map[k] = v[count]
+                count += 1
 
-                logger.info(f"Simulation {count+1:07d}: "
+                logger.info(f"Simulation {count:06d}: "
                             + str(self._x_map)[1:-1].replace(': ', ' = '))
 
                 task = asyncio.ensure_future(
-                    self._linac.async_run(self._x_map, *args, **kwargs))
+                    self._linac.async_run(
+                        self._x_map, f'{tmp_dir}_{count:06d}',
+                        *args, **kwargs))
                 tasks.add(task)
-
-                count += 1
 
             if len(tasks) == 0:
                 break
@@ -88,14 +89,18 @@ class LinacScan(object):
                 for task in done:
                     tasks.remove(task)
 
-    def scan(self, n_tasks=1, *args, **kwargs):
+    def scan(self, n_tasks=1, tmp_dir=None, *args, **kwargs):
         """Start a parameter scan.
 
         :param int n_tasks: maximum number of concurrent tasks.
+        :param str tmp_dir: temporary directory root name.
         """
         logger.info(str(self._linac) + self._get_info())
 
-        asyncio.run(self._async_scan(n_tasks, *args, **kwargs))
+        tmp_dir = "temp" if tmp_dir is None else tmp_dir
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
+            self._async_scan(n_tasks, tmp_dir, *args, **kwargs))
 
         logger.info(f"Scan finished!")
 

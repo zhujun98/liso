@@ -19,6 +19,7 @@ from ..data_processing import (
     parse_astra_phasespace, parse_impactt_phasespace,
     parse_astra_line, parse_impactt_line,
 )
+from ..io import TempSimulationDirectory
 from .simulation_utils import generate_input
 
 
@@ -27,6 +28,7 @@ class Beamline(ABC):
 
     def __init__(self, name, *,
                  template=None,
+                 swd=None,
                  fin=None,
                  pout=None,
                  charge=None,
@@ -35,8 +37,8 @@ class Beamline(ABC):
 
         :param str name: Name of the beamline.
         :param str template: path of the template of the input file.
-        :param str fin: path of the input file. The simulation working directory
-            is assumed to be the directory of the input file.
+        :param str swd: path of the simulation working directory.
+        :param str fin: input file name.
         :param str pout: final particle file name. It must be located in the
             simulation working directory.
         :param float charge: Bunch charge at the beginning of the beamline.
@@ -54,12 +56,11 @@ class Beamline(ABC):
         with open(template) as fp:
             self._template = tuple(fp.readlines())
 
-        self._swd = osp.dirname(osp.abspath(fin))
-        self._fin = osp.join(self._swd, osp.basename(fin))
+        self._swd = osp.abspath('./' if swd is None else swd)
 
-        # Initial particle distribution file name.
-        self._pin = None
-        self._pout = osp.join(self._swd, pout)
+        self._fin = fin
+        self._pin = None  # Initial particle distribution file name.
+        self._pout = pout
         self._rootname = None
 
         self._charge = charge
@@ -125,7 +126,7 @@ class Beamline(ABC):
         return self._std
 
     def _update_statistics(self):
-        data = self._parse_line()
+        data = self._parse_line(osp.join(self._swd, self._rootname))
 
         self._start = analyze_line(data, lambda x: x.iloc[0])
         self._end = analyze_line(data, lambda x: x.iloc[-1])
@@ -157,26 +158,30 @@ class Beamline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _parse_line(self):
+    def _parse_line(self, rootname):
         """Parse files which record beam evolutions..
+
+        :param str rootname: rootname of files.
 
         :returns: data.
         """
         raise NotImplementedError
 
-    def reset(self):
+    def reset(self, tmp_dir=None):
         """Reset status and output files."""
+        swd = self._swd if tmp_dir is None else osp.join(self._swd, tmp_dir)
+
         # input file
-        with open(self._fin, 'w') as fp:
+        with open(osp.join(swd, self._fin), 'w') as fp:
             fp.truncate()
 
         # output particle file
-        with open(self._pout, 'w') as fp:
+        with open(osp.join(swd, self._pout), 'w') as fp:
             fp.truncate()
 
         # Empty Line files and set LineParameter instances None
         for suffix in self._output_suffixes:
-            with open(self._rootname + suffix, 'w') as fp:
+            with open(osp.join(swd, self._rootname + suffix), 'w') as fp:
                 fp.truncate()
 
         self._out = None
@@ -192,26 +197,26 @@ class Beamline(ABC):
     def _get_executable(self, parallel):
         raise NotImplementedError
 
-    def _check_run(self, parallel=False):
+    def _check_run(self, fin, parallel=False):
         executable = find_executable(self._get_executable(parallel))
         if executable is None:
             raise RuntimeError(
                f"{executable} is not a valid bash command!")
 
-        if not osp.isfile(self._fin):
-            raise RuntimeError(f"Input file {self._fin} does not exist!")
-        if not osp.getsize(self._fin):
-            raise RuntimeError(f"Input file {self._fin} is empty!")
+        if not osp.isfile(fin):
+            raise RuntimeError(f"Input file {fin} does not exist!")
+        if not osp.getsize(fin):
+            raise RuntimeError(f"Input file {fin} is empty!")
 
         return executable
 
-    def _update_output(self, generate_input=False):
+    def _update_output(self, pout, generate_input=False):
         """Update output particle file.
 
+        :param str pout: output particle file.
         :param bool generate_input: generate input for the next beamline if
             given.
         """
-        pout = self._pout
         if not osp.isfile(pout):
             raise RuntimeError(f"Output particle file {pout} does not exist!")
         if not osp.getsize(pout):
@@ -220,20 +225,21 @@ class Beamline(ABC):
         data, charge = self._parse_phasespace(pout)
         charge = self._charge if charge is None else charge
         self._out = analyze_beam(data, charge)
-
         if generate_input and self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
 
     def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
-        generate_input(self._template, mapping, self._fin)
+        self.reset()
+
+        fin = osp.join(self._swd, self._fin)
+        generate_input(self._template, mapping, fin)
 
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
 
-        executable = self._check_run(n_workers > 1)
-        command = f"{executable} {self._fin}"
-
+        executable = self._check_run(fin, n_workers > 1)
+        command = f"{executable} {fin}"
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
 
@@ -249,30 +255,38 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
-        self._update_output(generate_input=True)
+        pout = osp.join(self._swd, self._pout)
+        self._update_output(pout, generate_input=True)
 
-    async def async_run(self, mapping, timeout):
+    async def async_run(self, mapping, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        generate_input(self._template, mapping, self._fin)
+        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+            self.reset(tmp_dir)
 
-        executable = self._check_run()
-        command = f"{executable} {self._fin}"
+            fin = osp.join(swd, self._fin)
+            generate_input(self._template, mapping, fin)
+            executable = self._check_run(fin)
 
-        if timeout is not None:
-            command = f"timeout {timeout}s " + command
+            command = f"{executable} {fin}"
+            if timeout is not None:
+                command = f"timeout {timeout}s " + command
 
-        proc = await asyncio.create_subprocess_shell(
-            command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=self._swd
-        )
+            # Astra will find external files in the simulation working
+            # directory but output files in the directory where the input
+            # file is located.
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._swd
+            )
 
-        _, stderr = await proc.communicate()
-        if stderr:
-            raise RuntimeError(stderr)
+            _, stderr = await proc.communicate()
+            if stderr:
+                raise RuntimeError(stderr)
 
-        self._update_output(generate_input=True)
+            pout = osp.join(swd, self._pout)
+            self._update_output(pout, generate_input=True)
 
     def status(self):
         """Return the status of the beamline."""
@@ -291,9 +305,9 @@ class Beamline(ABC):
         text += f'Simulation working directory: {self._swd}\n'
         text += f'Input file: {osp.basename(self._fin)}\n'
         if self._pin is not None:
-            text += 'Input particle file: %s\n' % self._pin
+            text += f'Input particle file: {self._pin}\n'
         if self._pout is not None:
-            text += f'Output particle file: {osp.basename(self._pout)}\n'
+            text += f'Output particle file: {self._pout}\n'
         return text
 
 
@@ -303,8 +317,7 @@ class AstraBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._rootname = osp.join(
-            self._swd, osp.basename(self._pout.split('.')[0]))
+        self._rootname = osp.basename(self._pout.split('.')[0])
 
         self._output_suffixes = [
             '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
@@ -320,14 +333,15 @@ class AstraBeamline(Beamline):
         """Override."""
         return parse_astra_phasespace(pfile)
 
-    def _parse_line(self):
+    def _parse_line(self, rootname):
         """Override."""
-        return parse_astra_line(self._rootname)
+        return parse_astra_line(rootname)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""
-        if self._pin is not None:
-            ParticleFileGenerator(data, self._pin).to_astra_pfile(charge)
+        pin = osp.join(self._swd, self._pin)
+        if pin is not None:
+            ParticleFileGenerator(data, pin).to_astra_pfile(charge)
 
 
 class ImpacttBeamline(Beamline):
@@ -335,9 +349,8 @@ class ImpacttBeamline(Beamline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._pin = osp.join(self._swd, 'partcl.data')
-
-        self._rootname = osp.join(self._swd, 'fort')
+        self._pin = 'partcl.data'
+        self._rootname = 'fort'
 
         if self._charge is None:
             raise ValueError(
@@ -355,14 +368,15 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_phasespace(pfile)
 
-    def _parse_line(self):
+    def _parse_line(self, rootname):
         """Override."""
-        return parse_impactt_line(self._rootname)
+        return parse_impactt_line(rootname)
 
     def generate_initial_particle_file(self, data, charge):
         """Implement the abstract method."""
-        if self._pin is not None:
-            ParticleFileGenerator(data, self._pin).to_impactt_pfile()
+        pin = osp.join(self._swd, self._pin)
+        if pin is not None:
+            ParticleFileGenerator(data, pin).to_impactt_pfile()
 
 
 def create_beamline(bl_type, *args, **kwargs):

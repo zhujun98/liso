@@ -9,21 +9,8 @@ python astra_impactt_combined.py --workers <number of cpu cores>
 This may not be a good example for optimization. It simply shows how
 does a concatenated optimization work.
 """
-import argparse
-
 from liso import Linac, LinacOptimization, NelderMead
 
-
-parser = argparse.ArgumentParser(description='Resnet benchmark')
-parser.add_argument('--workers',
-                    type=int,
-                    nargs='?',
-                    default='1',
-                    help="Number of workers.")
-
-args = parser.parse_args()
-
-# ---------------------------------------------------------------------
 
 linac = Linac()
 
@@ -32,7 +19,8 @@ linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
-                   fin='astra_injector/injector.in',
+                   swd='astra_injector',
+                   fin='injector.in',
                    template='astra_impactt_combined/injector.in.000',
                    pout='injector.0450.001')
 
@@ -42,7 +30,8 @@ linac.add_beamline('astra',
 # will be ignored if the code is Astra.
 linac.add_beamline('impactt',
                    name='chicane',
-                   fin='impactt_lattice/ImpactT.in',
+                   swd='impactt_lattice',
+                   fin='ImpactT.in',
                    template='astra_impactt_combined/ImpactT.in.000',
                    pout='fort.106',
                    charge=1e-15)

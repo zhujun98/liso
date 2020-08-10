@@ -8,12 +8,13 @@ cases.
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import os
+import os.path as osp
 import glob
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
 
-test_path = os.path.abspath(os.path.join(
+test_path = os.path.abspath(osp.join(
     os.path.dirname(__file__), 'global_optimizer'
 ))
 
@@ -23,8 +24,9 @@ class TestGlobalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin=os.path.join(test_path, 'injector.in'),
-                           template=os.path.join(test_path, 'injector.in.000'),
+                           swd=test_path,
+                           fin='injector.in',
+                           template=osp.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
 
         self.opt = LinacOptimization(linac)
@@ -38,9 +40,9 @@ class TestGlobalOptimizer(unittest.TestCase):
         self.opt.add_var('gun_gradient', value=130, lb=90.0, ub=130.0)
 
     def tearDown(self):
-        for file in glob.glob(os.path.join(test_path, "injector.*.001")):
+        for file in glob.glob(osp.join(test_path, "injector.*.001")):
             os.remove(file)
-        os.remove(os.path.join(test_path, "injector.in"))
+        os.remove(osp.join(test_path, "injector.in"))
 
     def test_optimization(self):
         optimizer = ALPSO()
