@@ -29,9 +29,8 @@ class NelderMead(Optimizer):
     name = 'Nelder-Mead'
     multiprocessing = False
 
-    def __init__(self):
-        """Initialization"""
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # -------------------------------------------------------------
         # default optimizer settings

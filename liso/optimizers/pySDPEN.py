@@ -42,9 +42,8 @@ class SDPEN(PyoptOptimizer):
     # False for turning off the support inequality constraint
     _constraint_on = False
 
-    def __init__(self):
-        """Initialization."""
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self._sdpen = pyoptSDPEN()
         self._sdpen.setOption('iprint', -1)

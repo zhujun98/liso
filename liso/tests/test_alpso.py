@@ -1,8 +1,6 @@
 """
 Unittest of ALPSO optimizer.
 
-Eggholder and TP37 have higher probabilities of failure.
-
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
@@ -18,7 +16,7 @@ from .opt_problems import (
 
 class TestALPSO(unittest.TestCase):
     def setUp(self):
-        self.optimizer = ALPSO()
+        self.optimizer = ALPSO(seed=42)
 
     def _setup_test(self, cls, *,
                     swarm_size=100,
