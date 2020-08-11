@@ -74,8 +74,12 @@ class Linac(Mapping):
             bl.run(mapping, n_workers, timeout)
 
     async def async_run(self, mapping, tmp_dir, *, timeout=None):
+        rets = dict()
+
         for i, bl in enumerate(self._beamlines.values()):
-            await bl.async_run(mapping, tmp_dir, timeout=timeout)
+            ret = await bl.async_run(mapping, tmp_dir, timeout=timeout)
+            rets[f'{bl.name}.out'] = ret['out']
+        return rets
 
     def status(self):
         """Return the status of the linac."""

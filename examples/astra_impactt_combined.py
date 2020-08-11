@@ -10,6 +10,8 @@ This may not be a good example for optimization. It simply shows how
 does a concatenated optimization work.
 """
 from liso import Linac, LinacOptimization, NelderMead
+from liso.logging import logger
+logger.setLevel('DEBUG')
 
 
 linac = Linac()

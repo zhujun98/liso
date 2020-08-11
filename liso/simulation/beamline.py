@@ -85,55 +85,31 @@ class Beamline(ABC):
 
     @property
     def out(self):
-        if self._out is None:
-            self._update_output()
         return self._out
 
     @property
     def start(self):
-        if self._start is None:
-            self._update_statistics()
         return self._start
 
     @property
     def end(self):
-        if self._end is None:
-            self._update_statistics()
         return self._end
 
     @property
     def min(self):
-        if self._min is None:
-            self._update_statistics()
         return self._min
 
     @property
     def max(self):
-        if self._max is None:
-            self._update_statistics()
         return self._max
 
     @property
     def avg(self):
-        if self._avg is None:
-            self._update_statistics()
         return self._avg
 
     @property
     def std(self):
-        if self._std is None:
-            self._update_statistics()
         return self._std
-
-    def _update_statistics(self):
-        data = self._parse_line(osp.join(self._swd, self._rootname))
-
-        self._start = analyze_line(data, lambda x: x.iloc[0])
-        self._end = analyze_line(data, lambda x: x.iloc[-1])
-        self._min = analyze_line(data, np.min)
-        self._max = analyze_line(data, np.max)
-        self._avg = analyze_line(data, np.average)
-        self._std = analyze_line(data, np.std)
 
     @abstractmethod
     def generate_initial_particle_file(self, data, charge):
@@ -197,36 +173,53 @@ class Beamline(ABC):
     def _get_executable(self, parallel):
         raise NotImplementedError
 
-    def _check_run(self, fin, parallel=False):
+    def _check_file(self, filepath, title=''):
+        if not osp.isfile(filepath):
+            raise RuntimeError(f"{title} file {filepath} does not exist!")
+        if not osp.getsize(filepath):
+            raise RuntimeError(f"{title} file {filepath} is empty!")
+
+    def _check_run(self, parallel=False):
         executable = find_executable(self._get_executable(parallel))
         if executable is None:
             raise RuntimeError(
                f"{executable} is not a valid bash command!")
-
-        if not osp.isfile(fin):
-            raise RuntimeError(f"Input file {fin} does not exist!")
-        if not osp.getsize(fin):
-            raise RuntimeError(f"Input file {fin} is empty!")
-
         return executable
 
-    def _update_output(self, pout, generate_input=False):
-        """Update output particle file.
+    def _update_output(self, swd=None):
+        """Analyse output particle file.
 
-        :param str pout: output particle file.
-        :param bool generate_input: generate input for the next beamline if
-            given.
+        Also prepare the input particle file for the downstream simulation.
+
+        :param str swd: simulation working directory.
         """
-        if not osp.isfile(pout):
-            raise RuntimeError(f"Output particle file {pout} does not exist!")
-        if not osp.getsize(pout):
-            raise RuntimeError(f"Output particle file {pout} is empty!")
+        swd = self._swd if swd is None else swd
+        pout = osp.join(swd, self._pout)
+        self._check_file(pout, 'Output')
 
         data, charge = self._parse_phasespace(pout)
         charge = self._charge if charge is None else charge
         self._out = analyze_beam(data, charge)
-        if generate_input and self.next is not None:
+        if self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
+
+    def _update_statistics(self, swd=None):
+        """Analysis output beam evolution files.
+
+        :param str swd: simulation working directory.
+        """
+        swd = self._swd if swd is None else swd
+        rootname = osp.join(swd, self._rootname)
+        for suffix in self._output_suffixes:
+            self._check_file(rootname + suffix, 'Output')
+
+        data = self._parse_line(rootname)
+        self._start = analyze_line(data, lambda x: x.iloc[0])
+        self._end = analyze_line(data, lambda x: x.iloc[-1])
+        self._min = analyze_line(data, np.min)
+        self._max = analyze_line(data, np.max)
+        self._avg = analyze_line(data, np.average)
+        self._std = analyze_line(data, np.std)
 
     def run(self, mapping, n_workers, timeout):
         """Run simulation for the beamline."""
@@ -238,7 +231,8 @@ class Beamline(ABC):
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
 
-        executable = self._check_run(fin, n_workers > 1)
+        self._check_file(fin, 'Input')
+        executable = self._check_run(n_workers > 1)
         command = f"{executable} {fin}"
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
@@ -255,8 +249,8 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
-        pout = osp.join(self._swd, self._pout)
-        self._update_output(pout, generate_input=True)
+        self._update_output()
+        self._update_statistics()
 
     async def async_run(self, mapping, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
@@ -265,7 +259,8 @@ class Beamline(ABC):
 
             fin = osp.join(swd, self._fin)
             generate_input(self._template, mapping, fin)
-            executable = self._check_run(fin)
+            self._check_file(fin, 'Input')
+            executable = self._check_run()
 
             command = f"{executable} {fin}"
             if timeout is not None:
@@ -285,8 +280,12 @@ class Beamline(ABC):
             if stderr:
                 raise RuntimeError(stderr)
 
-            pout = osp.join(swd, self._pout)
-            self._update_output(pout, generate_input=True)
+            self._update_output(swd)
+            self._update_statistics(swd)
+
+            return {
+                'out': self._out,
+            }
 
     def status(self):
         """Return the status of the beamline."""

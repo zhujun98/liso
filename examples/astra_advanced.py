@@ -24,6 +24,8 @@ tws_phase -90.0000
 Author: Jun Zhu
 """
 from liso import Linac, LinacOptimization, ALPSO
+from liso.logging import logger
+logger.setLevel('DEBUG')
 
 
 linac = Linac()

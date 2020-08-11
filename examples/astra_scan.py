@@ -4,6 +4,8 @@ This is a basic example showing how to study parameter_scan.
 import numpy as np
 
 from liso import Linac, LinacScan
+from liso.logging import logger
+logger.setLevel('DEBUG')
 
 
 linac = Linac()  # instantiate a Linac
