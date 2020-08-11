@@ -9,6 +9,7 @@ from collections.abc import Mapping
 
 from collections import OrderedDict
 from .beamline import create_beamline
+from .output import OutputData
 
 
 class Linac(Mapping):
@@ -73,13 +74,14 @@ class Linac(Mapping):
         for i, bl in enumerate(self._beamlines.values()):
             bl.run(mapping, n_workers, timeout)
 
-    async def async_run(self, mapping, tmp_dir, *, timeout=None):
-        rets = dict()
-
+    async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
+        inputs = dict()
+        phasespaces = dict()
         for i, bl in enumerate(self._beamlines.values()):
-            ret = await bl.async_run(mapping, tmp_dir, timeout=timeout)
-            rets[f'{bl.name}.out'] = ret['out']
-        return rets
+            output = await bl.async_run(mapping, tmp_dir, timeout=timeout)
+            inputs.update(output['input'])
+            phasespaces.update(output['phasespace'])
+        return idx, OutputData(inputs, phasespaces)
 
     def status(self):
         """Return the status of the linac."""

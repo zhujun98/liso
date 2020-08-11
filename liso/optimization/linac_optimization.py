@@ -352,7 +352,7 @@ class LinacOptimization(Optimization):
         except Exception as e:
             self._nf += 1
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.error("{self._nfeval:05d}: Unexpected exceptions: " +
+            logger.error(f"{self._nfeval:05d} (Unexpected exceptions): " +
                          repr(traceback.format_tb(exc_traceback)) +
                          str(e))
             raise
