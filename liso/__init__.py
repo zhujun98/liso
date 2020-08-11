@@ -1,3 +1,10 @@
+"""
+Distributed under the terms of the GNU General Public License v3.0.
+
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
+"""
 from .simulation import *
 from .scan import *
 from .optimization import *

@@ -11,6 +11,7 @@ win_config.dat
 *.autosave
 .coverage
 *.log
+*.hdf5
 
 .ipynb_checkpoints/*
 

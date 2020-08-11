@@ -20,6 +20,7 @@ from ..data_processing import (
     parse_astra_line, parse_impactt_line,
 )
 from ..io import TempSimulationDirectory
+from .output import OutputData
 from .simulation_utils import generate_input
 
 
@@ -203,6 +204,8 @@ class Beamline(ABC):
         if self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
 
+        return data
+
     def _update_statistics(self, swd=None):
         """Analysis output beam evolution files.
 
@@ -280,12 +283,15 @@ class Beamline(ABC):
             if stderr:
                 raise RuntimeError(stderr)
 
-            self._update_output(swd)
-            self._update_statistics(swd)
+            ps = self._update_output(swd)
 
-            return {
-                'out': self._out,
+            inputs = {
+                f'{self.name}.{k}': v for k, v in mapping.items()
             }
+            phasespaces = {
+                f'{self.name}.out': ps
+            }
+            return OutputData(inputs, phasespaces)
 
     def status(self):
         """Return the status of the beamline."""

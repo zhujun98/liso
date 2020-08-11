@@ -7,45 +7,59 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import h5py
 
-from .. import __version__
 
-
-class SimParamWriter:
+class SimWriter:
     """Write simulation parameters in file."""
 
-    def __init__(self, path, data):
-        self._file = h5py.File(path, 'w')
-        self._data = data
+    # maximum number of data points
+    _MAX_LEN = 10000
 
-    def write_metadata(self):
-        """Write the METADATA section, including lists of sources"""
-        vlen_bytes = h5py.special_dtype(vlen=bytes)
-        data_sources = sorted(self.data_sources)
-        N = len(data_sources)
+    def __init__(self, path):
+        self._path = path
+        # self._file.attrs['writer'] = f'liso {__version__}'
 
-        sources_ds = self._file.create_dataset(
-            'METADATA/dataSourceId', (N,), dtype=vlen_bytes, maxshape=(None,)
-        )
-        sources_ds[:] = data_sources
+        with h5py.File(path, 'w') as fp:
+            fp.create_group('metadata')
 
-        root_ds = self._file.create_dataset(
-            'METADATA/root', (N,), dtype=vlen_bytes, maxshape=(None,)
-        )
-        root_ds[:] = [ds.split('/', 1)[0] for ds in data_sources]
+            fp.create_group('input')
 
-        devices_ds = self._file.create_dataset(
-            'METADATA/deviceId', (N,), dtype=vlen_bytes, maxshape=(None,)
-        )
-        devices_ds[:] = [ds.split('/', 1)[1] for ds in data_sources]
+            # phasespace
+            grp = fp.create_group('phasespace')
+            for axis in ['x', 'px', 'y', 'py', 'z', 'pz', 't']:
+                grp.create_group(axis)
 
-    def write(self):
-        d = self._data
+        self._initialized = False
 
-        # set writer version
-        self._file.attrs['writer'] = f'liso {__version__}'
+    def write(self, idx, data):
+        """Write data into file incrementally.
 
-        self._file.create_dataset(
-            'INDEX/trainId', data=d.train_ids, dtype='u8'
-        )
+        :param int idx: scan index.
+        :param OutputData data: output data.
+        """
+        with h5py.File(self._path, 'a') as fp:
+            max_len = self._MAX_LEN
+            if not self._initialized:
+                for k in data['metadata']:
+                    ds = fp.create_dataset(f"metadata/{k}",
+                                           (len(data['metadata'][k]), ),
+                                           dtype=h5py.string_dtype())
+                    ds[:] = list(data['metadata'][k])
 
-        self.write_metadata()
+                for k in data['input']:
+                    fp.create_dataset(f"input/{k}", (max_len,), dtype='f8')
+
+                for k, v in data['phasespace'].items():
+                    for col in v.columns:
+                        # TODO: how to pass the number of particles information?
+                        fp.create_dataset(f"phasespace/{col}/{k}",
+                                          (max_len, 2000),
+                                          dtype='f8')
+
+                self._initialized = True
+
+            for k, v in data['input'].items():
+                fp[f"input/{k}"][idx] = v
+
+            for k, v in data['phasespace'].items():
+                for col in v.columns:
+                    fp[f"phasespace/{col}/{k}"][idx] = v[col]
