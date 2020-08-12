@@ -320,7 +320,7 @@ def analyze_line(data, func, *, min_particles=5):
 
     :return: A LineParameters instance.
     """
-    if len(data) < 5:
+    if len(data) < min_particles:
         raise RuntimeError(f"Too few points {len(data)} in the line")
 
     params = LineParameters()
