@@ -32,7 +32,7 @@ def compute_canonical_emit(x, px):
 
 
 def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
-    """ Calculate the Twiss parameters
+    """Calculate the Twiss parameters
 
     Note: In the calculation (except the canonical emittance), the
     particles are drifted back to the center of the bunch without
@@ -79,6 +79,21 @@ def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
     alphax = -1 * xxp / emitx
 
     return sigma_x, betax, alphax, emitnx
+
+
+def compute_current_profile(t, n_bins, charge):
+    """Calculate the current profile.
+
+    :param array-like t: an array of t for each particle.
+    :param int n_bins: number of current bins.
+    :param float charge: total bunch charge (in C).
+    """
+    counts, edges = np.histogram(t, bins=n_bins)
+    step_size = edges[1] - edges[0]
+    centers = edges[:-1] + step_size / 2
+
+    currents = counts * charge / (len(t) * step_size)
+    return currents, centers
 
 
 def gaussian_filter1d(x, sigma):
@@ -274,16 +289,8 @@ def analyze_beam(data, charge, *,
     params.St = data['t'].std(ddof=0)
     params.Sz = data['z'].std(ddof=0)
 
-    # The current profile calculation is included here but not in
-    # the plot function. If it is included in the plot function, the
-    # printout parameters might differ from the plot, which could
-    # cause confusion.
-    counts, edges = np.histogram(data['t'], bins=current_bins)
-    step_size = edges[1] - edges[0]
-    centers = edges[:-1] + step_size / 2
-
-    filtered_counts = gaussian_filter1d(counts, sigma=filter_size)
-    currents = counts / len(data) * params.charge / step_size
+    currents, centers = compute_current_profile(
+        data['t'], current_bins, params.charge)
     params.I_peak = currents.max()
     params.current_dist = [centers, currents]
 
@@ -306,8 +313,9 @@ def analyze_beam(data, charge, *,
     # Calculate the slice parameters
     sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
 
+    filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
     if slice_with_peak_current is True and params.charge != 0.0:
-        Ct_slice = centers[np.argmax(filtered_counts)]  # currents could be all 0
+        Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
     else:
         Ct_slice = params.Ct
 
