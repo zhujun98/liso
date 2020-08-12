@@ -8,6 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 import functools
+import itertools
 import sys
 import traceback
 from threading import Thread
@@ -42,7 +43,6 @@ class LinacScan(object):
         self._linac = linac
 
         self._params = OrderedDict()
-        self._n = None
 
         self._x_map = dict()
 
@@ -52,26 +52,21 @@ class LinacScan(object):
         :param str name: parameter name.
         :param array-like values: a list of values for scanning.
         """
-        if self._n is None:
-            self._n = len(values)
-        else:
-            if len(values) != self._n:
-                raise ValueError(f"Parameters have different lengths: "
-                                 f"{self._n} and {len(values)}")
-
         if name in self._params:
             logger.warning(f"Overwrite existing parameter: {name}!")
 
         self._params[name] = values
 
     async def _async_scan(self, n_tasks, output, **kwargs):
-        writer = SimWriter(output)
         tasks = set()
         count = 0
+        param_list = list(itertools.product(*self._params.values()))
+        n_total = len(param_list)
+        writer = SimWriter(n_total, output)
         while True:
-            if count < self._n:
-                for k, v in self._params.items():
-                    self._x_map[k] = v[count]
+            if count < n_total:
+                for i, k in enumerate(self._params):
+                    self._x_map[k] = param_list[count][i]
 
                 task = asyncio.ensure_future(
                     self._linac.async_run(
@@ -86,7 +81,7 @@ class LinacScan(object):
             if len(tasks) == 0:
                 break
 
-            if len(tasks) >= n_tasks or count == self._n:
+            if len(tasks) >= n_tasks or count == n_total:
                 done, _ = await asyncio.wait(
                     tasks, return_when=asyncio.FIRST_COMPLETED)
 
