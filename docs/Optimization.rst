@@ -9,10 +9,6 @@ Guide for beginners
 - Run some small optimization problems first to familiarize yourself with different optimizers and your problem;
 - Your "Objective" should be much larger than "Absolute tolerance" in the optimizer setup.
 
-.. currentmodule:: liso.operation
-.. autoclass:: Operation
-    :show-inheritance:
-
 
 .. currentmodule:: liso.optimization.linac_optimization
 

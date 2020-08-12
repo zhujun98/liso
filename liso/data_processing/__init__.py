@@ -1,5 +1,6 @@
 from .data_proc_utils import (
-    analyze_beam, analyze_line, compute_current_profile, tailor_beam
+    analyze_beam, analyze_line, compute_canonical_emit,
+    compute_current_profile, compute_twiss, tailor_beam
 )
 from .particle_file_generator import ParticleFileGenerator
 from .phasespace_parser import (
@@ -11,9 +12,11 @@ from .line_parser import (
 
 
 __all__ = [
-    'analyze_line',
     'analyze_beam',
+    'analyze_line',
+    'compute_canonical_emit',
     'compute_current_profile',
+    'compute_twiss',
     'tailor_beam',
     'ParticleFileGenerator',
     'parse_astra_phasespace',

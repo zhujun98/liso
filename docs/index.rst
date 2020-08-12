@@ -14,6 +14,7 @@ Linac Optimization and Simulation (LISO)
 
    Installation
    Simulation
+   DataProcessing
    Scan
    Optimization
    Optimizers
