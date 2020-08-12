@@ -7,7 +7,8 @@ import unittest
 import os
 
 from liso.data_processing import (
-    analyze_beam, parse_astra_phasespace, parse_impactt_phasespace, tailor_beam
+    analyze_beam, analyze_line, parse_astra_phasespace, parse_impactt_phasespace,
+    tailor_beam
 )
 
 test_path = os.path.abspath(os.path.join(
@@ -24,7 +25,13 @@ class TestAnalyzeBeam(unittest.TestCase):
         pfile = os.path.join(test_path, "astra.out")
         self.astra_data, self.astra_charge = parse_astra_phasespace(pfile)
 
-    def test_astra(self):
+    def testAstra(self):
+        with self.assertRaises(RuntimeError):
+            analyze_beam(self.astra_data[:19], self.astra_charge, min_particles=20)
+
+        with self.assertRaisesRegex(RuntimeError, "slice"):
+            analyze_beam(self.astra_data[:100], self.astra_charge, min_particles=20)
+
         params = analyze_beam(self.astra_data, self.astra_charge)
 
         self.assertAlmostEqual(params.charge, 1.0e-12, places=4)
@@ -56,7 +63,7 @@ class TestAnalyzeBeam(unittest.TestCase):
         self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2098, places=4)
         self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1199, places=4)
 
-    def test_impactt(self):
+    def testImpactt(self):
         params = analyze_beam(self.impactt_data, self.impactt_charge)
 
         self.assertAlmostEqual(params.charge, self.impactt_charge, places=4)
@@ -88,31 +95,37 @@ class TestAnalyzeBeam(unittest.TestCase):
         self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2108, places=4)
         self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1207, places=4)
 
-    def test_zero_charge(self):
+    def testZeroCharge(self):
         # to test not raise when charge = 0.0
         params = analyze_beam(self.impactt_data, 0.0)
         self.assertEqual(params.charge, 0.0)
 
-    def test_cut_halo(self):
+    def testCutHalo(self):
         params = analyze_beam(tailor_beam(self.astra_data, halo=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 450)
 
-    def test_cut_tail(self):
+    def testCutTail(self):
         params = analyze_beam(tailor_beam(self.astra_data, tail=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 450)
 
-    def test_rotate_beam(self):
+    def testRotateBeam(self):
         params = analyze_beam(tailor_beam(self.astra_data, rotation=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 500)
 
-    def test_tailor_beam(self):
+    def testTailorBeam(self):
         params = analyze_beam(tailor_beam(self.astra_data, halo=0.1, tail=0.2,
                                           rotation=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 360)
+
+
+class TestAnalyzeLine(unittest.TestCase):
+    def testGeneral(self):
+        with self.assertRaises(RuntimeError):
+            analyze_line([1, 2], max)
 
 
 if __name__ == "__main__":

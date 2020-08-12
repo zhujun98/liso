@@ -227,7 +227,8 @@ def analyze_beam(data, charge, *,
                  current_bins='auto',
                  filter_size=1,
                  slice_percent=0.1,
-                 slice_with_peak_current=True):
+                 slice_with_peak_current=True,
+                 min_particles=20):
     """Calculate beam parameters.
 
     :param data: Pandas.DataFrame
@@ -243,6 +244,8 @@ def analyze_beam(data, charge, *,
         True for calculating slice properties of the slice with peak
         current; False for calculating slice properties of the slice
         in the center of the bunch.
+    :param int min_particles: minimum number of particles required for
+        phasespace analysis.
 
     :return: BeamParameters object.
         Beam parameters.
@@ -255,9 +258,8 @@ def analyze_beam(data, charge, *,
 
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
-    if n0 < 20:
-        raise WatchUpdateError("Too few particles {} in the phasespace".
-                               format(n0))
+    if n0 < min_particles:
+        raise RuntimeError(f"Too few particles {n0} in the phasespace")
 
     p = np.sqrt(data['pz'] ** 2 + data['px'] ** 2 + data['py'] ** 2)
 
@@ -313,9 +315,8 @@ def analyze_beam(data, charge, *,
     slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
                              (sorted_data.t < Ct_slice + dt_slice / 2)]
 
-    if len(slice_data) < 20:
-        raise WatchUpdateError("Too few particles {} in the slice".
-                               format(len(slice_data)))
+    if len(slice_data) < min_particles:
+        raise RuntimeError(f"Too few particles {len(slice_data)} in the slice")
 
     p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
 
@@ -333,19 +334,20 @@ def analyze_beam(data, charge, *,
     return params
 
 
-def analyze_line(data, func):
+def analyze_line(data, func, *, min_particles=5):
     """Calculate line parameters.
 
     :param data: Pandas.DataFrame
         Line data.
     :param func: a functor
         Range of the z coordinate.
+    :param int min_particles: minimum number of particles required
+        for line analysis.
 
     :return: A LineParameters instance.
     """
     if len(data) < 5:
-        raise LineUpdateError("Too few points {} in the line".
-                              format(len(data)))
+        raise RuntimeError(f"Too few points {len(data)} in the line")
 
     params = LineParameters()
 
