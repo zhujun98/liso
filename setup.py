@@ -60,6 +60,7 @@ setup(
         'docs': [
             'sphinx',
             'nbsphinx',
+            'sphinx-rtd-theme',
             'ipython',  # For nbsphinx syntax highlighting
         ],
     }
