@@ -56,7 +56,7 @@ class PhasespacePlot(object):
 
         self._charge *= len(self._data) / n0
 
-        self.params = analyze_beam(self._data, self._charge, **kwargs)
+        self._params = analyze_beam(self._data, self._charge, **kwargs)
 
         self._figsize = figsize
 
@@ -170,8 +170,8 @@ class PhasespacePlot(object):
                     nbins=self._max_locator))
                 ax1.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
-                ax1.plot(self.params.current_dist[0] * x_scale,
-                         self.params.current_dist[1] * y1_scale,
+                ax1.plot(self._params.current_dist[0] * x_scale,
+                         self._params.current_dist[1] * y1_scale,
                          ls='--',
                          lw=2,
                          color='indigo')
@@ -213,21 +213,21 @@ class PhasespacePlot(object):
             if (var_x, var_y) == ('x', 'xp'):
                 ax.set_title(
                     r'$\varepsilon_x$ = %s $\mu$m' %
-                    float("%.2g" % (self.params.emitx*1e6)),
+                    float("%.2g" % (self._params.emitx*1e6)),
                     fontsize=self._tick_fontsize, y=1.02)
 
             elif (var_x, var_y) == ('y', 'yp'):
                 ax.set_title(
                     r'$\varepsilon_y$ = %s $\mu$m'
-                    % float("%.2g" % (self.params.emity*1e6)),
+                    % float("%.2g" % (self._params.emity*1e6)),
                     fontsize=self._tick_fontsize, y=1.02)
 
             elif var_x == 't' and (var_y == 'p' or var_y == 'delta'):
                 ax.set_title(
-                    r"$\sigma_t$ = %s " % float("%.2g" % (self.params.St*x_scale))
+                    r"$\sigma_t$ = %s " % float("%.2g" % (self._params.St*x_scale))
                     + x_unit_label.replace('(', '').replace(')', '')
-                    + r", $\sigma_\delta$ = %s " % float("%.2g" % self.params.Sdelta)
-                    + r", $Q$ = %s pC" % float("%.2g" % (self.params.charge*1e12)),
+                    + r", $\sigma_\delta$ = %s " % float("%.2g" % self._params.Sdelta)
+                    + r", $Q$ = %s pC" % float("%.2g" % (self._params.charge*1e12)),
                     fontsize=self._tick_fontsize, y=1.02)
 
         return ax

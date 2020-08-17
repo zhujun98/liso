@@ -15,10 +15,11 @@ import numpy as np
 
 from ..config import config
 from ..data_processing import (
-    analyze_beam, analyze_line, ParticleFileGenerator,
+    analyze_beam, analyze_line,
     parse_astra_phasespace, parse_impactt_phasespace,
     parse_astra_line, parse_impactt_line,
 )
+from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .output import OutputData
 from .simulation_utils import generate_input
@@ -381,7 +382,7 @@ class ImpacttBeamline(Beamline):
         """Implement the abstract method."""
         pin = osp.join(self._swd, self._pin)
         if pin is not None:
-            ParticleFileGenerator(data, pin).to_impactt_pfile()
+            ParticleFileGenerator.fromDataframeToImpactt(data, pin)
 
 
 def create_beamline(bl_type, *args, **kwargs):

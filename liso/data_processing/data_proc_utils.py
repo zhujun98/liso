@@ -282,7 +282,7 @@ def analyze_beam(data, charge, *,
     sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
 
     filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
-    if slice_with_peak_current is True and params.charge != 0.0:
+    if slice_with_peak_current and params.charge != 0.0:
         Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
     else:
         Ct_slice = params.Ct

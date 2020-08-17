@@ -62,7 +62,10 @@ def parse_astra_phasespace(particle_file):
     data['z'] += z_ref
 
     # remove lost particles
-    data = data[data['flag'].isin([3, 5])]
+    #   -1: standard particle at the cathode (not yet started)
+    #    3: trajectory probe particle
+    #    5: standard particle
+    data = data[data['flag'].isin([-1, 3, 5])]
 
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 

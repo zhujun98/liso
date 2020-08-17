@@ -12,8 +12,9 @@ win_config.dat
 .coverage
 *.log
 *.hdf5
+*.csv
 
-.ipynb_checkpoints/*
+.ipynb_checkpoints
 
 examples/astra_injector/*
 !examples/astra_injector/generatorG.in
