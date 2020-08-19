@@ -16,12 +16,9 @@ from scipy import constants
 def fast_sample_data(x, y, n=1):
     """Sample a fraction of data from x and y.
 
-    :param x: Pandas.Series
-        Data series.
-    :param y: Pandas.Series
-        Data series.
-    :param n: int
-        No. of data to be sampled.
+    :param Pandas.Series x: data series.
+    :param Pandas.Series y: data series.
+    :param int n: number of data to be sampled.
 
     :return: a tuple (x_sample, y_sample) where x_sample and y_sample
              are both numpy.array
@@ -38,16 +35,12 @@ def fast_sample_data(x, y, n=1):
 def sample_data(x, y, *, n=20000, bins=None, sigma=None):
     """Sample the data and calculate the density map.
 
-    :param x: pandas.Series
-        x data.
-    :param y: pandas.Series
-        y data.
-    :param n: int
-        No. of data points to be sampled.
-    :param bins: int or (int, int)
-        No. of bins used in numpy.histogram2d().
-    :param sigma: numeric
-        Standard deviation of Gaussian kernel of the Gaussian filter.
+    :param pandas.Series x: x data.
+    :param pandas.Series y: y data.
+    :param int n: number of data points to be sampled.
+    :param int/(int, int) bins: number of bins used in numpy.histogram2d().
+    :param numeric sigma: standard deviation of Gaussian kernel of the
+        Gaussian filter.
 
     :returns x_sample: pandas.Series
         sampled x data.
@@ -74,8 +67,7 @@ def sample_data(x, y, *, n=20000, bins=None, sigma=None):
 def get_label(name):
     """Get the label for a given variable.
 
-    :param name: string
-        Variable name in lower case.
+    :param string name: variable name (case insensitive).
 
     :return: The label of the variable.
     """
@@ -122,8 +114,7 @@ def get_label(name):
 def get_html_label(name):
     """Get the label for a given variable.
 
-    :param name: string
-        Variable name in lower case.
+    :param string name: variable name (case insensitive).
 
     :return: The label of the variable.
     """
@@ -172,8 +163,7 @@ def get_html_label(name):
 def get_default_unit(name):
     """Get the default unit of a variable.
 
-    :param name: string
-        Variable name in lower case.
+    :param string name: variable name (case insensitive).
     """
     name = name.lower()
 
@@ -208,13 +198,10 @@ def get_default_unit(name):
 def get_unit_label_and_scale(unit):
     """Obtain the label and scaling factor of the unit
 
-    :param unit: string
-        Name of the unit in lower case.
+    :param string unit: name of the unit (case insensitive).
 
-    :return unit_label: string
-        label of the unit
-    :return scale: int/float
-        Scaling factor of the unit
+    :return string unit_label: label of the unit
+    :return float scale: scaling factor of the unit
     """
     unit = unit.lower()
 
@@ -263,10 +250,8 @@ def get_unit_label_and_scale(unit):
 def get_phasespace_column_by_name(data, name):
     """Get the Phase-space column data by name.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param name: string
-        Name of the column data.
+    :param Pandas.DataFrame data: phasespace data.
+    :param string name: name of the column data.
     """
     name = name.lower()
 
@@ -297,8 +282,7 @@ def get_phasespace_column_by_name(data, name):
 def get_line_column_by_name(data, name):
     """Get the Line column data by name.
 
-    :param name: string
-        Name of the column data.
+    :param string name: name of the column data.
     """
     name = name.lower()
 
