@@ -1,6 +1,9 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
+
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import sys
 
@@ -80,7 +83,7 @@ class MainGUI(QWidget):
         optmization_btn = MainGUIButton('Optimization\n Tracker', self)
         optmization_btn.setStyleSheet(get_style_sheet("#7DB039"))
 
-        # Button for jitter study visualization
+        # Button for parameter_scan study visualization
         jitter_btn = MainGUIButton('Jitter Tracker', self)
         jitter_btn.setStyleSheet(get_style_sheet("#222760"))
 

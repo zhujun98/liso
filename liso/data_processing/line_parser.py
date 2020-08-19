@@ -1,51 +1,48 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
-Line data parser for different codes.
+The full license is in the file LICENSE, distributed with this software.
 
-Important note:
-_______________
-The calculated Twiss parameters are based on the canonical coordinates
-of the beam. Therefore, when the beam has a large energy spread or a
-big divergence angle, the result will be quite different from the
-true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
-get the very-close Twiss parameters even in extreme conditions.
-
-
-The data is a pandas.DataFrame containing the following columns:
-
-    z (m)
-    gamma
-    SdE (eV)
-    Sx (m)
-    Sy (m)
-    Sz (m),
-    emitx (m.rad)
-    emity (m.rad)
-    emitz (m.rad),
-    emitx_tr (m.rad)
-    emity_tr (m.rad)
-    betax (m)
-    betay (m)
-    alphax
-    alphay
-
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# Line data parser for different codes.
+#
+# Important note:
+# _______________
+# The calculated Twiss parameters are based on the canonical coordinates
+# of the beam. Therefore, when the beam has a large energy spread or a
+# big divergence angle, the result will be quite different from the
+# true Twiss parameters. However, one can set TR_EmitS = .T in ASTRA to
+# get the very-close Twiss parameters even in extreme conditions.
+#
+#
+# The data is a pandas.DataFrame containing the following columns:
+#
+#     z (m)
+#     gamma
+#     SdE (eV)
+#     Sx (m)
+#     Sy (m)
+#     Sz (m),
+#     emitx (m.rad)
+#     emity (m.rad)
+#     emitz (m.rad),
+#     emitx_tr (m.rad)
+#     emity_tr (m.rad)
+#     betax (m)
+#     betay (m)
+#     alphax
+#     alphay
+
+from scipy import constants
 import pandas as pd
 import numpy as np
 
-
-from ..config import Config
 from .data_proc_utils import check_data_file
 from ..exceptions import *
 
-
-V_LIGHT = Config.vLight
-M_E = Config.me
-Q_E = Config.qe
-
-CONST_E = M_E*V_LIGHT**2/Q_E
+MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
 def parse_impactt_line(root_name):
@@ -93,7 +90,7 @@ def parse_impactt_line(root_name):
     data['gamma'] = np.sqrt(xdata['px'].pow(2) + ydata['py'].pow(2) +
                                  zdata['pz'].pow(2) + 1)
     data['sde'] = np.sqrt(xdata['spx'].pow(2) + ydata['spy'].pow(2) +
-                               zdata['spz'].pow(2))*CONST_E
+                               zdata['spz'].pow(2)) * MC2_E
 
     data['sx'] = xdata['sx']
     data['sy'] = ydata['sy']
@@ -188,7 +185,7 @@ def parse_astra_line(root_name):
     data['z'] = xdata['z']
     # data['t'] = xdata['t']*1.0e-9
 
-    data['gamma'] = zdata['ek']*1.0e6/CONST_E + 1
+    data['gamma'] = zdata['ek']*1.0e6 / MC2_E + 1
     data['sde'] = zdata['sde']*1.0e3
 
     data['sx'] = xdata['sx']*1.0e-3
@@ -213,39 +210,3 @@ def parse_astra_line(root_name):
     data['alphay'] = -y_yp*gamma_beta/data['emity_tr']
 
     return data
-
-
-def parse_impactz_line(rootname):
-    raise NotImplemented
-
-
-def parse_genesis_line(rootname):
-    raise NotImplemented
-
-
-def parse_line(code, rootname):
-    """Parse output files from different code.
-
-    :param code: string
-        Name of the code.
-    :param rootname: string
-        Pathname of the output files.
-
-    :return data: pandas.dataframe
-        Data for each particle.
-    :return charge: float / None
-        Charge (C) of the bunch.
-    """
-    if code.lower() in ("astra", "a"):
-        return parse_astra_line(rootname)
-
-    if code.lower() in ('impactt', 't'):
-        return parse_impactt_line(rootname)
-
-    if code.lower() in ('impactz', 'z'):
-        raise NotImplementedError
-
-    if code.lower() in ('genesis', 'g'):
-        raise NotImplementedError
-
-    raise ValueError("Unknown code!")

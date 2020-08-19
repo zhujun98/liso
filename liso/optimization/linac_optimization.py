@@ -1,51 +1,49 @@
-#!/usr/bin/python
-
 """
-The optimization problem is define as:
+Distributed under the terms of the GNU General Public License v3.0.
 
-min f(x) w.r.t. x
+The full license is in the file LICENSE, distributed with this software.
 
-s.t. g_j(x) = 0, j = 1, ..., m_e
-
-    g_j(x) <= 0, j = m_e + 1, ..., m
-
-    x_i_L <= x_i <= x_i_U, i = 1, ..., n
-
-where:
-
-    x is the vector of design variables;
-    f(x) is a nonlinear function;
-    g(x) is a linear or nonlinear function;
-    n is the number of design variables;
-    m_e is the number of equality constraints;
-    m is the total number of constraints (number of equality
-    constraints: m_i = m - m_e).
-
-
-Author: Jun Zhu, zhujun981661@gmail.com
-
+Copyright (C) Jun Zhu. All rights reserved.
 """
+
+# The optimization problem is define as:
+#
+# min f(x) w.r.t. x
+#
+# s.t. g_j(x) = 0, j = 1, ..., m_e
+#
+#     g_j(x) <= 0, j = m_e + 1, ..., m
+#
+#     x_i_L <= x_i <= x_i_U, i = 1, ..., n
+#
+# where:
+#
+#     x is the vector of design variables;
+#     f(x) is a nonlinear function;
+#     g(x) is a linear or nonlinear function;
+#     n is the number of design variables;
+#     m_e is the number of equality constraints;
+#     m is the total number of constraints (number of equality
+#     constraints: m_i = m - m_e).
+
 from collections import OrderedDict
 from itertools import chain
+import math
+import sys
 import time
+import traceback
 
 import numpy as np
 
-from ..operation import Operation
 from .variable import Variable
 from ..covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
-from ..config import Config
-from ..exceptions import *
-from ..simulation.simulation_utils import check_templates
 from ..logging import logger, opt_logger
 
-INF = Config.INF
 
-
-class Optimization(Operation):
+class Optimization(object):
     """Inherited from Operation.
 
     Attributes:
@@ -58,11 +56,11 @@ class Optimization(Operation):
     def __init__(self, name='opt_prob', *, opt_func=None):
         """Initialization.
 
-        :param str name: Name of the optimization problem. Default = 'opt_prob'.
+        :param str name: Name of the optimization problem.
         :param callable opt_func: A callable object which returns (objective,
                                   constraints).
         """
-        super().__init__(name)
+        self.name = name
 
         self.variables = OrderedDict()
         self.covariables = OrderedDict()
@@ -182,7 +180,7 @@ class Optimization(Operation):
                 b = self.covariables[key].shift
                 self._x_map[key] = a * self._x_map[var] + b
 
-    def eval_objs_cons(self, x):
+    def eval_objs_cons(self, x, *args, **kwargs):
         """Objective-constraint function.
 
         This method will be called in the f_obj_con function defined within
@@ -218,28 +216,27 @@ class Optimization(Operation):
 
         text = self._get_eval_info(f, g, False)
         opt_logger.info(text)
-        if self.printout > 0:
-            print(text)
+        print(text)
 
         return f, g, False
 
     def _get_eval_info(self, f, g, is_failed):
         """Optimization result after each step."""
         text = '{:05d} - '.format(self._nfeval)
-        text += "variable(s): "
-        for value in self._x_map.values():
-            text += '{:11.4e}, '.format(value)
-        text += "objective(s): "
+        text += "obj(s): "
         for v in f:
             text += '{:11.4e}, '.format(v)
         if g:
-            text += "constraint(s): "
+            text += "con(s): "
         for v in g:
             text += '{:11.4e}, '.format(v)
+        text += "var(s): "
+        for value in self._x_map.values():
+            text += '{:11.4e}, '.format(value)
         text += "Failed" if is_failed is True else "Succeeded"
         return text
 
-    def solve(self, optimizer):
+    def solve(self, optimizer, *args, **kwargs):
         """Run the optimization and print the result.
 
         :param Optimizer optimizer: Optimizer instance.
@@ -255,7 +252,7 @@ class Optimization(Operation):
 
         # Update objectives, variables, covariables, constraints
         # with the optimized values.
-        self.eval_objs_cons(opt_x)
+        self.eval_objs_cons(opt_x, *args, **kwargs)
 
         # verify solution
         f = [item.value for item in self.objectives.values()]
@@ -321,16 +318,15 @@ class LinacOptimization(Optimization):
         self._nf = 0
         self._max_nf = max_nf
 
-    def solve(self, optimizer):
+    def solve(self, optimizer, *args, **kwargs):
         """Run the optimization and print the result.
 
         Override.
         """
-        check_templates(self._linac._get_templates(), self._x_map)
         logger.debug("\n" + str(self._linac) + "\n")
-        return super().solve(optimizer)
+        return super().solve(optimizer, *args, **kwargs)
 
-    def eval_objs_cons(self, x):
+    def eval_objs_cons(self, x, *args, **kwargs):
         """Objective-constraint function.
 
         Override the method in the parent class.
@@ -343,42 +339,27 @@ class LinacOptimization(Optimization):
         t0_cpu = time.process_time()
         try:
             self._nfeval += 1
-            self._linac.simulate(self._x_map)
+            self._linac.run(self._x_map, *args, **kwargs)
             is_update_failed = False
             self._nf = 0
-        # exception propagates from Beamline.simulate() method
-        except (SimulationNotFinishedProperlyError,
-                InputFileNotFoundError,
-                InputFileEmptyError) as e:
+        except RuntimeError as e:
             self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-        except CommandNotFoundError as e:
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-            # stop running
-            raise
-        # exception propagates from Beamline.update() method
-        except WatchUpdateError as e:
-            self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
-        # exception propagates from Beamline.update() method
-        # Note: In practice, only WatchUpdateFailError could be raised since
-        # Watch is updated before Line!
-        except LineUpdateError as e:
-            self._nf += 1
-            logger.info("{:05d}: {}: {}".
-                        format(self._nfeval, e.__class__.__name__, e))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logger.debug(f"{self._nfeval:05d}: " +
+                         repr(traceback.format_tb(exc_traceback)) +
+                         str(e))
+            logger.warning(str(e))
         except Exception as e:
             self._nf += 1
-            logger.info("{:05d}: Unexpected exceptions {}: {}"
-                        .format(self._nfeval, e.__class__.__name__, e))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            logger.error(f"{self._nfeval:05d} (Unexpected exceptions): " +
+                         repr(traceback.format_tb(exc_traceback)) +
+                         str(e))
             raise
         finally:
             if self._nf > self._max_nf:
-                raise SimulationSuccessiveFailureError(
-                    "Maximum allowed number of successive failures reached!")
+                logger.info("Maximum allowed number of successive failures "
+                            "reached!")
 
         if is_update_failed is False:
             # update objective and constraint values
@@ -388,15 +369,13 @@ class LinacOptimization(Optimization):
                 if item.func is not None:
                     item.value = item.func(self._linac)
                 else:
-                    keys = item.expr
-                    if keys[1] in ('max', 'min', 'start', 'end', 'ave', 'std'):
-                        item.value = self._linac.__getattr__(
-                            keys[0]).__getattribute__(
-                            keys[1]).__getattribute__(keys[2]) * item.scale
+                    bl, src, ppt = item.expr
+                    if src in ('max', 'min', 'start', 'end', 'ave', 'std'):
+                        item.value = self._linac[bl].__getattribute__(
+                            src).__getattribute__(ppt) * item.scale
                     else:
-                        item.value = self._linac.__getattr__(
-                            keys[0]).__getattr__(
-                            keys[1]).__getattribute__(keys[2]) * item.scale
+                        beam_params = getattr(self._linac[bl], src)
+                        item.value = getattr(beam_params, ppt) * item.scale
 
             f = [obj.value for obj in self.objectives.values()]
             g = [con.value for con in chain(self.e_constraints.values(),
@@ -404,8 +383,8 @@ class LinacOptimization(Optimization):
 
             self._nf = 0
         else:
-            f = [INF] * len(self.objectives)
-            g = [INF] * (len(self.i_constraints) + len(self.e_constraints))
+            f = [math.inf] * len(self.objectives)
+            g = [math.inf] * (len(self.i_constraints) + len(self.e_constraints))
 
         # monitor time consumption
         dt = time.perf_counter() - t0
@@ -415,8 +394,7 @@ class LinacOptimization(Optimization):
 
         # optimization result after each step
         text = self._get_eval_info(f, g, is_update_failed)
+        logger.info(text)
         opt_logger.info(text)
-        if self.printout > 0:
-            print(text)
 
         return f, g, is_update_failed

@@ -11,10 +11,13 @@ win_config.dat
 *.autosave
 .coverage
 *.log
+*.hdf5
+*.csv
 
-.ipynb_checkpoints/*
+.ipynb_checkpoints
 
 examples/astra_injector/*
+!examples/astra_injector/generatorG.in
 !examples/astra_injector/gun.dat
 !examples/astra_injector/Radial2k_1G3ps.ini
 !examples/astra_injector/sp_gunsol.dat
@@ -24,8 +27,8 @@ examples/astra_injector/*
 examples/impactt_lattice/*
 !examples/impactt_lattice/.gitkeep
 
-integration_tests/jitter/*
-!integration_tests/jitter/injector.in.000
+integration_tests/scan/*
+!integration_tests/scan/injector.in.000
 
 integration_tests/local_optimizer/*
 !integration_tests/local_optimizer/injector.in.000

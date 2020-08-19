@@ -1,9 +1,11 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
 
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
-from ..config import Config
+from ..config import config
 
 V_LIGHT = Config.vLight
 M_E = Config.me

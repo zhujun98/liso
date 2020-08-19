@@ -1,55 +1,48 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
+
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
-import os
-import time
+import asyncio
+import os.path as osp
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 import subprocess
 from distutils.spawn import find_executable
 
 import numpy as np
 
-from .watch import AstraWatch, ImpacttWatch
-from .line import AstraLine, ImpacttLine
-from .input import InputGenerator
-from ..data_processing import analyze_beam, analyze_line, tailor_beam, \
-                              ParticleFileGenerator
+from ..config import config
+from ..data_processing import (
+    analyze_beam, analyze_line,
+    parse_astra_phasespace, parse_impactt_phasespace,
+    parse_astra_line, parse_impactt_line,
+)
+from ..simulation import ParticleFileGenerator
+from ..io import TempSimulationDirectory
+from .output import OutputData
 from .simulation_utils import generate_input
-
-from ..exceptions import *
-from ..config import Config
-
-
-INF = Config.INF
 
 
 class Beamline(ABC):
     """Beamline abstraction class."""
-    code = None  # code name
-    exec_s = None  # series simulation exec
-    exec_p = None  # parallel simulation exec
 
     def __init__(self, name, *,
-                 gin=None,
-                 fin=None,
                  template=None,
-                 pin=None,
+                 swd=None,
+                 fin=None,
                  pout=None,
                  charge=None,
-                 z0=None,
-                 workers=1,
-                 timeout=600):
+                 z0=None):
         """Initialization.
 
         :param str name: Name of the beamline.
-        :param InputGenerator gin: An input generator. If given, all
-            the other keyword arguments are omitted.
-        :param str fin: The path of the input file.
-        :param str template: The path of the template file.
-        :param str pin: Filename of the initial particle file.
-        :param str pout: Filename of the output particle file.
+        :param str template: path of the template of the input file.
+        :param str swd: path of the simulation working directory.
+        :param str fin: input file name.
+        :param str pout: final particle file name. It must be located in the
+            simulation working directory.
         :param float charge: Bunch charge at the beginning of the beamline.
             Only used for certain codes (e.g. ImpactT).
         :param float z0: Starting z coordinate in meter. Used for concatenated
@@ -57,91 +50,68 @@ class Beamline(ABC):
             beamline. However, for instance, when the second beamline is
             defined from z0 = 0.0, z0 is required to generate a correct initial
             particle distribution.
-        :param int workers: Number of processes for parallel run.
-        :param float timeout: Maximum allowed duration in seconds of the
-            simulation.
         """
         self.name = name
-        if isinstance(gin, InputGenerator):
-            self._gin = gin
 
-        self.dirname = os.path.dirname(os.path.abspath(fin))
-        self._fin = os.path.join(self.dirname, os.path.basename(fin))
         # Read the template file only once. Make the 'template' read-only by
         # converting it to a tuple.
         with open(template) as fp:
-            self.template = tuple(fp.readlines())
-        self.charge = charge
+            self._template = tuple(fp.readlines())
 
-        self.next = None  # downstream beamline
+        self._swd = osp.abspath('./' if swd is None else swd)
 
-        if pin is None:
-            self.pin = pin
-        else:
-            self.pin = os.path.join(self.dirname, os.path.basename(pin))
+        self._fin = fin
+        self._pin = None  # Initial particle distribution file name.
+        self._pout = pout
+        self._rootname = None
 
-        if pout is None:
-            raise ValueError("Please specify the output particle file!")
-        else:
-            self.pout = os.path.join(self.dirname, os.path.basename(pout))
+        self._charge = charge
 
         self.z0 = z0  # starting z coordinate (m)
 
-        # bookkeeping of Watch and the corresponding BeamParameters
-        # {key: name of watch, value: (Watch, BeamParameters)}
-        self._watches = OrderedDict()
-        self.add_watch('out', self.pout)  # default Watch instance
+        # BeamParameters
+        self._out = None
+
+        # LineParameters
+        self._start = None
+        self._end = None
+        self._min = None
+        self._max = None
+        self._avg = None
+        self._std = None
 
         # suffixes for the output files related to Line instance.
         self._output_suffixes = []
-        self._all = None  # Line  # default Line instance
-        # default LineParameters instances
-        self.max = None  # LineParameters
-        self.min = None  # LineParameters
-        self.ave = None  # LineParameters
-        self.start = None  # LineParameters
-        self.end = None  # LineParameters
-        self.std = None  # LineParameters
 
-        self._workers = None
-        self.workers = workers
-
-        self._timeout = timeout
+        self.next = None  # downstream beamline
 
     @property
-    def workers(self):
-        return self._workers
+    def out(self):
+        return self._out
 
-    @workers.setter
-    def workers(self, value):
-        if isinstance(value, int) and value > 0:
-            self._workers = value
-        else:
-            raise ValueError("Invalid input {} for 'workers'!".format(value))
+    @property
+    def start(self):
+        return self._start
 
-    def __getattr__(self, item):
-        return self._watches[item][1]
+    @property
+    def end(self):
+        return self._end
 
-    @abstractmethod
-    def add_watch(self, name, pfile, **kwargs):
-        """Add a Watch object to the beamline.
+    @property
+    def min(self):
+        return self._min
 
-        :param name: string
-            Name of the Watch object.
-        :param pfile: string
-            Filename of the Watch object. This file is assumed to be in
-            the same folder of the input file of this object.
-        """
-        pass
+    @property
+    def max(self):
+        return self._max
 
-    def generate_input(self, mapping):
-        """Generate input file.
+    @property
+    def avg(self):
+        return self._avg
 
-        :param mapping: dict
-            A pattern-value mapping for replacing the pattern with
-            value in the template file.
-        """
-        return generate_input(self.template, mapping, self._fin)
+    @property
+    def std(self):
+        return self._std
 
     @abstractmethod
     def generate_initial_particle_file(self, data, charge):
@@ -153,277 +123,277 @@ class Beamline(ABC):
         :param charge: float / None
             Charge of the beam.
         """
-        pass
+        raise NotImplementedError
 
-    def _check_watch(self, name, filename):
-        """Check existence of a Watch instance.
+    @abstractmethod
+    def _parse_phasespace(self, pfile):
+        """Parse the phasespace file.
 
-        :param filename: string
-            Path of the particle file for the new Watch instance.
+        :param str pfile: phasespace file name.
+
+        :returns: data, charge.
         """
-        if name in self._watches.keys():
-            raise ValueError("Watch instance {} already exists!".format(name))
-        return os.path.join(self.dirname, os.path.basename(filename))
+        raise NotImplementedError
 
-    def clean(self):
-        """Clean the output from the previous simulation.
+    @abstractmethod
+    def _parse_line(self, rootname):
+        """Parse files which record beam evolutions..
 
-        - Remove input files;
-        - Remove files related to Watch and Line instances;
-        - Set BeamParameters and LineParameters to None;
-        - Remove initial particle files for a concatenate simulation.
+        :param str rootname: rootname of files.
+
+        :returns: data.
         """
-        with open(self._fin, 'w') as fp:
+        raise NotImplementedError
+
+    def reset(self, tmp_dir=None):
+        """Reset status and output files."""
+        swd = self._swd if tmp_dir is None else osp.join(self._swd, tmp_dir)
+
+        # input file
+        with open(osp.join(swd, self._fin), 'w') as fp:
             fp.truncate()
 
-        # Empty Watch particle files and set the corresponding
-        # BeamParameter instances to None
-        for item in self._watches.values():
-            with open(item[0].pfile, 'w') as fp:
-                fp.truncate()
-            item[1] = None
+        # output particle file
+        with open(osp.join(swd, self._pout), 'w') as fp:
+            fp.truncate()
 
         # Empty Line files and set LineParameter instances None
         for suffix in self._output_suffixes:
-            with open(self._all.rootname + suffix, 'w') as fp:
-                fp.truncate()
-        self.max = None
-        self.min = None
-        self.start = None
-        self.end = None
-        self.ave = None
-        self.std = None
-
-        # Empty the initial particle file of the downstream beamline
-        if self.next is not None:
-            with open(self.next.pin, 'w') as fp:
+            with open(osp.join(swd, self._rootname + suffix), 'w') as fp:
                 fp.truncate()
 
-    def simulate(self):
-        """Simulate the beamline.
+        self._out = None
 
-        :param int workers: Number of processes for parallel accelerator codes.
+        self._start = None
+        self._end = None
+        self._min = None
+        self._max = None
+        self._avg = None
+        self._std = None
+
+    @abstractmethod
+    def _get_executable(self, parallel):
+        raise NotImplementedError
+
+    def _check_file(self, filepath, title=''):
+        if not osp.isfile(filepath):
+            raise RuntimeError(f"{title} file {filepath} does not exist!")
+        if not osp.getsize(filepath):
+            raise RuntimeError(f"{title} file {filepath} is empty!")
+
+    def _check_run(self, parallel=False):
+        executable = find_executable(self._get_executable(parallel))
+        if executable is None:
+            raise RuntimeError(
+               f"{executable} is not a valid bash command!")
+        return executable
+
+    def _update_output(self, swd=None):
+        """Analyse output particle file.
+
+        Also prepare the input particle file for the downstream simulation.
+
+        :param str swd: simulation working directory.
         """
-        if not os.path.isfile(self._fin):
-            raise InputFileNotFoundError(self._fin + " does not exist!")
-        if not os.path.getsize(self._fin):
-            raise InputFileEmptyError(self._fin + " is empty!")
+        swd = self._swd if swd is None else swd
+        pout = osp.join(swd, self._pout)
+        self._check_file(pout, 'Output')
 
-        if self.workers > 1:
-            if find_executable(self.__class__.exec_s) is None:
-                raise CommandNotFoundError(
-                    "{} is not a valid bash command".format(self.__class__.exec_s))
+        data, charge = self._parse_phasespace(pout)
+        charge = self._charge if charge is None else charge
+        self._out = analyze_beam(data, charge)
+        if self.next is not None:
+            self.next.generate_initial_particle_file(data, charge)
 
-            command = "timeout {}s mpirun -np {} {} {} >/dev/null".format(
-                self._timeout,
-                self.workers,
-                self.__class__.exec_p,
-                self._fin)
-        else:
-            if find_executable(self.__class__.exec_s) is None:
-                raise CommandNotFoundError(
-                    "{} is not a valid bash command".format(self.__class__.exec_s))
+        return data
 
-            command = "timeout {}s {} {}".format(
-                self._timeout,
-                self.__class__.exec_s,
-                os.path.basename(self._fin))
+    def _update_statistics(self, swd=None):
+        """Analysis output beam evolution files.
 
-        # TODO: understand how to understand the simulation process.
+        :param str swd: simulation working directory.
+        """
+        swd = self._swd if swd is None else swd
+        rootname = osp.join(swd, self._rootname)
+        for suffix in self._output_suffixes:
+            self._check_file(rootname + suffix, 'Output')
+
+        data = self._parse_line(rootname)
+        self._start = analyze_line(data, lambda x: x.iloc[0])
+        self._end = analyze_line(data, lambda x: x.iloc[-1])
+        self._min = analyze_line(data, np.min)
+        self._max = analyze_line(data, np.max)
+        self._avg = analyze_line(data, np.average)
+        self._std = analyze_line(data, np.std)
+
+    def run(self, mapping, n_workers, timeout):
+        """Run simulation for the beamline."""
+        self.reset()
+
+        fin = osp.join(self._swd, self._fin)
+        generate_input(self._template, mapping, fin)
+
+        if not isinstance(n_workers, int) or not n_workers > 0:
+            raise ValueError("n_workers must be a positive integer!")
+
+        self._check_file(fin, 'Input')
+        executable = self._check_run(n_workers > 1)
+        command = f"{executable} {fin}"
+        if n_workers > 1:
+            command = f"mpirun -np {n_workers} " + command
+
+        if timeout is not None:
+            command = f"timeout {timeout}s " + command
+
         try:
             subprocess.check_output(command,
                                     stderr=subprocess.STDOUT,
                                     universal_newlines=True,
                                     shell=True,
-                                    cwd=self.dirname)
+                                    cwd=self._swd)
         except subprocess.CalledProcessError as e:
-            raise SimulationNotFinishedProperlyError(e)
-        finally:
-            time.sleep(1)
+            raise RuntimeError(repr(e))
 
-    def update_out(self):
-        """Re-calculate BeamParameters at the final Watch - 'out'."""
-        try:
-            data, charge, self._watches['out'][1] = \
-                self._process_watch(self._watches['out'][0])
-        except Exception as e:
-            raise WatchUpdateError(e)
+        self._update_output()
+        self._update_statistics()
 
-        if self.next is not None:
-            self.next.generate_initial_particle_file(data, charge)
+    async def async_run(self, mapping, tmp_dir, *, timeout=None):
+        """Run simulation asynchronously for the beamline."""
+        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+            self.reset(tmp_dir)
 
-    def update_watches_and_lines(self):
-        """Re-calculate all BeamParameters and LineParameters."""
-        # Update watches
-        # # 'out' will be processed in the method 'simulate()'
-        for name, item in self._watches.items():
-            if name != 'out':
-                try:
-                    _, _, item[1] = self._process_watch(item[0])
-                except (DataFileNotFoundError, DataFileEmptyError) as e:
-                    raise WatchUpdateError(e)
+            fin = osp.join(swd, self._fin)
+            generate_input(self._template, mapping, fin)
+            self._check_file(fin, 'Input')
+            executable = self._check_run()
 
-        # update lines
-        try:
-            data = self._all.load_data()
+            command = f"{executable} {fin}"
+            if timeout is not None:
+                command = f"timeout {timeout}s " + command
 
-            self.start = analyze_line(data, lambda x: x.iloc[0])
-            self.end = analyze_line(data, lambda x: x.iloc[-1])
-            self.min = analyze_line(data, np.min)
-            self.max = analyze_line(data, np.max)
-            self.ave = analyze_line(data, np.average)
-            self.std = analyze_line(data, np.std)
-        except (DataFileNotFoundError, DataFileEmptyError) as e:
-            raise LineUpdateError(e)
+            # Astra will find external files in the simulation working
+            # directory but output files in the directory where the input
+            # file is located.
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._swd
+            )
 
-    def _process_watch(self, watch):
-        """Process a Watch.
+            _, stderr = await proc.communicate()
+            if stderr:
+                raise RuntimeError(stderr)
 
-        Load the data and analyze the beam.
+            ps = self._update_output(swd)
 
-        :param watch: Watch.
-            Watch instance.
-        """
-        data, charge = watch.load_data()
+            inputs = {
+                f'{self.name}.{k}': v for k, v in mapping.items()
+            }
+            phasespaces = {
+                f'{self.name}.out': ps
+            }
+            return OutputData(inputs, phasespaces)
 
-        # Even if charge is given for a AstraBeamline, it will still use
-        # the charge returned from watch.load_data().
-        charge = self.charge if charge is None else charge
-
-        n0 = len(data)
-        data = tailor_beam(data,
-                           tail=watch.tail,
-                           halo=watch.halo,
-                           rotation=watch.rotation)
-
-        charge *= len(data) / n0
-
-        params = analyze_beam(data,
-                              charge,
-                              current_bins=watch.current_bins,
-                              filter_size=watch.filter_size,
-                              slice_percent=watch.slice_percent,
-                              slice_with_peak_current=watch.slice_with_peak_current)
-
-        return data, charge, params
+    def status(self):
+        """Return the status of the beamline."""
+        return {
+            'out': self._out,
+            'start': self._start,
+            'end': self._end,
+            'min': self._min,
+            'max': self._max,
+            'avg': self._avg,
+            'std': self._std,
+        }
 
     def __str__(self):
-        text = 'Name: %s\n' % self.name
-        text += 'Directory: %s\n' % self.dirname
-        text += 'Input file: %s\n' % self._fin
-        if self.pin is not None:
-            text += 'Input particle file: %s\n' % self.pin
-        if self.pout is not None:
-            text += 'Output particle file: %s\n' % self.pout
-
-        text += 'Watch point(s):\n'
-        for item in self._watches.values():
-            text += ' - ' + item[0].__str__()
-
+        text = 'Beamline: %s\n' % self.name
+        text += f'Simulation working directory: {self._swd}\n'
+        text += f'Input file: {osp.basename(self._fin)}\n'
+        if self._pin is not None:
+            text += f'Input particle file: {self._pin}\n'
+        if self._pout is not None:
+            text += f'Output particle file: {self._pout}\n'
         return text
 
 
-def create_beamline(code, *args, **kwargs):
-    """Create a Beamline instance.
+class AstraBeamline(Beamline):
+    """Beamline simulated using ASTRA."""
 
-    :param code: string
-        Code name.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._rootname = osp.basename(self._pout.split('.')[0])
+
+        self._output_suffixes = [
+            '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
+        ]
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            return config['EXECUTABLE_PARA']['ASTRA']
+        return config['EXECUTABLE']['ASTRA']
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_astra_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        return parse_astra_line(rootname)
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        pin = osp.join(self._swd, self._pin)
+        if pin is not None:
+            ParticleFileGenerator(data, pin).to_astra_pfile(charge)
+
+
+class ImpacttBeamline(Beamline):
+    """Beamline simulated using IMPACT-T."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._pin = 'partcl.data'
+        self._rootname = 'fort'
+
+        if self._charge is None:
+            raise ValueError(
+                "Bunch charge is required for ImpactT simulation!")
+
+        self._output_suffixes = ['.18', '.24', '.25', '.26']
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            return config['EXECUTABLE_PARA']['IMPACTT']
+        return config['EXECUTABLE']['IMPACTT']
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_impactt_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        return parse_impactt_line(rootname)
+
+    def generate_initial_particle_file(self, data, charge):
+        """Implement the abstract method."""
+        pin = osp.join(self._swd, self._pin)
+        if pin is not None:
+            ParticleFileGenerator.fromDataframeToImpactt(data, pin)
+
+
+def create_beamline(bl_type, *args, **kwargs):
+    """Create and return a Beamline instance.
+
+    :param str bl_type: beamline type
     """
-    class AstraBeamline(Beamline):
-        """Beamline simulated by ASTRA.
-
-        Inherit from Beamline class.
-        """
-        code = 'a'
-        exec_s = Config.ASTRA
-        exec_p = Config.ASTRA_P
-
-        def __init__(self, *args, **kwargs):
-            """Initialization."""
-            super().__init__(*args, **kwargs)
-
-            rootpath = os.path.join(self.dirname,
-                                    os.path.basename(self.pout.split('.')[0]))
-            self._all = AstraLine('all', rootpath)
-            self._output_suffixes = ['.Xemit.001', '.Yemit.001', '.Zemit.001',
-                                     '.TRemit.001']
-
-        def add_watch(self, name, pfile, **kwargs):
-            """Implement the abstract method."""
-            pfile = self._check_watch(name, pfile)
-            self._watches[name] = [AstraWatch(name, pfile, **kwargs), None]
-
-        def generate_initial_particle_file(self, data, charge):
-            """Implement the abstract method."""
-            if self.pin is not None:
-                ParticleFileGenerator(data, self.pin).to_astra_pfile(charge)
-
-    class ImpacttBeamline(Beamline):
-        """Beamline simulated by IMPACT-T.
-
-        Inherit from Beamline class.
-        """
-        code = 't'
-        exec_s = Config.IMPACTT
-        exec_p = Config.IMPACTT_P
-
-        def __init__(self, pin='partcl.data', *args, **kwargs):
-            """Initialization."""
-            super().__init__(pin=pin, *args, **kwargs)
-            if self.pin is not None and os.path.basename(
-                    self.pin) != 'partcl.data':
-                raise ValueError(
-                    "Input particle file for ImpactT must be 'partcl.data'!")
-
-            if self.charge is None:
-                raise ValueError(
-                    "Bunch charge is required for ImpactT simulation!")
-
-            rootpath = os.path.join(self.dirname,
-                                    os.path.basename(self.pout.split('.')[0]))
-            self._all = ImpacttLine('all', rootpath)
-            self._output_suffixes = ['.18', '.24', '.25', '.26']
-
-        def add_watch(self, name, pfile, **kwargs):
-            """Implement the abstract method."""
-            pfile = self._check_watch(name, pfile)
-            self._watches[name] = [ImpacttWatch(name, pfile, **kwargs), None]
-
-        def generate_initial_particle_file(self, data, charge):
-            """Implement the abstract method."""
-            if self.pin is not None:
-                ParticleFileGenerator(data, self.pin).to_impactt_pfile()
-
-    class ImpactzBeamline(Beamline):
-        """Beamline simulated by IMPACT-Z.
-
-        Inherit from Beamline class.
-        """
-        code = 'z'
-        exec_s = None
-        exec_p = None
-        pass
-
-    class GenesisBeamline(Beamline):
-        """Beamline simulated by GENESIS.
-
-        Inherit from Beamline class.
-        """
-        code = 'g'
-        exec_s = None
-        exec_p = None
-        pass
-
-    if code.lower() in ('astra', 'a'):
+    if bl_type.lower() in ('astra', 'a'):
         return AstraBeamline(*args, **kwargs)
 
-    if code.lower() in ('impactt', 't'):
+    if bl_type.lower() in ('impactt', 't'):
         return ImpacttBeamline(*args, **kwargs)
 
-    if code.lower() in ('impactz', 'z'):
-        return ImpactzBeamline(*args, **kwargs)
-
-    if code.lower() in ('genesis', 'g'):
-        return GenesisBeamline(*args, **kwargs)
-
-    raise ValueError("Unknown code!")
+    raise ValueError(f"Unknown beamline type {bl_type}!")

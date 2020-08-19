@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Unittest of optimization with two simulation codes for two different
 parts of a linac.
@@ -6,12 +5,13 @@ parts of a linac.
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import os
+import os.path as osp
 import glob
 import unittest
 
 from liso import Linac, LinacOptimization, ALPSO
 
-test_path = os.path.abspath(os.path.join(
+test_path = os.path.abspath(osp.join(
     os.path.dirname(__file__), 'multi_code_optimization'
 ))
 
@@ -23,22 +23,21 @@ class TestMultiCodeOptimization(unittest.TestCase):
         linac.add_beamline(
             'astra',
             name='gun',
-            fin=os.path.join(test_path, 'astra/injector.in'),
-            template=os.path.join(test_path, 'astra/injector.in.000'),
+            swd=osp.join(test_path, 'astra'),
+            fin='injector.in',
+            template=osp.join(test_path, 'astra/injector.in.000'),
             pout='injector.0100.001')
 
         linac.add_beamline(
             'impactt',
             name='matching',
-            fin=os.path.join(test_path, 'impactt/ImpactT.in'),
-            template=os.path.join(test_path, 'impactt/ImpactT.in.000'),
+            swd=osp.join(test_path, 'impactt'),
+            fin='ImpactT.in',
+            template=osp.join(test_path, 'impactt/ImpactT.in.000'),
             pout='fort.106',
             charge=10e-12)
 
-        print(linac)
-
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
 
         self.opt.add_obj('f', expr='matching.out.emitx', scale=1e6)
 

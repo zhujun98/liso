@@ -1,22 +1,22 @@
 """
-Author: Jun Zhu, zhujun981661@gmail.com
+Distributed under the terms of the GNU General Public License v3.0.
 
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import os
 import numpy as np
 from .beam_parameters import BeamParameters
 from .line_parameters import LineParameters
 from ..exceptions import *
-from ..config import Config
 
 
 def compute_canonical_emit(x, px):
     """ Calculate the canonical emittance.
 
-    :param x: pandas.Series object
-        Position coordinates
-    :param px: pandas.Series object
-        Momentum coordinates
+    :param pandas.Series x: position coordinates
+    :param pandas.Series px: momentum coordinates
 
     :return Normalized canonical emittance.
     """
@@ -30,34 +30,24 @@ def compute_canonical_emit(x, px):
 
 
 def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
-    """ Calculate the Twiss parameters
+    """Calculate the Twiss parameters
 
     Note: In the calculation (except the canonical emittance), the
     particles are drifted back to the center of the bunch without
     considering the collective effects!!!
 
-    :param x: pandas.Series object
-        Position coordinates.
-    :param dz: pandas.Series object
-        Longitudinal distance to the bunch centre.
-    :param px: pandas.Series object
-        Momentum coordinates
-    :param pz: pandas.Series object
-        Longitudinal momentum.
-    :param gamma: float
-        Average Lorentz factor of the bunch.
-    :param backtracking: bool
-        True for drifting the particles back to the longitudinal
-        centroid of the bunch.
+    :param pandas.Series x: position coordinates.
+    :param pandas.Series dz: longitudinal distance to the bunch centre.
+    :param pandas.Series px: momentum coordinates
+    :param pandas.Series pz: longitudinal momentum.
+    :param float gamma: average Lorentz factor of the bunch.
+    :param bool backtracking: True for drifting the particles back to
+        the longitudinal centroid of the bunch.
 
-    :return sigma_x: float
-        RMS transverse beam size.
-    :return betax: float
-        Beta function.
-    :return alphax: float
-        Alpha function.
-    :return emitnx: float
-        Normalized trace-space emittance
+    :return float sigma_x: RMS transverse beam size.
+    :return float betax: beta function.
+    :return float alphax: alpha function.
+    :return float emitnx: normalized trace-space emittance
     """
     beta = np.sqrt(1 - 1 / gamma ** 2)
 
@@ -79,13 +69,26 @@ def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
     return sigma_x, betax, alphax, emitnx
 
 
+def compute_current_profile(t, n_bins, charge):
+    """Calculate the current profile.
+
+    :param array-like t: an array of t for each particle.
+    :param int n_bins: number of current bins.
+    :param float charge: total bunch charge (in C).
+    """
+    counts, edges = np.histogram(t, bins=n_bins)
+    step_size = edges[1] - edges[0]
+    centers = edges[:-1] + step_size / 2
+
+    currents = counts * charge / (len(t) * step_size)
+    return currents, centers
+
+
 def gaussian_filter1d(x, sigma):
     """One-dimensional Gaussian filter.
 
-    :param x: array_like
-        Input array for filter
-    :param sigma: int/float
-        Standard deviation for Gaussian kernel.
+    :param array-like x: input array for filter
+    :param int/float sigma: standard deviation for Gaussian kernel.
 
     :return: Filtered x.
     """
@@ -111,15 +114,12 @@ def gaussian_filter1d(x, sigma):
 def cut_halo(data, value):
     """Remove halo from a phase-space distribution.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param value: float
-        Percentage of particles to be removed based on their
-        transverse distance to the bunch centroid. Applied
+    :param Pandas.DataFrame data: particle data.
+    :param float value: percentage of particles to be removed based on
+        their transverse distance to the bunch centroid. Applied
         before tail cutting.
 
-    :return: Pandas.DataFrame
-        Truncated data.
+    :return Pandas.DataFrame: Truncated data.
     """
     if isinstance(value, float) and 1.0 > value > 0.0:
         n = int(len(data) * (1 - value))
@@ -135,13 +135,10 @@ def cut_halo(data, value):
 def cut_tail(data, value):
     """Remove tail from a phase-space distribution.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param value: float
-        Percentage of particles to be removed in the tail.
+    :param Pandas.DataFrame data: particle data.
+    :param float value: percentage of particles to be removed in the tail.
 
-    :return: Pandas.DataFrame
-        Truncated data.
+    :return Pandas.DataFrame: truncated data.
     """
     if isinstance(value, float) and 1.0 > value > 0.0:
         n = int(len(data) * (1 - value))
@@ -157,13 +154,10 @@ def cut_tail(data, value):
 def rotate(data, angle):
     """Rotate the phasespace.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param angle: float
-        Angle of the rotation in rad.
+    :param Pandas.DataFrame data: particle data.
+    :param float angle: angle of the rotation in rad.
 
-    :return: Pandas.DataFrame
-        Rotated data.
+    :return Pandas.DataFrame: rotated data.
     """
     if angle != 0.0:
         theta = angle * np.pi / 180.0  # Convert to rad
@@ -202,21 +196,16 @@ def rotate(data, angle):
 def tailor_beam(data, *, halo=0.0, tail=0.0, rotation=0.0):
     """Tailor the beam.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param halo: float
-        Percentage of particles to be removed based on their
-        transverse distance to the bunch centroid. Applied
+    :param Pandas.DataFrame data: particle data.
+    :param float halo:percentage of particles to be removed based on
+        their transverse distance to the bunch centroid. Applied
         before tail cutting.
-    :param halo: float
-        Percentage of particles to be removed based on their
-        transverse distance to the bunch centroid. Applied
+    :param float halo: percentage of particles to be removed based on
+        their transverse distance to the bunch centroid. Applied
         before tail cutting.
-    :param rotation: float
-        Angle of the rotation in rad.
+    :param float rotation:angle of the rotation in rad.
 
-    :return: Pandas.DataFrame
-        Tailored data.
+    :return Pandas.DataFrame: tailored data.
     """
     return cut_halo(cut_tail(rotate(data, rotation), tail), halo)
 
@@ -225,25 +214,24 @@ def analyze_beam(data, charge, *,
                  current_bins='auto',
                  filter_size=1,
                  slice_percent=0.1,
-                 slice_with_peak_current=True):
+                 slice_with_peak_current=True,
+                 min_particles=20):
     """Calculate beam parameters.
 
-    :param data: Pandas.DataFrame
-        Particle data.
-    :param current_bins: int/'auto'
-        No. of bins to calculate the current profile.
-    :param filter_size: int/float
-        Standard deviation of the Gaussian kernel of the 1D Gaussian
-        filter used for current profile calculation.
-    :param slice_percent: float
-        Percent of the slice bunch length to the total bunch length.
-    :param slice_with_peak_current: Boolean
-        True for calculating slice properties of the slice with peak
-        current; False for calculating slice properties of the slice
-        in the center of the bunch.
+    :param Pandas.DataFrame data: particle data.
+    :param int/'auto' current_bins: No. of bins to calculate the current
+        profile.
+    :param int/float filter_size: Standard deviation of the Gaussian kernel
+        of the 1D Gaussian filter used for current profile calculation.
+    :param float slice_percent: percent of the slice bunch length to the
+        total bunch length.
+    :param bool slice_with_peak_current: True for calculating slice
+        properties of the slice with peak current; False for calculating
+        slice properties of the slice in the center of the bunch.
+    :param int min_particles: minimum number of particles required for
+        phasespace analysis.
 
-    :return: BeamParameters object.
-        Beam parameters.
+    :return BeamParameters: Beam parameters.
     """
     params = BeamParameters()
 
@@ -253,9 +241,8 @@ def analyze_beam(data, charge, *,
 
     # Too few particles may cause error during the following
     # calculation, e.g. negative value in sqrt.
-    if n0 < Config.MIN_PHASESPACE_PARTICLES:
-        raise WatchUpdateError("Too few particles {} in the phasespace".
-                               format(n0))
+    if n0 < min_particles:
+        raise RuntimeError(f"Too few particles {n0} in the phasespace")
 
     p = np.sqrt(data['pz'] ** 2 + data['px'] ** 2 + data['py'] ** 2)
 
@@ -270,16 +257,8 @@ def analyze_beam(data, charge, *,
     params.St = data['t'].std(ddof=0)
     params.Sz = data['z'].std(ddof=0)
 
-    # The current profile calculation is included here but not in
-    # the plot function. If it is included in the plot function, the
-    # printout parameters might differ from the plot, which could
-    # cause confusion.
-    counts, edges = np.histogram(data['t'], bins=current_bins)
-    step_size = edges[1] - edges[0]
-    centers = edges[:-1] + step_size / 2
-
-    filtered_counts = gaussian_filter1d(counts, sigma=filter_size)
-    currents = counts / len(data) * params.charge / step_size
+    currents, centers = compute_current_profile(
+        data['t'], current_bins, params.charge)
     params.I_peak = currents.max()
     params.current_dist = [centers, currents]
 
@@ -302,48 +281,51 @@ def analyze_beam(data, charge, *,
     # Calculate the slice parameters
     sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
 
-    if slice_with_peak_current is True and params.charge != 0.0:
-        Ct_slice = centers[np.argmax(filtered_counts)]  # currents could be all 0
-    else:
-        Ct_slice = params.Ct
+    try:
+        filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
+        if slice_with_peak_current and params.charge != 0.0:
+            Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
+        else:
+            Ct_slice = params.Ct
 
-    dt_slice = 4 * params.St * slice_percent  # assume 4-sigma full bunch length
-    slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
-                             (sorted_data.t < Ct_slice + dt_slice / 2)]
+        dt_slice = 4 * params.St * slice_percent  # assume 4-sigma full bunch length
+        slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
+                                 (sorted_data.t < Ct_slice + dt_slice / 2)]
 
-    if len(slice_data) < Config.MIN_PHASESPACE_PARTICLES:
-        raise WatchUpdateError("Too few particles {} in the slice".
-                               format(len(slice_data)))
+        if len(slice_data) < min_particles:
+            raise RuntimeError(f"Too few particles {len(slice_data)} in the slice")
 
-    p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
+        p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
 
-    params.emitx_slice = compute_canonical_emit(slice_data.x, slice_data.px)
-    params.emity_slice = compute_canonical_emit(slice_data.y, slice_data.py)
-    params.Sdelta_slice = p_slice.std(ddof=0) / p_slice.mean()
-    params.dt_slice = slice_data.t.max() - slice_data.t.min()
+        params.emitx_slice = compute_canonical_emit(slice_data.x, slice_data.px)
+        params.emity_slice = compute_canonical_emit(slice_data.y, slice_data.py)
+        params.Sdelta_slice = p_slice.std(ddof=0) / p_slice.mean()
+        params.dt_slice = slice_data.t.max() - slice_data.t.min()
 
-    # The output will be different from the output by msddsplot
-    # because the slightly different No of particles sliced. It
-    # affects the correlation calculation since the value is
-    # already very close to 1.
-    params.Sdelta_un = params.Sdelta_slice * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
+        # The output will be different from the output by msddsplot
+        # because the slightly different No of particles sliced. It
+        # affects the correlation calculation since the value is
+        # already very close to 1.
+        params.Sdelta_un = params.Sdelta_slice * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
+
+    except Exception:
+        pass
 
     return params
 
 
-def analyze_line(data, func):
+def analyze_line(data, func, *, min_particles=5):
     """Calculate line parameters.
 
-    :param data: Pandas.DataFrame
-        Line data.
-    :param func: a functor
-        Range of the z coordinate.
+    :param Pandas.DataFrame data: line data.
+    :param callable func: range of the z coordinate.
+    :param int min_particles: minimum number of particles required
+        for line analysis.
 
     :return: A LineParameters instance.
     """
-    if len(data) < Config.MIN_LINE_POINTS:
-        raise LineUpdateError("Too few points {} in the line".
-                              format(len(data)))
+    if len(data) < min_particles:
+        raise RuntimeError(f"Too few points {len(data)} in the line")
 
     params = LineParameters()
 

@@ -6,10 +6,6 @@ Author: Jun Zhu, zhujun981661@gmail.com
 from abc import ABC, abstractmethod
 import numpy as np
 
-from liso.config import Config
-
-INF = Config.INF
-
 
 class OptimizationTestProblem(ABC):
     @abstractmethod

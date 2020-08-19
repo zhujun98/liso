@@ -7,7 +7,8 @@ global optimizer.
 python astra_advanced.py --workers <number of cpu cores>
 ```
 
-Result after 15 outer iterations and 1880 function evaluations
+Result (with space-charge effect) after 15 outer iterations and 1880
+function evaluations
 
 St 64.916 fs
 
@@ -22,31 +23,19 @@ tws_phase -90.0000
 
 Author: Jun Zhu
 """
-import argparse
-
 from liso import Linac, LinacOptimization, ALPSO
+from liso.logging import logger
+logger.setLevel('DEBUG')
 
-
-parser = argparse.ArgumentParser(description='Resnet benchmark')
-parser.add_argument('--workers',
-                    type=int,
-                    nargs='?',
-                    default='1',
-                    help="Number of workers.")
-
-args = parser.parse_args()
-
-# ---------------------------------------------------------------------
 
 linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
-                   fin='astra_injector/injector.in',
+                   swd='astra_injector',
+                   fin='injector.in',
                    template='astra_advanced/injector.in.000',
-                   pout='injector.0450.001',
-                   workers=args.workers,
-                   timeout=90)
+                   pout='injector.0450.001')
 
 opt = LinacOptimization(linac)
 
@@ -57,16 +46,14 @@ opt.add_econ('n_pars', expr='gun.out.n', eq=2000)
 # inequality constraint (the beta [x] function at the end of the 'gun' beamline) with the upper boundary.
 opt.add_icon('emitx', expr='gun.out.emitx', scale=1e6,  ub=0.3)
 # inequality constraint (the Lorentz factor at the end of the 'gun' beamline) with the lower boundary.
-opt.add_icon('gamma', func=lambda a: a.gun.out.gamma,  lb=20.0)
+opt.add_icon('gamma', func=lambda a: a['gun'].out.gamma,  lb=20.0)
 # inequality constraint (the maximum beam size [x] throughout the 'gun' beamline) with upper boundary.
-opt.add_icon('max_Sx', func=lambda a: a.gun.max.Sx*1e3, ub=3.0)
+opt.add_icon('max_Sx', func=lambda a: a['gun'].max.Sx*1e3, ub=3.0)
 
 opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.5)
 opt.add_var('main_sole_b', value=0.2, lb=0.00, ub=0.4)
 opt.add_var('gun_phase', value=0.0, lb=-10, ub=10)
 opt.add_var('tws_phase', value=0.0, lb=-90, ub=0)
-
-opt.printout = 1
 
 optimizer = ALPSO()
 optimizer.swarm_size = 40  # configure the optimizer

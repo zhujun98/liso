@@ -1,16 +1,23 @@
-import sys
+import os.path as osp
+import re
 from setuptools import setup, find_packages
 
 
-if sys.version_info < (3, 5):
-    raise SystemError("Python >= 3.5 is required!")
+def find_version():
+    with open(osp.join('liso', '__init__.py')) as fp:
+        for line in fp:
+            m = re.search(r'^__version__ = "(\d+\.\d+\.\d[a-z]*\d*)"', line, re.M)
+            if m is None:
+                # could be a hotfix
+                m = re.search(r'^__version__ = "(\d.){3}\d"', line, re.M)
+            if m is not None:
+                return m.group(1)
+        raise RuntimeError("Unable to find version string.")
 
-REQUIREMENTS = open('requirements.txt', encoding='utf-8').readlines()
-REQUIREMENTS = [req.rstrip() for req in REQUIREMENTS]
 
 setup(
     name='liso',
-    version='0.1.0',
+    version=find_version(),
     packages=find_packages(),
     author='Jun Zhu',
     author_email='zhujun981661@gmail.com',
@@ -23,33 +30,38 @@ setup(
     license='GNU',
 
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    classifiers=['Development Status :: 3 - Alpha',
-                 'Intended Audience :: Science/Research',
-                 'Intended Audience :: Developers',
-                 'License :: GNU',
-                 'Programming Language :: Python :: 3.5',
-                 'Programming Language :: Python :: 3.6',
-                 'Topic :: Scientific/Engineering',
-                 'Topic :: Software Development',
-                 'Operating System :: Microsoft :: Windows',
-                 'Operating System :: POSIX',
-                 'Operating System :: Unix',
-                 'Operating System :: MacOS',
-                 ],
-
-    install_requires=REQUIREMENTS,
-
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Science/Research',
+        'Intended Audience :: Developers',
+        'License :: GNU',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Topic :: Scientific/Engineering',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: Unix',
+        'Operating System :: MacOS',
+    ],
+    install_requires=[
+        'numpy>=1.18',
+        'pandas>=1.1',
+        'scipy>=1.5',
+        'h5py>=2.10',
+    ],
     entry_points={
-        'console_scripts': [
-            'liso-gui=liso.visualization.main_gui:main_gui'
-        ],
     },
-
     extras_require={
         'testing': [
             'codecov',
             'pytest',
             'pytest-cov',
-        ]
+        ],
+        'docs': [
+            'sphinx',
+            'nbsphinx',
+            'sphinx-rtd-theme',
+            'ipython',  # For nbsphinx syntax highlighting
+        ],
     }
 )

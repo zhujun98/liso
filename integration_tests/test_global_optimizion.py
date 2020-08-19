@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Unittest of global optimization of a linac.
 
@@ -9,12 +8,13 @@ cases.
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import os
+import os.path as osp
 import glob
 import unittest
 
 from liso import Linac, ALPSO, LinacOptimization
 
-test_path = os.path.abspath(os.path.join(
+test_path = os.path.abspath(osp.join(
     os.path.dirname(__file__), 'global_optimizer'
 ))
 
@@ -24,26 +24,25 @@ class TestGlobalOptimizer(unittest.TestCase):
         linac = Linac()
         linac.add_beamline('astra',
                            name='gun',
-                           fin=os.path.join(test_path, 'injector.in'),
-                           template=os.path.join(test_path, 'injector.in.000'),
+                           swd=test_path,
+                           fin='injector.in',
+                           template=osp.join(test_path, 'injector.in.000'),
                            pout='injector.0150.001')
-        print(linac)
 
         self.opt = LinacOptimization(linac)
-        # self.opt.printout = 1
 
         self.opt.add_obj('f', expr='gun.out.Sx', scale=1.e6)
-        self.opt.add_icon('g1', func=lambda a: a.gun.max.emitx*1e6, ub=0.041)
-        self.opt.add_econ('g2', func=lambda a: a.gun.out.gamma, eq=10.0)
+        self.opt.add_icon('g1', func=lambda a: a['gun'].max.emitx*1e6, ub=0.041)
+        self.opt.add_econ('g2', func=lambda a: a['gun'].out.gamma, eq=10.0)
 
         self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.3)
         self.opt.add_var('main_sole_b', value=0.1, lb=0.0, ub=0.3)
         self.opt.add_var('gun_gradient', value=130, lb=90.0, ub=130.0)
 
     def tearDown(self):
-        for file in glob.glob(os.path.join(test_path, "injector.*.001")):
+        for file in glob.glob(osp.join(test_path, "injector.*.001")):
             os.remove(file)
-        os.remove(os.path.join(test_path, "injector.in"))
+        os.remove(osp.join(test_path, "injector.in"))
 
     def test_optimization(self):
         optimizer = ALPSO()

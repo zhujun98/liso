@@ -1,23 +1,18 @@
 import logging
 
-from .config import Config
+from .config import config
 
 
 def create_logger():
     """General logger."""
     logger = logging.getLogger("LISO")
-    logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(Config.LOG_FILENAME, mode='w')
-    fh.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    fh = logging.FileHandler(config['DEFAULT']['LOG_FILE'], mode='w')
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
 
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
 
     logger.addHandler(fh)
@@ -27,6 +22,7 @@ def create_logger():
 
 
 logger = create_logger()
+logger.setLevel(logging.INFO)
 
 
 def create_opt_logger():
@@ -34,7 +30,7 @@ def create_opt_logger():
     logger = logging.getLogger("LISO-Opt")
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(Config.OPT_LOG_FILENAME, mode="w")
+    fh = logging.FileHandler(config['DEFAULT']['OPT_LOG_FILE'], mode="w")
     formatter = logging.Formatter('%(asctime)s - %(message)s')
     fh.setFormatter(formatter)
 
@@ -44,3 +40,4 @@ def create_opt_logger():
 
 
 opt_logger = create_opt_logger()
+opt_logger.setLevel(logging.INFO)

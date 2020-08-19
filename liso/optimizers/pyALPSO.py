@@ -1,8 +1,9 @@
-#!/usr/bin/env python
 """
-ALPSO - An LISO interface for Augmented Larangian Particle Swarm Optimization.
+Distributed under the terms of the GNU General Public License v3.0.
 
-Author: Jun Zhu, zhujun981661@gmail.com
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import time
 
@@ -45,9 +46,8 @@ class ALPSO(Optimizer):
     name = 'ALPSO'
     multiprocessing = False
 
-    def __init__(self):
-        """Initialization"""
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # -------------------------------------------------------------
         # default optimizer settings
@@ -108,7 +108,7 @@ class ALPSO(Optimizer):
         # =============================================================
         # Run ALPSO
         # =============================================================
-        np.random.seed(self.seed)  # Set random number generator
+        np.random.seed(self._seed)  # Set random number generator
         x0 = np.random.rand(self.swarm_size, n_vars)
         v0 = np.zeros([self.swarm_size, n_vars], float)
 

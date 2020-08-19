@@ -1,6 +1,9 @@
-#!/usr/bin/python
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
+
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 from ..exceptions import *
 
@@ -15,9 +18,6 @@ class BeamParameters(object):
         self._n = 0
         self._q = 0.0
         self._charge = 0.0
-        self.n = 0
-        self.q = 0.0
-        self.charge = 0.0
 
         self.p = 0.0
         self.gamma = 0.0

@@ -1,8 +1,9 @@
-#!/usr/bin/env python
 """
-Optimizer class.
+Distributed under the terms of the GNU General Public License v3.0.
 
-Author: Jun Zhu
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import ABC, abstractmethod
 import time
@@ -14,17 +15,15 @@ class Optimizer(ABC):
     Attributes:
         name (str): Name of the optimizer.
         seed (int): Seed for random number. Default = None.
-        printout (int): Level of printout.
     """
     category = None  # should be either 'global' or 'local'.
     name = None
     multiprocessing = False
 
-    def __init__(self):
+    def __init__(self, seed=None):
         """Optimizer Class Initialization."""
-        self.seed = None
-        if self.seed is None:
-            self.seed = int(time.time())
+        self._seed = int(time.time()) if seed is None else int(seed)
+
         self._workers = None
         self.workers = 1
 

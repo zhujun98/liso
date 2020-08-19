@@ -1,10 +1,14 @@
 """
-Author: Jun Zhu
+Distributed under the terms of the GNU General Public License v3.0.
+
+The full license is in the file LICENSE, distributed with this software.
+
+Copyright (C) Jun Zhu. All rights reserved.
 """
 import re
 
 
-def generate_input(template, mapping, output=None, dry_run=False):
+def generate_input(template, mapping, output, *, dry_run=False):
     """Generate the input file from a template.
 
     Patterns in the template input file should be put between
