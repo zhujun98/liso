@@ -16,6 +16,7 @@ win_config.dat
 .ipynb_checkpoints/*
 
 examples/astra_injector/*
+!examples/astra_injector/generatorG.in
 !examples/astra_injector/gun.dat
 !examples/astra_injector/Radial2k_1G3ps.ini
 !examples/astra_injector/sp_gunsol.dat
