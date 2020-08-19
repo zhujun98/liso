@@ -107,6 +107,8 @@ def get_label(name):
         return r"$x^\prime$"
     elif name == 'yp':
         return r"$y^\prime$"
+    elif name == 'i':
+        return r"$I$"
     else:
         return r"${}$".format(name)
 

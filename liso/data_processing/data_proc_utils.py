@@ -281,31 +281,35 @@ def analyze_beam(data, charge, *,
     # Calculate the slice parameters
     sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
 
-    filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
-    if slice_with_peak_current is True and params.charge != 0.0:
-        Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
-    else:
-        Ct_slice = params.Ct
+    try:
+        filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
+        if slice_with_peak_current and params.charge != 0.0:
+            Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
+        else:
+            Ct_slice = params.Ct
 
-    dt_slice = 4 * params.St * slice_percent  # assume 4-sigma full bunch length
-    slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
-                             (sorted_data.t < Ct_slice + dt_slice / 2)]
+        dt_slice = 4 * params.St * slice_percent  # assume 4-sigma full bunch length
+        slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
+                                 (sorted_data.t < Ct_slice + dt_slice / 2)]
 
-    if len(slice_data) < min_particles:
-        raise RuntimeError(f"Too few particles {len(slice_data)} in the slice")
+        if len(slice_data) < min_particles:
+            raise RuntimeError(f"Too few particles {len(slice_data)} in the slice")
 
-    p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
+        p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
 
-    params.emitx_slice = compute_canonical_emit(slice_data.x, slice_data.px)
-    params.emity_slice = compute_canonical_emit(slice_data.y, slice_data.py)
-    params.Sdelta_slice = p_slice.std(ddof=0) / p_slice.mean()
-    params.dt_slice = slice_data.t.max() - slice_data.t.min()
+        params.emitx_slice = compute_canonical_emit(slice_data.x, slice_data.px)
+        params.emity_slice = compute_canonical_emit(slice_data.y, slice_data.py)
+        params.Sdelta_slice = p_slice.std(ddof=0) / p_slice.mean()
+        params.dt_slice = slice_data.t.max() - slice_data.t.min()
 
-    # The output will be different from the output by msddsplot
-    # because the slightly different No of particles sliced. It
-    # affects the correlation calculation since the value is
-    # already very close to 1.
-    params.Sdelta_un = params.Sdelta_slice * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
+        # The output will be different from the output by msddsplot
+        # because the slightly different No of particles sliced. It
+        # affects the correlation calculation since the value is
+        # already very close to 1.
+        params.Sdelta_un = params.Sdelta_slice * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
+
+    except Exception:
+        pass
 
     return params
 
@@ -320,7 +324,7 @@ def analyze_line(data, func, *, min_particles=5):
 
     :return: A LineParameters instance.
     """
-    if len(data) < 5:
+    if len(data) < min_particles:
         raise RuntimeError(f"Too few points {len(data)} in the line")
 
     params = LineParameters()
