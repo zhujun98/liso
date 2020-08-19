@@ -28,16 +28,14 @@ V_LIGHT = constants.c
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
-def parse_astra_phasespace(particle_file):
+def parse_astra_phasespace(particle_file, *, cathode=False):
     """Parse the ASTRA particle file.
 
-    :param particle_file: string
-        Pathname of the particle file.
+    :param string particle_file: pathname of the particle file.
+    :param bool cathode: True for a particle file for the cathode.
 
-    :return data: pandas.DataFrame
-        Phase-space data.
-    :return charge: float
-        Charge (C) of the bunch.
+    :return pandas.DataFrame data: phase-space data.
+    :return float charge: charge (C) of the bunch.
     """
     # Units: m, m, m, eV/c, eV/c, eV/c, ns, nC, NA, NA
     col_names = ['x', 'y', 'z', 'px', 'py', 'pz',
@@ -70,8 +68,12 @@ def parse_astra_phasespace(particle_file):
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     # At this step, the timing can be used for timing parameter_scan study.
-    t_ref = data['t'].iloc[0]/1.e9
-    data['t'] = t_ref - (data['z'] - z_ref)/(V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
+    t_ref = data['t'].iloc[0] * 1.e-9
+    if cathode:
+        data['t'] = t_ref - (data['z'] - z_ref) / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
+    else:
+        data['t'][1:] = data['t'][1:] * 1.e-9 + t_ref
+
     charge = -1e-9 * data['charge'].sum()
 
     data.drop(['charge', 'index', 'flag'], inplace=True, axis=1)
@@ -82,13 +84,11 @@ def parse_astra_phasespace(particle_file):
 def parse_impactt_phasespace(particle_file):
     """Parse the IMPACT-T particle file.
 
-    :param particle_file: string
-        Pathname of the particle file.
+    :param string particle_file: pathname of the particle file.
 
-    :return data: pandas.DataFrame
-        Phase-space data.
-    :return charge: None
-        Impact-T particle file does not contain charge information.
+    :return pandas.DataFrame data: phase-space data.
+    :return None charge: Impact-T particle file does not contain charge
+        information.
     """
     # Units: m, /mc, m, /mc, m, /mc
     col_names = ['x', 'px', 'y', 'py', 'z', 'pz']
