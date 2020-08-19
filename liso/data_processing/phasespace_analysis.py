@@ -5,11 +5,8 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import os
 import numpy as np
 from .beam_parameters import BeamParameters
-from .line_parameters import LineParameters
-from ..exceptions import *
 
 
 def compute_canonical_emit(x, px):
@@ -312,44 +309,3 @@ def analyze_beam(data, charge, *,
         pass
 
     return params
-
-
-def analyze_line(data, func, *, min_particles=5):
-    """Calculate line parameters.
-
-    :param Pandas.DataFrame data: line data.
-    :param callable func: range of the z coordinate.
-    :param int min_particles: minimum number of particles required
-        for line analysis.
-
-    :return: A LineParameters instance.
-    """
-    if len(data) < min_particles:
-        raise RuntimeError(f"Too few points {len(data)} in the line")
-
-    params = LineParameters()
-
-    params.z = func(data['z'])
-    params.gamma = func(data['gamma'])
-    params.SdE = func(data['sde'])
-    params.Sx = func(data['sx'])
-    params.Sy = func(data['sy'])
-    params.Sz = func(data['sz'])
-    params.betax = func(data['betax'])
-    params.betay = func(data['betay'])
-    params.alphax = func(data['alphax'])
-    params.alphay = func(data['alphay'])
-    params.emitx = func(data['emitx'])
-    params.emity = func(data['emity'])
-    params.emitx_tr = func(data['emitx_tr'])
-    params.emity_tr = func(data['emity_tr'])
-
-    return params
-
-
-def check_data_file(filepath):
-    """Check the status of a given file."""
-    if not os.path.isfile(filepath):
-        raise DataFileNotFoundError(filepath + " does not exist!")
-    if not os.path.getsize(filepath):
-        raise DataFileEmptyError(filepath + " is empty!")

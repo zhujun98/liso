@@ -39,8 +39,7 @@ from scipy import constants
 import pandas as pd
 import numpy as np
 
-from .data_proc_utils import check_data_file
-from ..exceptions import *
+from .proc_utils import check_data_file
 
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
