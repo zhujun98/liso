@@ -118,12 +118,10 @@ class PhasespacePlot(object):
         if var_x not in self._options or var_y not in self._options:
             raise ValueError(f"Valid options are: {self._options}")
 
-        # get the units for x- and y- axes
-        x_unit = get_default_unit(var_x) if x_unit is None else x_unit
-        y_unit = get_default_unit(var_y) if y_unit is None else y_unit
-
-        x_unit_label, x_scale = get_unit_label_and_scale(x_unit)
-        y_unit_label, y_scale = get_unit_label_and_scale(y_unit)
+        x_label, x_unit_label, x_scale = self._get_label_and_scale(
+            var_x, x_unit)
+        y_label, y_unit_label, y_scale = self._get_label_and_scale(
+            var_y, y_unit)
 
         if ax is None:
             fig = plt.figure(figsize=self._figsize, tight_layout=True)
@@ -197,11 +195,8 @@ class PhasespacePlot(object):
             ax.scatter(x_sample * x_scale, y_sample * y_scale,
                        alpha=alpha, c=mc, s=ms)
 
-        ax.set_xlabel(get_label(var_x) + ' ' + x_unit_label,
-                      fontsize=self._label_fontsize, labelpad=self._label_pad)
-        ax.set_ylabel(get_label(var_y) + ' ' + y_unit_label,
-                      fontsize=self._label_fontsize, labelpad=self._label_pad)
-        ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)
+        self._set_labels_and_tick(
+            ax, (x_label, y_label), (x_unit_label, y_unit_label))
 
         # set axis limits
         ax.set_xlim(xlim)
@@ -231,3 +226,45 @@ class PhasespacePlot(object):
                     fontsize=self._tick_fontsize, y=1.02)
 
         return ax
+
+    def current(self, n_bins=128, *,
+                ax=None, x_unit=None, y_unit=None, xlim=None, ylim=None):
+        """Plot the current profile.
+
+        :param int n_bins: number of bins used in histogram.
+        """
+        var_x, var_y = 't', 'i'
+        x_label, x_unit_label, x_scale = self._get_label_and_scale(var_x, x_unit)
+        y_label, y_unit_label, y_scale = self._get_label_and_scale(var_y, y_unit)
+
+        t = get_phasespace_column_by_name(self._data, var_x)
+        hist, edges = np.histogram(t, bins=n_bins)
+        centers = (edges[1:] + edges[:-1]) / 2.
+
+        if ax is None:
+            fig = plt.figure(figsize=self._figsize, tight_layout=True)
+            ax = fig.add_subplot(111)
+
+        self._set_labels_and_tick(
+            ax, (x_label, y_label), (x_unit_label, y_unit_label))
+
+        ax.plot(centers * x_scale, hist * y_scale)
+
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+
+        return ax
+
+    def _get_label_and_scale(self, var, unit):
+        unit = get_default_unit(var) if unit is None else unit
+        unit_label, scale = get_unit_label_and_scale(unit)
+        return get_label(var), unit_label, scale
+
+    def _set_labels_and_tick(self, ax, labels, unit_labels):
+        ax.set_xlabel(labels[0] + ' ' + unit_labels[0],
+                      fontsize=self._label_fontsize,
+                      labelpad=self._label_pad)
+        ax.set_ylabel(labels[1] + ' ' + unit_labels[1],
+                      fontsize=self._label_fontsize,
+                      labelpad=self._label_pad)
+        ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)

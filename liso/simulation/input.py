@@ -48,10 +48,10 @@ class ParticleFileGenerator:
         self._data = np.zeros((n, 6), dtype=np.float64)
 
         if dist_x == 'uniform':
-            data = np.random.rand(2, n)
+            rn = np.random.rand(2, n)
             # r = 2 * sigma
-            r = 2. * np.sqrt(data[0]) * sig_x
-            phi = 2. * np.pi * data[1]
+            r = 2. * np.sqrt(rn[0]) * sig_x
+            phi = 2. * np.pi * rn[1]
             self._data[:, 0] = r * np.cos(phi)
             self._data[:, 1] = r * np.sin(phi)
         else:
@@ -68,10 +68,10 @@ class ParticleFileGenerator:
         ek_n = ek / MC2_E
         self._p = np.sqrt(ek_n ** 2 + 2. * ek_n)
         if dist_pz == 'isotropic':
-            data = np.random.rand(2, n)
+            rn = np.random.rand(2, n)
             r = self._p
-            theta = 2 * np.pi * data[0]
-            phi = np.arccos(1. - 2. * data[1]) - np.pi / 2.  # [-pi/2, pi/2]
+            theta = 2 * np.pi * rn[0]
+            phi = np.arccos(1. - 2. * rn[1]) - np.pi / 2.  # [-pi/2, pi/2]
             self._data[:, 3] = r * np.sin(phi) * np.cos(theta)
             self._data[:, 4] = r * np.sin(phi) * np.sin(theta)
             self._data[:, 5] = r * np.cos(phi)

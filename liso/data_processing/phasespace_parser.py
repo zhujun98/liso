@@ -21,6 +21,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 from scipy import constants
 import numpy as np
 import pandas as pd
+pd.options.mode.chained_assignment = None
 
 from .data_proc_utils import check_data_file
 
@@ -61,15 +62,17 @@ def parse_astra_phasespace(particle_file, *, cathode=False):
 
     # remove lost particles
     #   -1: standard particle at the cathode (not yet started)
+    #   -3: trajectory probe particle at the cathode
     #    3: trajectory probe particle
     #    5: standard particle
-    data = data[data['flag'].isin([-1, 3, 5])]
+    flags = (-1, -3) if cathode else (3, 5)
+    data = data[data['flag'].isin(flags)]
 
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     # At this step, the timing can be used for timing parameter_scan study.
     t_ref = data['t'].iloc[0] * 1.e-9
-    if cathode:
+    if not cathode:
         data['t'] = t_ref - (data['z'] - z_ref) / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
     else:
         data['t'][1:] = data['t'][1:] * 1.e-9 + t_ref
