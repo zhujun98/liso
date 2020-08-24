@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from collections import OrderedDict
 from .beamline import create_beamline
 from .output import OutputData
+from .input import generate_input
 
 
 class Linac(Mapping):
@@ -63,6 +64,20 @@ class Linac(Mapping):
 
         bl.add_watch(*args, **kwargs)
 
+    def _check_template(self, mapping):
+        templates = []
+        for bl in self._beamlines.values():
+            templates.append(bl._template)
+
+        found = set()
+        for template in templates:
+            found = found.union(
+                generate_input(template, mapping, dry_run=True))
+
+        not_found = mapping.keys() - found
+        if not_found:
+            raise ValueError(f"{not_found} not found in the templates!")
+
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
 
@@ -71,10 +86,13 @@ class Linac(Mapping):
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
+        self._check_template(mapping)
         for i, bl in enumerate(self._beamlines.values()):
             bl.run(mapping, n_workers, timeout)
 
     async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
+        self._check_template(mapping)
+
         inputs = dict()
         phasespaces = dict()
         for i, bl in enumerate(self._beamlines.values()):

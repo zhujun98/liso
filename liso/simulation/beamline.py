@@ -22,7 +22,7 @@ from ..data_processing import (
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .output import OutputData
-from .simulation_utils import generate_input
+from .input import generate_input
 
 
 class Beamline(ABC):

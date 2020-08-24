@@ -4,6 +4,7 @@ import tempfile
 import numpy as np
 
 from liso.simulation import ParticleFileGenerator
+from liso.simulation.input import generate_input
 
 
 class TestParticleFileGenerator(unittest.TestCase):
@@ -37,3 +38,23 @@ class TestParticleFileGenerator(unittest.TestCase):
             self.assertTrue(np.all(data[:, 7] == -1e9 * charge / n))  # index
             self.assertTrue(np.all(data[:, 8] == 1))  # index
             self.assertTrue(np.all(data[:, 9] == -1))  # flag
+
+
+class TestGenerateInput(unittest.TestCase):
+    def setUp(self):
+        with open("./injector.in.000") as fp:
+            self.template = tuple(fp.readlines())
+
+    def test_raises(self):
+        mapping = {'gun_gradient': 10, 'gun_phase0': 20}
+        with tempfile.NamedTemporaryFile('w') as file:
+            with self.assertRaises(KeyError):
+                generate_input(self.template, mapping, file.name)
+
+    def test_not_raise(self):
+        with tempfile.NamedTemporaryFile('w') as file:
+            mapping = {'gun_gradient': 10, 'gun_phase': 20, 'tws_gradient': 30}
+            generate_input(self.template, mapping, file.name)
+
+            mapping = {'gun_gradient': 10, 'gun_phase': 20}
+            generate_input(self.template, mapping, file.name)
