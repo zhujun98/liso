@@ -39,10 +39,14 @@ class Beamline(ABC):
 
         :param str name: Name of the beamline.
         :param str template: path of the template of the input file.
-        :param str swd: path of the simulation working directory.
+        :param str swd: path of the simulation working directory. This where
+            ASTRA expects to find all the data files (i.e. initial particle
+            file and field files) specified in the input file. It should be
+            noted that the input file does not have to be put in this
+            directory.
         :param str fin: input file name.
         :param str pout: final particle file name. It must be located in the
-            simulation working directory.
+            same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
             Only used for certain codes (e.g. ImpactT).
         :param float z0: Starting z coordinate in meter. Used for concatenated
