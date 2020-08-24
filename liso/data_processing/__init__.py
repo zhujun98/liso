@@ -1,5 +1,6 @@
-from .data_proc_utils import (
-    analyze_beam, analyze_line, compute_canonical_emit,
+from .line_analysis import analyze_line
+from .phasespace_analysis import (
+    analyze_beam, compute_canonical_emit,
     compute_current_profile, compute_twiss, tailor_beam
 )
 from .phasespace_parser import (

@@ -23,7 +23,8 @@ import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
-from .data_proc_utils import check_data_file
+from .proc_utils import check_data_file
+
 
 V_LIGHT = constants.c
 MC2_E = constants.m_e * constants.c**2 / constants.e
@@ -41,6 +42,9 @@ def parse_astra_phasespace(particle_file, *, cathode=False):
     # Units: m, m, m, eV/c, eV/c, eV/c, ns, nC, NA, NA
     col_names = ['x', 'y', 'z', 'px', 'py', 'pz',
                  't', 'charge', 'index', 'flag']
+
+    check_data_file(particle_file)
+
     data = pd.read_csv(particle_file, delim_whitespace=True, names=col_names)
 
     pz_ref = data['pz'].iloc[0]
