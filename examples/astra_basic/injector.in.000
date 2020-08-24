@@ -9,10 +9,10 @@
     TRACK_ALL = .T 
     PHASE_SCAN = .F
     AUTO_PHASE = .T
-    H_max = 0.005
+    check_ref_part = .F
+    H_max = 0.001
     H_min = 0.00005
     Max_step = 10000000
-    debunch = 0.0
     Z_Cathode = 0.0
 /
  
@@ -45,7 +45,7 @@
     Exp_Control = 0.1
     Nrad = 32
     Nlong_in = 32
-    Lmirror = .F
+    Lmirror = .T
     Cell_var = 2.0
     min_grid = 0.0  
     N_min = 30.0  
@@ -72,4 +72,3 @@
     S_smooth(1) = 5
     MaxB(1) = <main_sole_b>
 /
-

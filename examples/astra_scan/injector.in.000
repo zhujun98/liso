@@ -45,7 +45,7 @@
     Exp_Control = 0.1
     Nrad = 16
     Nlong_in = 16
-    Lmirror = .F
+    Lmirror = .T
     Cell_var = 2.0
     min_grid = 0.0  
     N_min = 30.0  
