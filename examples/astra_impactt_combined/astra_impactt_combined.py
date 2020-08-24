@@ -21,7 +21,7 @@ linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
-                   swd='astra_injector',
+                   swd='astra_files',
                    fin='injector.in',
                    template='astra_impactt_combined/injector.in.000',
                    pout='injector.0450.001')
@@ -32,7 +32,7 @@ linac.add_beamline('astra',
 # will be ignored if the code is Astra.
 linac.add_beamline('impactt',
                    name='chicane',
-                   swd='impactt_lattice',
+                   swd='impactt_files',
                    fin='ImpactT.in',
                    template='astra_impactt_combined/ImpactT.in.000',
                    pout='fort.106',
