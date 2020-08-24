@@ -32,9 +32,9 @@ linac = Linac()  # instantiate a Linac
 # pout: output file name. It must be in the same folder as 'fin'.
 linac.add_beamline('astra',
                    name='gun',
-                   swd='astra_injector',
+                   swd='../astra_files',
                    fin='injector.in',
-                   template='astra_basic/injector.in.000',
+                   template='injector.in.000',
                    pout='injector.0450.001')
 
 mapping = {

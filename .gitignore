@@ -16,16 +16,16 @@ win_config.dat
 
 .ipynb_checkpoints
 
-examples/astra_injector/*
-!examples/astra_injector/generatorG.in
-!examples/astra_injector/gun.dat
-!examples/astra_injector/Radial2k_1G3ps.ini
-!examples/astra_injector/sp_gunsol.dat
-!examples/astra_injector/sole_cavity.dat
-!examples/astra_injector/tws_cavity.dat
+examples/astra_files/*
+!examples/astra_files/generatorG.in
+!examples/astra_files/gun.dat
+!examples/astra_files/Radial2k_1G3ps.ini
+!examples/astra_files/sp_gunsol.dat
+!examples/astra_files/sole_cavity.dat
+!examples/astra_files/tws_cavity.dat
 
-examples/impactt_lattice/*
-!examples/impactt_lattice/.gitkeep
+examples/impactt_files/*
+!examples/impactt_files/.gitkeep
 
 integration_tests/scan/*
 !integration_tests/scan/injector.in.000
