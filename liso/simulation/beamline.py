@@ -330,7 +330,7 @@ class AstraBeamline(Beamline):
         self._rootname = osp.basename(self._pout.split('.')[0])
 
         self._output_suffixes = [
-            '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
+            '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
 
     def _get_executable(self, parallel):
