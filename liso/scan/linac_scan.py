@@ -70,7 +70,7 @@ class LinacScan(object):
 
                 task = asyncio.ensure_future(
                     self._linac.async_run(
-                        count, self._x_map, f'temp_{count:06d}', **kwargs))
+                        count, self._x_map, f'tmp{count:06d}', **kwargs))
                 tasks.add(task)
 
                 count += 1

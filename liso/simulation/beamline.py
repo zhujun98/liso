@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
+import os
 import os.path as osp
 from abc import ABC, abstractmethod
 import subprocess
@@ -22,7 +23,7 @@ from ..data_processing import (
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .output import OutputData
-from .simulation_utils import generate_input
+from .input import generate_input
 
 
 class Beamline(ABC):
@@ -39,10 +40,14 @@ class Beamline(ABC):
 
         :param str name: Name of the beamline.
         :param str template: path of the template of the input file.
-        :param str swd: path of the simulation working directory.
+        :param str swd: path of the simulation working directory. This where
+            ASTRA expects to find all the data files (i.e. initial particle
+            file and field files) specified in the input file. It should be
+            noted that the input file does not have to be put in this
+            directory.
         :param str fin: input file name.
         :param str pout: final particle file name. It must be located in the
-            simulation working directory.
+            same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
             Only used for certain codes (e.g. ImpactT).
         :param float z0: Starting z coordinate in meter. Used for concatenated
@@ -147,7 +152,8 @@ class Beamline(ABC):
 
     def reset(self, tmp_dir=None):
         """Reset status and output files."""
-        swd = self._swd if tmp_dir is None else osp.join(self._swd, tmp_dir)
+        swd = self._swd if tmp_dir is None else \
+            osp.join(os.getcwd(), tmp_dir)
 
         # input file
         with open(osp.join(swd, self._fin), 'w') as fp:
@@ -245,11 +251,14 @@ class Beamline(ABC):
             command = f"timeout {timeout}s " + command
 
         try:
-            subprocess.check_output(command,
-                                    stderr=subprocess.STDOUT,
-                                    universal_newlines=True,
-                                    shell=True,
-                                    cwd=self._swd)
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging.
+            with open('simulation.log', "w") as out_file:
+                subprocess.run(command,
+                               stdout=out_file,
+                               universal_newlines=True,
+                               shell=True,
+                               cwd=self._swd)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
@@ -258,7 +267,7 @@ class Beamline(ABC):
 
     async def async_run(self, mapping, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+        with TempSimulationDirectory(osp.join(os.getcwd(), tmp_dir)) as swd:
             self.reset(tmp_dir)
 
             fin = osp.join(swd, self._fin)
@@ -273,12 +282,18 @@ class Beamline(ABC):
             # Astra will find external files in the simulation working
             # directory but output files in the directory where the input
             # file is located.
-            proc = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self._swd
-            )
+
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging. It is not
+            # a problem even if different processes write the file
+            # interleavingly.
+            with open(f'simulation.log', "w") as out_file:
+                proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=out_file,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=self._swd
+                )
 
             _, stderr = await proc.communicate()
             if stderr:
@@ -326,7 +341,7 @@ class AstraBeamline(Beamline):
         self._rootname = osp.basename(self._pout.split('.')[0])
 
         self._output_suffixes = [
-            '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
+            '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
 
     def _get_executable(self, parallel):

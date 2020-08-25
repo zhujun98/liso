@@ -31,22 +31,6 @@ class BeamParametersInconsistentError(BeamAnalysisError):
     pass
 
 
-class DataFileNotFoundError(BeamAnalysisError):
-    """Inherited from BeamAnalysisError.
-
-    Raised if the data file is not found.
-    """
-    pass
-
-
-class DataFileEmptyError(BeamAnalysisError):
-    """Inherited from BeamAnalysisError.
-
-    Raised if the data file is empty.
-    """
-    pass
-
-
 class OptimizationError(Exception):
     """Raise if there is error in optimization."""
     pass

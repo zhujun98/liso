@@ -39,8 +39,7 @@ from scipy import constants
 import pandas as pd
 import numpy as np
 
-from .data_proc_utils import check_data_file
-from ..exceptions import *
+from .proc_utils import check_data_file
 
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
@@ -177,7 +176,7 @@ def parse_astra_line(root_name):
         data['emitx_tr'] = emit_tr_data['emitx_tr']*1.0e-6
         data['emity_tr'] = emit_tr_data['emity_tr']*1.0e-6
         # data['emitz_tr'] = emit_tr_data['emitz_tr']*1.0e-6
-    except (DataFileNotFoundError, DataFileEmptyError):
+    except RuntimeError:
         data['emitx_tr'] = xdata['emitx']*1.0e-6
         data['emity_tr'] = ydata['emity']*1.0e-6
         # data['emitz_tr'] = zdata['emitz']*1.0e-6
