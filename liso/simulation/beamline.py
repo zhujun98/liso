@@ -249,11 +249,12 @@ class Beamline(ABC):
             command = f"timeout {timeout}s " + command
 
         try:
-            subprocess.check_output(command,
-                                    stderr=subprocess.STDOUT,
-                                    universal_newlines=True,
-                                    shell=True,
-                                    cwd=self._swd)
+            with open('simulation.log', "w") as out_file:
+                subprocess.run(command,
+                               stdout=out_file,
+                               universal_newlines=True,
+                               shell=True,
+                               cwd=self._swd)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
@@ -277,12 +278,13 @@ class Beamline(ABC):
             # Astra will find external files in the simulation working
             # directory but output files in the directory where the input
             # file is located.
-            proc = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self._swd
-            )
+            with open(f'simulation_{tmp_dir}.log', "w") as out_file:
+                proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=out_file,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=self._swd
+                )
 
             _, stderr = await proc.communicate()
             if stderr:
