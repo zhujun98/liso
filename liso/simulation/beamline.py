@@ -249,6 +249,8 @@ class Beamline(ABC):
             command = f"timeout {timeout}s " + command
 
         try:
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging.
             with open('simulation.log', "w") as out_file:
                 subprocess.run(command,
                                stdout=out_file,
@@ -278,7 +280,12 @@ class Beamline(ABC):
             # Astra will find external files in the simulation working
             # directory but output files in the directory where the input
             # file is located.
-            with open(f'simulation_{tmp_dir}.log', "w") as out_file:
+
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging. It is not
+            # a problem even if different processes write the file
+            # interleavingly.
+            with open(f'simulation.log', "w") as out_file:
                 proc = await asyncio.create_subprocess_shell(
                     command,
                     stdout=out_file,

@@ -17,11 +17,11 @@ linac.add_beamline('astra',
                    template='injector.in.000',
                    pout='injector.0450.001')
 
-sc = LinacScan(linac)  # instantiate a Jitter (problem)
+sc = LinacScan(linac)
 
-sc.add_param('gun_gradient', values=np.linspace(130 - 10, 130 + 10, 5))
-sc.add_param('gun_phase', values=np.linspace(-15, 5, 5))
-sc.add_param('tws_gradient', values=np.linspace(30 - 5, 30 + 5, 5))
-sc.add_param('tws_phase', values=np.linspace(-90, -60, 10))
+sc.add_param('gun_gradient', values=np.linspace(130 - 10, 130 + 10, 3))
+sc.add_param('gun_phase', values=np.linspace(-15, 5, 3))
+sc.add_param('tws_gradient', values=np.linspace(30 - 5, 30 + 5, 3))
+sc.add_param('tws_phase', values=np.linspace(-90, -60, 3))
 
 sc.scan(n_tasks=12)
