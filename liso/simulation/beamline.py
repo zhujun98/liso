@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
+import os
 import os.path as osp
 from abc import ABC, abstractmethod
 import subprocess
@@ -151,7 +152,8 @@ class Beamline(ABC):
 
     def reset(self, tmp_dir=None):
         """Reset status and output files."""
-        swd = self._swd if tmp_dir is None else osp.join(self._swd, tmp_dir)
+        swd = self._swd if tmp_dir is None else \
+            osp.join(os.getcwd(), tmp_dir)
 
         # input file
         with open(osp.join(swd, self._fin), 'w') as fp:
@@ -265,7 +267,7 @@ class Beamline(ABC):
 
     async def async_run(self, mapping, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+        with TempSimulationDirectory(osp.join(os.getcwd(), tmp_dir)) as swd:
             self.reset(tmp_dir)
 
             fin = osp.join(swd, self._fin)
