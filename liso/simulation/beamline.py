@@ -249,11 +249,14 @@ class Beamline(ABC):
             command = f"timeout {timeout}s " + command
 
         try:
-            subprocess.check_output(command,
-                                    stderr=subprocess.STDOUT,
-                                    universal_newlines=True,
-                                    shell=True,
-                                    cwd=self._swd)
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging.
+            with open('simulation.log', "w") as out_file:
+                subprocess.run(command,
+                               stdout=out_file,
+                               universal_newlines=True,
+                               shell=True,
+                               cwd=self._swd)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
@@ -277,12 +280,18 @@ class Beamline(ABC):
             # Astra will find external files in the simulation working
             # directory but output files in the directory where the input
             # file is located.
-            proc = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self._swd
-            )
+
+            # We do not want to generate a full history of the simulation
+            # log. The current one is good enough for debugging. It is not
+            # a problem even if different processes write the file
+            # interleavingly.
+            with open(f'simulation.log', "w") as out_file:
+                proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=out_file,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=self._swd
+                )
 
             _, stderr = await proc.communicate()
             if stderr:
@@ -330,7 +339,7 @@ class AstraBeamline(Beamline):
         self._rootname = osp.basename(self._pout.split('.')[0])
 
         self._output_suffixes = [
-            '.Xemit.001', '.Yemit.001', '.Zemit.001', '.TRemit.001'
+            '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
 
     def _get_executable(self, parallel):
