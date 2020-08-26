@@ -9,4 +9,11 @@
 
 Author: Jun Zhu, zhujun981661@gmail.com
 
-Documentation: http://liso.readthedocs.io/en/latest/
+LISO was created during my first period at DESY to facility accelerator beamline optimization.
+Now, it aims to provide an high-level API to:
+
+1. Run a large numbers of simulations asynchronously; 
+2. Provide a unified format to store the simulation data and the measurable counterparts from 
+experiments;
+3. Provide a toolbox to process and visualize the data for deep learning and deep reinforcement 
+learning studies.
