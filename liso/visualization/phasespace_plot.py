@@ -39,14 +39,11 @@ class PhasespacePlot(object):
 
         :param Pandas.DataFrame data: phasespace data.
         :param float charge: bunch charge.
-        :param halo: float
-            Percentage of particles to be removed based on their
-            transverse distance to the bunch centroid. Applied
+        :param float halo: Percentage of particles to be removed based
+            on their transverse distance to the bunch centroid. Applied
             before tail cutting.
-        :param tail: float
-            Percentage of particles to be removed in the tail.
-        :param rotation: float
-            Angle of the rotation in rad.
+        :param float tail: Percentage of particles to be removed in the tail.
+        :param float rotation: Angle of the rotation in rad.
         """
         self._data, self._charge = data, charge
 

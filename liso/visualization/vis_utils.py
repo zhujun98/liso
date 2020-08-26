@@ -28,8 +28,8 @@ def fast_sample_data(x, y, n=1):
 
     seed = random.randint(0, 1000)
     fraction = n / x.size
-    return x.sample(frac=fraction, random_state=seed).values, \
-           y.sample(frac=fraction, random_state=seed).values
+    return (x.sample(frac=fraction, random_state=seed).values,
+            y.sample(frac=fraction, random_state=seed).values)
 
 
 def sample_data(x, y, *, n=20000, bins=None, sigma=None):
@@ -42,12 +42,9 @@ def sample_data(x, y, *, n=20000, bins=None, sigma=None):
     :param numeric sigma: standard deviation of Gaussian kernel of the
         Gaussian filter.
 
-    :returns x_sample: pandas.Series
-        sampled x data.
-    :returns y_sample: pandas.Series
-        sampled y data
-    :returns z: numpy.ndarray.
-        Normalized density at each sample point.
+    :returns pandas.Series x_sample: sampled x data.
+    :returns pandas.Series y_sample: sampled y data
+    :returns numpy.ndarray z: Normalized density at each sample point.
     """
     H, x_edges, y_edges = np.histogram2d(x, y, bins=bins)
     x_center = (x_edges[1:] + x_edges[0:-1]) / 2
