@@ -4,20 +4,23 @@ Unittest for Data Analysis
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
+import os.path as osp
 
 from liso.data_processing import (
     analyze_beam, parse_astra_phasespace, parse_impactt_phasespace,
     tailor_beam
 )
 
+_ROOT_DIR = osp.dirname(osp.abspath(__file__))
+
 
 class TestAnalyzeBeam(unittest.TestCase):
     def setUp(self):
-        pfile = "impactt_output/impactt.out"
+        pfile = osp.join(_ROOT_DIR, "impactt_output/impactt.out")
         self.impactt_data, _ = parse_impactt_phasespace(pfile)
         self.impactt_charge = 1e-11
 
-        pfile = "astra_output/astra.out"
+        pfile = osp.join(_ROOT_DIR, "astra_output/astra.out")
         self.astra_data, self.astra_charge = parse_astra_phasespace(pfile)
 
     def testAstra(self):
