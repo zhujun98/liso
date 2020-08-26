@@ -4,27 +4,20 @@ Unittest for Data Analysis
 Author: Jun Zhu, zhujun981661@gmail.com
 """
 import unittest
-import os
-
-import numpy as np
 
 from liso.data_processing import (
-    analyze_beam, analyze_line, parse_astra_line, parse_impactt_line,
-    parse_astra_phasespace, parse_impactt_phasespace, tailor_beam
+    analyze_beam, parse_astra_phasespace, parse_impactt_phasespace,
+    tailor_beam
 )
-
-test_path = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'files4test'
-))
 
 
 class TestAnalyzeBeam(unittest.TestCase):
     def setUp(self):
-        pfile = os.path.join(test_path, "impactt_output/impactt.out")
+        pfile = "impactt_output/impactt.out"
         self.impactt_data, _ = parse_impactt_phasespace(pfile)
         self.impactt_charge = 1e-11
 
-        pfile = os.path.join(test_path, "astra_output/astra.out")
+        pfile = "astra_output/astra.out"
         self.astra_data, self.astra_charge = parse_astra_phasespace(pfile)
 
     def testAstra(self):
@@ -122,29 +115,6 @@ class TestAnalyzeBeam(unittest.TestCase):
                                           rotation=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 360)
-
-
-class TestAnalyzeLine(unittest.TestCase):
-
-    def testAstra(self):
-        astra_data = parse_astra_line(
-            os.path.join(test_path, "astra_output/injector"))
-
-        with self.assertRaises(RuntimeError):
-            analyze_line([1, 2], max)
-
-        params = analyze_line(astra_data, np.max)
-        params = analyze_line(astra_data, np.std)
-
-    def testImpact(self):
-        impactt_data = parse_impactt_line(
-            os.path.join(test_path, "impactt_output/fort"))
-
-        with self.assertRaises(RuntimeError):
-            analyze_line([1, 2], max)
-
-        params = analyze_line(impactt_data, np.min)
-        params = analyze_line(impactt_data, np.var)
 
 
 if __name__ == "__main__":
