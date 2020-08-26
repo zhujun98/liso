@@ -6,8 +6,12 @@ Author: Jun Zhu, zhujun981661@gmail.com
 import unittest
 import os.path as osp
 
+import pandas as pd
+import numpy as np
+
 from liso.data_processing import (
     analyze_beam, parse_astra_phasespace, parse_impactt_phasespace,
+    density_phasespace, pixel_phasespace, sample_phasespace,
     tailor_beam
 )
 
@@ -118,6 +122,27 @@ class TestAnalyzeBeam(unittest.TestCase):
                                           rotation=0.1),
                               self.astra_charge)
         self.assertEqual(params.n, 360)
+
+    def testSamplePhasespace(self):
+        x = pd.Series(np.arange(1000))
+        y = pd.Series(np.arange(1000) + 100)
+
+        xs, ys = sample_phasespace(x, y, n=10)
+        self.assertEqual(10, len(xs))
+        self.assertEqual(10, len(ys))
+
+        xs, ys = sample_phasespace(x, y, n=2000)
+        self.assertEqual(1000, len(xs))
+        self.assertEqual(1000, len(ys))
+
+    def testPixelizePhasespace(self):
+        x, y = self.astra_data['x'], self.astra_data['y']
+        intensity, _, _ = pixel_phasespace(x, y)
+        self.assertAlmostEqual(1., intensity.sum())
+
+    def testDensityPhasespace(self):
+        x, y = self.astra_data['x'], self.astra_data['y']
+        density_phasespace(x, y, n=20000, n_bins=10, sigma=None)
 
 
 if __name__ == "__main__":

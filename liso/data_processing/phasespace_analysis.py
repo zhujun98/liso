@@ -6,6 +6,8 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter
+
 from .beam_parameters import BeamParameters
 
 
@@ -205,6 +207,82 @@ def tailor_beam(data, *, halo=0.0, tail=0.0, rotation=0.0):
     :return Pandas.DataFrame: tailored data.
     """
     return cut_halo(cut_tail(rotate(data, rotation), tail), halo)
+
+
+def sample_phasespace(x, y, n=1):
+    """Sample a fraction of data from x and y.
+
+    :param Pandas.Series x: data series.
+    :param Pandas.Series y: data series.
+    :param int n: number of data to be sampled.
+
+    :return: a tuple (x_sample, y_sample) where x_sample and y_sample
+             are both numpy.array
+    """
+    if n >= x.size:
+        return x, y
+
+    return x.sample(n).values, y.sample(n).values
+
+
+def pixel_phasespace(x, y, *,
+                     n_bins=10,
+                     range=None,
+                     density=True,
+                     normalize=False):
+    """Return the pixelized phasespace.
+
+    :param array-like x: 1D x data.
+    :param array-like y: 1D y data.
+    :param int/array-like n_bins: number of bins.
+    :param array-like range: bin ranges in the format of
+        [[xmin, xmax], [ymin, ymax]] if specified.
+    :param bool density: True for normalizing the counts by the total
+        number of particles.
+    :param bool normalize: True for normalizing the x and y edges.
+    """
+    counts, x_edges, y_edges = np.histogram2d(x, y, bins=n_bins, range=range)
+    x_centers = (x_edges[1:] + x_edges[0:-1]) / 2
+    y_centers = (y_edges[1:] + y_edges[0:-1]) / 2
+    if density:
+        counts /= len(x)
+
+    if normalize:
+        x_centers -= np.mean(x)
+        x_centers /= np.std(x)
+        y_centers -= np.mean(y)
+        y_centers /= np.std(y)
+
+    return counts, x_centers, y_centers
+
+
+def density_phasespace(x, y, *, n=20000, n_bins=10, sigma=None):
+    """Return the sampled phasespace with density.
+
+    :param pandas.Series x: x data.
+    :param pandas.Series y: y data.
+    :param int n: number of data points to be sampled.
+    :param int/(int, int) n_bins: number of bins used in numpy.histogram2d().
+    :param numeric sigma: standard deviation of Gaussian kernel of the
+        Gaussian filter.
+
+    :returns pandas.Series x_sample: sampled x data.
+    :returns pandas.Series y_sample: sampled y data
+    :returns numpy.ndarray z: Normalized density at each sample point.
+    """
+    counts, x_centers, y_centers = pixel_phasespace(x, y, n_bins=n_bins)
+
+    if sigma is not None:
+        counts = gaussian_filter(counts, sigma=sigma)
+
+    x_sample, y_sample = sample_phasespace(x, y, n)
+
+    px = np.digitize(x_sample, x_centers)
+    py = np.digitize(y_sample, y_centers)
+    z = counts[px - 1, py - 1]
+    z /= z.max()
+
+    return z, x_sample, y_sample
 
 
 def analyze_beam(data, charge, *,
