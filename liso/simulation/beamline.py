@@ -16,7 +16,7 @@ import numpy as np
 
 from ..config import config
 from ..data_processing import (
-    analyze_beam, analyze_line,
+    analyze_line,
     parse_astra_phasespace, parse_impactt_phasespace,
     parse_astra_line, parse_impactt_line,
 )
@@ -205,9 +205,9 @@ class Beamline(ABC):
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')
 
-        data, charge = self._parse_phasespace(pout)
-        charge = self._charge if charge is None else charge
-        self._out = analyze_beam(data, charge)
+        data = self._parse_phasespace(pout)
+        charge = self._charge if data.charge is None else data.charge
+        self._out = data.analyze()
         if self.next is not None:
             self.next.generate_initial_particle_file(data, charge)
 

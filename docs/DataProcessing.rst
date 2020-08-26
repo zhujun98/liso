@@ -18,7 +18,15 @@ Data parsing
 Phasespace analysis
 +++++++++++++++++++
 
-.. autofunction:: analyze_beam
+.. autoclass:: Phasespace
+    :show-inheritance:
+
+    .. automethod:: __init__
+    .. automethod:: slice
+    .. automethod:: cut_halo
+    .. automethod:: cut_tail
+    .. automethod:: rotate
+    .. automethod:: analyze
 
 .. autofunction:: compute_canonical_emit
 

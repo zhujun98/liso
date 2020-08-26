@@ -10,31 +10,46 @@ import pandas as pd
 import numpy as np
 
 from liso.data_processing import (
-    analyze_beam, parse_astra_phasespace, parse_impactt_phasespace,
+    parse_astra_phasespace, parse_impactt_phasespace,
     density_phasespace, pixel_phasespace, sample_phasespace,
-    tailor_beam
 )
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
-class TestAnalyzeBeam(unittest.TestCase):
+class TestPhasespace(unittest.TestCase):
     def setUp(self):
-        pfile = osp.join(_ROOT_DIR, "impactt_output/impactt.out")
-        self.impactt_data, _ = parse_impactt_phasespace(pfile)
-        self.impactt_charge = 1e-11
-
         pfile = osp.join(_ROOT_DIR, "astra_output/astra.out")
-        self.astra_data, self.astra_charge = parse_astra_phasespace(pfile)
+        self.data = parse_astra_phasespace(pfile)
 
-    def testAstra(self):
+    def testAccessItem(self):
+        for item in ['x', 'y', 'z', 'px', 'py', 'pz', 't', 'dt',
+                     'p', 'xp', 'yp', 'dz', 'delta']:
+            self.assertEqual(500, len(self.data[item]))
+
+        with self.assertRaises(KeyError):
+            self.data['aa']
+
+    def testSlice(self):
+        sliced = self.data.slice(stop=200)
+        self.assertTrue(sliced['x'].equals(self.data['x'][:200]))
+        self.assertEqual(500, len(self.data))
+
+        sliced = self.data.slice(1, 100, 2)
+        self.assertTrue(sliced['x'].equals(self.data['x'][1:100:2]))
+
+        sliced = self.data.slice(stop=200, inplace=True)
+        self.assertIs(sliced, self.data)
+        self.assertEqual(200, len(self.data))
+
+    def testAnalysis(self):
         with self.assertRaises(RuntimeError):
-            analyze_beam(self.astra_data[:19], self.astra_charge, min_particles=20)
+            self.data.analyze(min_particles=int(2e5))
 
         # with self.assertRaisesRegex(RuntimeError, "slice"):
-        #     analyze_beam(self.astra_data[:100], self.astra_charge, min_particles=20)
+        #     analyze_phasespace(self.astra_data[:100], self.astra_charge, min_particles=20)
 
-        params = analyze_beam(self.astra_data, self.astra_charge)
+        params = self.data.analyze()
 
         self.assertAlmostEqual(params.charge, 1.0e-12, places=4)
         self.assertEqual(params.n, 500)
@@ -65,10 +80,61 @@ class TestAnalyzeBeam(unittest.TestCase):
         self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2098, places=4)
         self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1199, places=4)
 
-    def testImpactt(self):
-        params = analyze_beam(self.impactt_data, self.impactt_charge)
+    def testCutHalo(self):
+        self.data.cut_halo(0.1)
+        params = self.data.analyze()
+        self.assertEqual(params.n, 450)
 
-        self.assertAlmostEqual(params.charge, self.impactt_charge, places=4)
+    def testCutTail(self):
+        self.data.cut_tail(0.1)
+        params = self.data.analyze()
+        self.assertEqual(params.n, 450)
+
+    def testRotateBeam(self):
+        self.data.rotate(0.1)
+        params = self.data.analyze()
+        self.assertEqual(params.n, 500)
+
+    def testSamplePhasespace(self):
+        x = pd.Series(np.arange(1000))
+        y = pd.Series(np.arange(1000) + 100)
+
+        xs, ys = sample_phasespace(x, y, n=10)
+        self.assertEqual(10, len(xs))
+        self.assertEqual(10, len(ys))
+
+        xs, ys = sample_phasespace(x, y, n=2000)
+        self.assertEqual(1000, len(xs))
+        self.assertEqual(1000, len(ys))
+
+    def testPixelizePhasespace(self):
+        x, y = self.data['x'], self.data['y']
+        intensity, _, _ = pixel_phasespace(x, y)
+        self.assertAlmostEqual(1., intensity.sum())
+
+    def testDensityPhasespace(self):
+        x, y = self.data['x'], self.data['y']
+        density_phasespace(x, y, n=20000, n_bins=10, sigma=None)
+
+
+class TestPhasespaceImpactt(unittest.TestCase):
+    def setUp(self):
+        pfile = osp.join(_ROOT_DIR, "impactt_output/impactt.out")
+        self.data = parse_impactt_phasespace(pfile)
+        self.data.charge = 1e-11
+
+    def testZeroCharge(self):
+        # to test not raise when charge = 0.0
+        charge = self.data.charge
+        self.data.charge = 0
+        params = self.data.analyze()
+        self.assertEqual(params.charge, 0.0)
+        self.data.charge = charge
+
+    def testImpactt(self):
+        params = self.data.analyze()
+
+        self.assertAlmostEqual(params.charge, self.data.charge, places=4)
         self.assertEqual(params.n, 500)
         self.assertAlmostEqual(params.p, 100.2111, places=4)
         self.assertAlmostEqual(params.Sdelta*1e2, 0.1359, places=4)
@@ -96,53 +162,6 @@ class TestAnalyzeBeam(unittest.TestCase):
         self.assertAlmostEqual(params.emity_slice*1e6, 0.1061, places=4)
         self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2108, places=4)
         self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1207, places=4)
-
-    def testZeroCharge(self):
-        # to test not raise when charge = 0.0
-        params = analyze_beam(self.impactt_data, 0.0)
-        self.assertEqual(params.charge, 0.0)
-
-    def testCutHalo(self):
-        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1),
-                              self.astra_charge)
-        self.assertEqual(params.n, 450)
-
-    def testCutTail(self):
-        params = analyze_beam(tailor_beam(self.astra_data, tail=0.1),
-                              self.astra_charge)
-        self.assertEqual(params.n, 450)
-
-    def testRotateBeam(self):
-        params = analyze_beam(tailor_beam(self.astra_data, rotation=0.1),
-                              self.astra_charge)
-        self.assertEqual(params.n, 500)
-
-    def testTailorBeam(self):
-        params = analyze_beam(tailor_beam(self.astra_data, halo=0.1, tail=0.2,
-                                          rotation=0.1),
-                              self.astra_charge)
-        self.assertEqual(params.n, 360)
-
-    def testSamplePhasespace(self):
-        x = pd.Series(np.arange(1000))
-        y = pd.Series(np.arange(1000) + 100)
-
-        xs, ys = sample_phasespace(x, y, n=10)
-        self.assertEqual(10, len(xs))
-        self.assertEqual(10, len(ys))
-
-        xs, ys = sample_phasespace(x, y, n=2000)
-        self.assertEqual(1000, len(xs))
-        self.assertEqual(1000, len(ys))
-
-    def testPixelizePhasespace(self):
-        x, y = self.astra_data['x'], self.astra_data['y']
-        intensity, _, _ = pixel_phasespace(x, y)
-        self.assertAlmostEqual(1., intensity.sum())
-
-    def testDensityPhasespace(self):
-        x, y = self.astra_data['x'], self.astra_data['y']
-        density_phasespace(x, y, n=20000, n_bins=10, sigma=None)
 
 
 if __name__ == "__main__":

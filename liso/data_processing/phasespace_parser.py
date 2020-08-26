@@ -5,24 +5,12 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-
-# Line data parser for different codes.
-#
-# The returning data is a pandas.DataFrame containing the following columns:
-#
-#     x (m)
-#     px (mc)
-#     y (m)
-#     py (mc)
-#     z(m)
-#     pz (mc)
-#     t (s).
-
 from scipy import constants
 import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
+from .phasespace import Phasespace
 from .proc_utils import check_data_file
 
 
@@ -85,7 +73,7 @@ def parse_astra_phasespace(particle_file, *, cathode=False):
 
     data.drop(['charge', 'index', 'flag'], inplace=True, axis=1)
 
-    return data, charge
+    return Phasespace(data, charge)
 
 
 def parse_impactt_phasespace(particle_file):
@@ -110,4 +98,4 @@ def parse_impactt_phasespace(particle_file):
     # Impact-T does not support timing, here 't' is the relative number
     data['t'] = (data['z'].mean() - data['z']) / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
 
-    return data, None
+    return Phasespace(data, None)
