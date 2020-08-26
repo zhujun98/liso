@@ -10,10 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import analyze_beam, tailor_beam
+from ..data_processing import (
+    analyze_beam, density_phasespace, pixel_phasespace,
+    sample_phasespace, tailor_beam
+)
 from .vis_utils import (
-    fast_sample_data, get_default_unit, get_label,
-    get_phasespace_column_by_name, get_unit_label_and_scale, sample_data
+    get_default_unit, get_label, get_phasespace_column_by_name,
+    get_unit_label_and_scale
 )
 
 
@@ -39,14 +42,11 @@ class PhasespacePlot(object):
 
         :param Pandas.DataFrame data: phasespace data.
         :param float charge: bunch charge.
-        :param halo: float
-            Percentage of particles to be removed based on their
-            transverse distance to the bunch centroid. Applied
+        :param float halo: Percentage of particles to be removed based
+            on their transverse distance to the bunch centroid. Applied
             before tail cutting.
-        :param tail: float
-            Percentage of particles to be removed in the tail.
-        :param rotation: float
-            Angle of the rotation in rad.
+        :param float tail: Percentage of particles to be removed in the tail.
+        :param float rotation: Angle of the rotation in rad.
         """
         self._data, self._charge = data, charge
 
@@ -145,15 +145,15 @@ class PhasespacePlot(object):
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
         if cloud_plot is True:
-            x_sample, y_sample, density_color = sample_data(
+            density, x_sample, y_sample = density_phasespace(
                 get_phasespace_column_by_name(self._data, var_x),
                 get_phasespace_column_by_name(self._data, var_y),
                 n=samples,
-                bins=bins_2d,
+                n_bins=bins_2d,
                 sigma=sigma_2d)
 
             cb = ax.scatter(x_sample*x_scale, y_sample*y_scale,
-                            c=density_color,
+                            c=density,
                             s=ms,
                             alpha=alpha,
                             cmap='jet')
@@ -187,7 +187,7 @@ class PhasespacePlot(object):
             cbar.ax.tick_params(labelsize=14)
 
         else:
-            x_sample, y_sample = fast_sample_data(
+            x_sample, y_sample = sample_phasespace(
                 get_phasespace_column_by_name(self._data, var_x),
                 get_phasespace_column_by_name(self._data, var_y),
                 n=samples)
@@ -268,3 +268,18 @@ class PhasespacePlot(object):
                       fontsize=self._label_fontsize,
                       labelpad=self._label_pad)
         ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)
+
+    @classmethod
+    def imshow(cls, x, y, *, ax=None, cmap=None, **kwargs):
+        if ax is None:
+            _, ax = plt.subplots()
+
+        i, xc, yc = pixel_phasespace(y, x, **kwargs)
+
+        if cmap is None:
+            cmap = 'viridis'
+
+        ax.imshow(np.flip(i, axis=0),
+                  aspect='auto',
+                  cmap=cmap,
+                  extent=[yc.min(), yc.max(), xc.min(), xc.max()])

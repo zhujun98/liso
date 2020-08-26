@@ -5,63 +5,10 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import random
 import re
 
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
 from scipy import constants
-
-
-def fast_sample_data(x, y, n=1):
-    """Sample a fraction of data from x and y.
-
-    :param Pandas.Series x: data series.
-    :param Pandas.Series y: data series.
-    :param int n: number of data to be sampled.
-
-    :return: a tuple (x_sample, y_sample) where x_sample and y_sample
-             are both numpy.array
-    """
-    if n >= x.size:
-        return x, y
-
-    seed = random.randint(0, 1000)
-    fraction = n / x.size
-    return x.sample(frac=fraction, random_state=seed).values, \
-           y.sample(frac=fraction, random_state=seed).values
-
-
-def sample_data(x, y, *, n=20000, bins=None, sigma=None):
-    """Sample the data and calculate the density map.
-
-    :param pandas.Series x: x data.
-    :param pandas.Series y: y data.
-    :param int n: number of data points to be sampled.
-    :param int/(int, int) bins: number of bins used in numpy.histogram2d().
-    :param numeric sigma: standard deviation of Gaussian kernel of the
-        Gaussian filter.
-
-    :returns x_sample: pandas.Series
-        sampled x data.
-    :returns y_sample: pandas.Series
-        sampled y data
-    :returns z: numpy.ndarray.
-        Normalized density at each sample point.
-    """
-    H, x_edges, y_edges = np.histogram2d(x, y, bins=bins)
-    x_center = (x_edges[1:] + x_edges[0:-1]) / 2
-    y_center = (y_edges[1:] + y_edges[0:-1]) / 2
-    H_blurred = gaussian_filter(H, sigma=sigma)
-
-    x_sample, y_sample = fast_sample_data(x, y, n)
-
-    posx = np.digitize(x_sample, x_center)
-    posy = np.digitize(y_sample, y_center)
-    z = H_blurred[posx - 1, posy - 1]
-    z /= z.max()
-
-    return x_sample, y_sample, z
 
 
 def get_label(name):

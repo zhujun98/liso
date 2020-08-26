@@ -56,6 +56,7 @@ setup(
             'codecov',
             'pytest',
             'pytest-cov',
+            'matplotlib',
         ],
         'docs': [
             'sphinx',

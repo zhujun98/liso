@@ -1,8 +1,11 @@
 import unittest
 from unittest.mock import patch
+import os.path as osp
 
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
+
+_ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
 class TestLinac(unittest.TestCase):
@@ -11,16 +14,16 @@ class TestLinac(unittest.TestCase):
 
         linac.add_beamline('astra',
                            name='gun',
-                           swd='./',
+                           swd=_ROOT_DIR,
                            fin='injector.in',
-                           template='injector.in.000',
+                           template=osp.join(_ROOT_DIR, 'injector.in.000'),
                            pout='injector.0450.001')
 
         linac.add_beamline('impactt',
                            name='chicane',
-                           swd='./',
+                           swd=_ROOT_DIR,
                            fin='ImpactT.in',
-                           template='ImpactT.in.000',
+                           template=osp.join(_ROOT_DIR, 'ImpactT.in.000'),
                            pout='fort.106',
                            charge=1e-15)
 

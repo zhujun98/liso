@@ -1,10 +1,13 @@
 import unittest
+import os.path as osp
 import tempfile
 
 import numpy as np
 
 from liso.simulation import ParticleFileGenerator
 from liso.simulation.input import generate_input
+
+_ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
 class TestParticleFileGenerator(unittest.TestCase):
@@ -42,7 +45,7 @@ class TestParticleFileGenerator(unittest.TestCase):
 
 class TestGenerateInput(unittest.TestCase):
     def setUp(self):
-        with open("./injector.in.000") as fp:
+        with open(osp.join(_ROOT_DIR, "./injector.in.000")) as fp:
             self.template = tuple(fp.readlines())
 
     def test_raises(self):
