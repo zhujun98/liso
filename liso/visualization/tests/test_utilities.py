@@ -3,7 +3,7 @@ import unittest
 
 from liso.visualization.vis_utils import (
     get_default_unit, get_label, get_html_label, get_line_column_by_name,
-    get_phasespace_column_by_name, get_unit_label_and_scale
+    get_unit_label_and_scale
 )
 
 
@@ -23,9 +23,6 @@ class TestUtilities(unittest.TestCase):
     def testGetUnitLabelAndScale(self):
         self.assertTupleEqual(('(kA)', 1.e-3), get_unit_label_and_scale('kA'))
         self.assertTupleEqual(('(MeV)', 1.e-6), get_unit_label_and_scale('mev'))
-
-    def testGetPhasespaceColumnByName(self):
-        pass
 
     def testGetLineColumnByName(self):
         pass

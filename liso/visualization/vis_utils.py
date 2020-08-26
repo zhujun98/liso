@@ -7,7 +7,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import re
 
-import numpy as np
 from scipy import constants
 
 
@@ -122,7 +121,7 @@ def get_default_unit(name):
         return 'm'
     elif name == 'xp' or name == 'yp':
         return 'mrad'
-    elif name == 't':
+    elif name == 't' or name == 'dt':
         return 'fs'
     elif re.match('beta', name):
         return 'm'
@@ -194,38 +193,6 @@ def get_unit_label_and_scale(unit):
         unit = "(" + unit + ")"
 
     return unit, scale
-
-
-def get_phasespace_column_by_name(data, name):
-    """Get the Phase-space column data by name.
-
-    :param Pandas.DataFrame data: phasespace data.
-    :param string name: name of the column data.
-    """
-    name = name.lower()
-
-    if name == 't':
-        return data['t'] - data['t'].mean()
-
-    if name == 'p':
-        return np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
-
-    if name == 'xp':
-        return data['px'] / data['pz']
-
-    if name == 'yp':
-        return data['py'] / data['pz']
-
-    if name == 'dz':
-        z_ave = data['z'].mean()
-        return data['z'] - z_ave
-
-    if name == 'delta':
-        p = np.sqrt(data['px']**2 + data['py']**2 + data['pz']**2)
-        p_ave = p.mean()
-        return 100. * (p - p_ave) / p
-
-    return data[name]
 
 
 def get_line_column_by_name(data, name):
