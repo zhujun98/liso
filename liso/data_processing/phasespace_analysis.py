@@ -127,8 +127,7 @@ def sample_phasespace(x, y, n=1):
 def pixel_phasespace(x, y, *,
                      n_bins=10,
                      range=None,
-                     density=True,
-                     normalize=False):
+                     normalize=True):
     """Return the pixelized phasespace.
 
     :param array-like x: 1D x data.
@@ -136,15 +135,11 @@ def pixel_phasespace(x, y, *,
     :param int/array-like n_bins: number of bins.
     :param array-like range: bin ranges in the format of
         [[xmin, xmax], [ymin, ymax]] if specified.
-    :param bool density: True for normalizing the counts by the total
-        number of particles.
     :param bool normalize: True for normalizing the x and y edges.
     """
     counts, x_edges, y_edges = np.histogram2d(x, y, bins=n_bins, range=range)
     x_centers = (x_edges[1:] + x_edges[0:-1]) / 2
     y_centers = (y_edges[1:] + y_edges[0:-1]) / 2
-    if density:
-        counts /= len(x)
 
     if normalize:
         x_centers -= np.mean(x)
