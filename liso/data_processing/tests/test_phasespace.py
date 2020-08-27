@@ -110,7 +110,6 @@ class TestPhasespace(unittest.TestCase):
     def testPixelizePhasespace(self):
         x, y = self.data['x'], self.data['y']
         intensity, _, _ = pixel_phasespace(x, y)
-        self.assertAlmostEqual(1., intensity.sum())
 
     def testDensityPhasespace(self):
         x, y = self.data['x'], self.data['y']
