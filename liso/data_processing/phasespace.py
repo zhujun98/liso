@@ -26,6 +26,10 @@ class Phasespace:
         self._data = data
         self.charge = charge
 
+    @property
+    def columns(self):
+        return self._data.columns
+
     def __getitem__(self, item):
         try:
             return self._data[item]

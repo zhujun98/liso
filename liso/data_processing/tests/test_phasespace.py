@@ -23,6 +23,9 @@ class TestPhasespace(unittest.TestCase):
         self.data = parse_astra_phasespace(pfile)
 
     def testAccessItem(self):
+        self.assertListEqual(['x', 'y', 'z', 'px', 'py', 'pz', 't'],
+                             list(self.data.columns))
+
         for item in ['x', 'y', 'z', 'px', 'py', 'pz', 't', 'dt',
                      'p', 'xp', 'yp', 'dz', 'delta']:
             self.assertEqual(500, len(self.data[item]))
