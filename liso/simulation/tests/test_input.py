@@ -5,7 +5,9 @@ import tempfile
 import numpy as np
 
 from liso.simulation import ParticleFileGenerator
-from liso.simulation.input import generate_input
+from liso.simulation.input import (
+    AstraInputGenerator, ImpacttInputGenerator
+)
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
@@ -43,21 +45,43 @@ class TestParticleFileGenerator(unittest.TestCase):
             self.assertTrue(np.all(data[:, 9] == -1))  # flag
 
 
-class TestGenerateInput(unittest.TestCase):
+class TestAstraInputGenerator(unittest.TestCase):
     def setUp(self):
-        with open(osp.join(_ROOT_DIR, "./injector.in.000")) as fp:
-            self.template = tuple(fp.readlines())
+        self._gen = AstraInputGenerator(osp.join(_ROOT_DIR, "./injector.in.000"))
 
     def test_raises(self):
         mapping = {'gun_gradient': 10, 'gun_phase0': 20}
-        with tempfile.NamedTemporaryFile('w') as file:
-            with self.assertRaises(KeyError):
-                generate_input(self.template, mapping, file.name)
+        # 'gun_phase' not in the mapping
+        with self.assertRaisesRegex(KeyError, "No mapping"):
+            self._gen.update(mapping)
+
+        # 'tws_gradient' is redundant
+        mapping = {'gun_gradient': 10, 'gun_phase': 20, 'tws_gradient': 30}
+        with self.assertRaisesRegex(KeyError, "not found"):
+            self._gen.update(mapping)
 
     def test_not_raise(self):
+        mapping = {'gun_gradient': 10, 'gun_phase': 20}
+        self._gen.update(mapping)
         with tempfile.NamedTemporaryFile('w') as file:
-            mapping = {'gun_gradient': 10, 'gun_phase': 20, 'tws_gradient': 30}
-            generate_input(self.template, mapping, file.name)
+            self._gen.write(file.name)
 
-            mapping = {'gun_gradient': 10, 'gun_phase': 20}
-            generate_input(self.template, mapping, file.name)
+
+class TestImpacttInputGenerator(unittest.TestCase):
+    def setUp(self):
+        self._gen = ImpacttInputGenerator(osp.join(_ROOT_DIR, "./ImpactT.in.000"))
+
+    def test_raises(self):
+        mapping = {'MQZM1_G': 10, 'MQZM3_G': 20}
+        with self.assertRaisesRegex(KeyError, "No mapping"):
+            self._gen.update(mapping)
+
+        mapping = {'MQZM1_G': 10, 'MQZM2_G': 20, 'MQZM3_G': 30}
+        with self.assertRaisesRegex(KeyError, "not found"):
+            self._gen.update(mapping)
+
+    def test_not_raise(self):
+        mapping = {'MQZM1_G': 10, 'MQZM2_G': 20}
+        self._gen.update(mapping)
+        with tempfile.NamedTemporaryFile('w') as file:
+            self._gen.write(file.name)

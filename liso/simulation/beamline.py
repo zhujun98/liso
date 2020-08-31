@@ -23,7 +23,9 @@ from ..data_processing import (
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .output import OutputData
-from .input import generate_input
+from .input import (
+    AstraInputGenerator, ImpacttInputGenerator
+)
 
 
 class Beamline(ABC):
@@ -58,10 +60,7 @@ class Beamline(ABC):
         """
         self.name = name
 
-        # Read the template file only once. Make the 'template' read-only by
-        # converting it to a tuple.
-        with open(template) as fp:
-            self._template = tuple(fp.readlines())
+        self._input_gen = self._parse_template_in(template)
 
         self._swd = osp.abspath('./' if swd is None else swd)
 
@@ -117,6 +116,14 @@ class Beamline(ABC):
     @property
     def std(self):
         return self._std
+
+    @abstractmethod
+    def _parse_template_in(self, filepath):
+        """Parse the template input file."""
+        raise NotImplementedError
+
+    def compile(self, mapping):
+        self._input_gen.update(mapping)
 
     @abstractmethod
     def generate_initial_particle_file(self, data, charge):
@@ -231,12 +238,12 @@ class Beamline(ABC):
         self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
-    def run(self, mapping, n_workers, timeout):
+    def run(self, n_workers, timeout):
         """Run simulation for the beamline."""
         self.reset()
 
         fin = osp.join(self._swd, self._fin)
-        generate_input(self._template, mapping, fin)
+        self._input_gen.write(fin)
 
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
@@ -265,13 +272,13 @@ class Beamline(ABC):
         self._update_output()
         self._update_statistics()
 
-    async def async_run(self, mapping, tmp_dir, *, timeout=None):
+    async def async_run(self, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
         with TempSimulationDirectory(osp.join(os.getcwd(), tmp_dir)) as swd:
             self.reset(tmp_dir)
 
             fin = osp.join(swd, self._fin)
-            generate_input(self._template, mapping, fin)
+            self._input_gen.write(fin)
             self._check_file(fin, 'Input')
             executable = self._check_run()
 
@@ -302,7 +309,8 @@ class Beamline(ABC):
             ps = self._update_output(swd)
 
             inputs = {
-                f'{self.name}.{k}': v for k, v in mapping.items()
+                f'{self.name}.{k}': v
+                for k, v in dict()
             }
             phasespaces = {
                 f'{self.name}.out': ps
@@ -350,6 +358,10 @@ class AstraBeamline(Beamline):
             return config['EXECUTABLE_PARA']['ASTRA']
         return config['EXECUTABLE']['ASTRA']
 
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return AstraInputGenerator(filepath)
+
     def _parse_phasespace(self, pfile):
         """Override."""
         return parse_astra_phasespace(pfile)
@@ -384,6 +396,10 @@ class ImpacttBeamline(Beamline):
         if parallel:
             return config['EXECUTABLE_PARA']['IMPACTT']
         return config['EXECUTABLE']['IMPACTT']
+
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return ImpacttInputGenerator(filepath)
 
     def _parse_phasespace(self, pfile):
         """Override."""
