@@ -24,4 +24,4 @@ sc.add_param('gun_phase', values=np.linspace(-15, 5, 3))
 sc.add_param('tws_gradient', values=np.linspace(30 - 5, 30 + 5, 3))
 sc.add_param('tws_phase', values=np.linspace(-90, -60, 3))
 
-sc.scan(n_tasks=12)
+sc.scan(n_tasks=2)

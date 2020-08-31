@@ -155,92 +155,91 @@ class ParticleFileGenerator:
                         columns=['x', 'px', 'y', 'py', 'z', 'pz'])
 
 
-def generate_input(template, mapping, output=None, *, dry_run=False):
-    """Generate the input file from a template.
-
-    Patterns in the template input file should be put between
-    '<' and '>'.
-
-    The function should not raise if there is any in 'mapping' which
-    does not appear in template.
-
-    :param tuple template: template string
-    :param dict mapping: a pattern-value mapping for replacing the
-        pattern with value in the template file.
-    :param str output: path of the output file.
-    :param bool dry_run: for a "dry_run" (True), the output file will
-        be be generated. This is used for consistency check.
-        Default = False.
-
-    :return: the found pattern set.
-    """
-    found = set()
-    template = list(template)
-    for i in range(len(template)):
-        while True:
-            line = template[i]
-
-            # Comment line starting with '!'
-            if re.match(r'^\s*!', line):
-                break
-
-            left = line.find('<')
-            right = line.find('>')
-            comment = line.find('!')
-
-            # Cannot find '<' or '>'
-            if left < 0 or right < 0:
-                break
-
-            # If '<' is on the right of '>'
-            if left >= right:
-                break
-
-            # In line comment
-            if left > comment >= 0:
-                break
-
-            ptn = line[left + 1:right]
-            try:
-                template[i] = line.replace('<' + ptn + '>', str(mapping[ptn]), 1)
-            except KeyError:
-                raise KeyError("No mapping for <{}> in the template file!".format(ptn))
-
-            found.add(ptn)
-
-    if dry_run is False:
-        # Generate the files when all patterns are replaced
-        with open(output, 'w') as fp:
-            for line in template:
-                fp.write(line)
-
-    return found
-
-
 class InputGenerator(object):
-    def __init__(self):
+    def __init__(self, filepath):
         """Initialization."""
+        self._template = self._parse(filepath)
+        self._input = None
 
     @abstractmethod
-    def add_quad(self):
-        raise NotImplemented
+    def _parse(self, filepath):
+        raise NotImplementedError
 
-    @abstractmethod
-    def add_dipole(self):
-        raise NotImplemented
+    def update(self, mapping):
+        """Update the input string.
 
-    @abstractmethod
-    def add_tws(self):
-        raise NotImplemented
+        Patterns in the template input file should be put between
+        '<' and '>'.
 
-    @abstractmethod
-    def add_gun(self):
-        raise NotImplemented
+        :param dict mapping: a pattern-value mapping for replacing the
+            pattern with value in the template file.
+        """
+        found = set()
+        self._input = list(self._template)
+        for i in range(len(self._input)):
+            while True:
+                line = self._input[i]
+
+                # Comment line starting with '!'
+                if re.match(r'^\s*!', line):
+                    break
+
+                left = line.find('<')
+                right = line.find('>')
+                comment = line.find('!')
+
+                # Cannot find '<' or '>'
+                if left < 0 or right < 0:
+                    break
+
+                # If '<' is on the right of '>'
+                if left >= right:
+                    break
+
+                # In line comment
+                if left > comment >= 0:
+                    break
+
+                ptn = line[left + 1:right]
+                try:
+                    self._input[i] = line.replace(
+                        '<' + ptn + '>', str(mapping[ptn]), 1)
+                except KeyError:
+                    raise KeyError(
+                        "No mapping for <{}> in the template file!".format(ptn))
+
+                found.add(ptn)
+
+        not_found = mapping.keys() - found
+        if not_found:
+            raise KeyError(f"{not_found} not found in the templates!")
+
+    def write(self, filepath):
+        """Write the input string to file.
+
+        :param str filepath: path of the output file.
+        """
+        if self._input is None:
+            raise RuntimeError("Input is not initialized!")
+
+        with open(filepath, 'w') as fp:
+            for line in self._input:
+                fp.write(line)
 
 
 class AstraInputGenerator(InputGenerator):
-    pass
+    def _parse(self, filepath):
+        """Override."""
+        with open(filepath, 'r') as fp:
+            template = tuple(fp.readlines())
+
+        return template
 
 
 class ImpacttInputGenerator(InputGenerator):
-    pass
+    def _parse(self, filepath):
+        """Override."""
+        with open(filepath, 'r') as fp:
+            template = tuple(fp.readlines())
+
+        return template

@@ -56,7 +56,7 @@ class SimWriter:
                     for col in v.columns:
                         # TODO: how to pass the number of particles information?
                         fp.create_dataset(f"phasespace/{col}/{k}",
-                                          (self._n, 5000),
+                                          (self._n, 2000),
                                           dtype='f8')
 
                 self._initialized = True
