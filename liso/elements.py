@@ -7,14 +7,13 @@ from abc import ABC, abstractmethod
 class OperationalElement(ABC):
     """Abstract class.
 
-    Base class of Variables, Objectives, Jitters and so on used in
-    Optimization and Jitter studies.
+    Base class of Variables, Objectives, ScanParam and so on used in
+    Optimization and Scan studies.
     """
     def __init__(self, name):
         """Initialization.
 
-        :param name: str
-            Name of the element.
+        :param str name: name of the element.
         """
         self.name = name
 
