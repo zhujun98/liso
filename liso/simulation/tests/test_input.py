@@ -4,6 +4,9 @@ import tempfile
 
 import numpy as np
 
+from liso.data_processing import (
+    parse_astra_phasespace, parse_impactt_phasespace
+)
 from liso.simulation import ParticleFileGenerator
 from liso.simulation.input import (
     AstraInputGenerator, ImpacttInputGenerator
@@ -13,7 +16,7 @@ _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
 class TestParticleFileGenerator(unittest.TestCase):
-    def testAstraCachode(self):
+    def testAstraCathode(self):
         n = 2000
         charge = 1e-9
         gen = ParticleFileGenerator(n, charge, cathode=True, seed=42,
@@ -22,7 +25,7 @@ class TestParticleFileGenerator(unittest.TestCase):
                                     ek=0.55)
 
         with tempfile.NamedTemporaryFile('w') as file:
-            gen.toAstra(file.name)
+            gen.to_astra(file.name)
 
             data = np.loadtxt(file.name)
 
@@ -43,6 +46,37 @@ class TestParticleFileGenerator(unittest.TestCase):
             self.assertTrue(np.all(data[:, 7] == -1e9 * charge / n))  # index
             self.assertTrue(np.all(data[:, 8] == 1))  # index
             self.assertTrue(np.all(data[:, 9] == -1))  # flag
+
+    def testAstraFromPhasespace(self):
+        pfile = osp.join(
+            _ROOT_DIR, "../../data_processing/tests/astra_output/astra.out")
+        ps = parse_astra_phasespace(pfile)
+        param_gt = ps.analyze()
+
+        gen = ParticleFileGenerator.from_phasespace(ps)
+        with tempfile.NamedTemporaryFile('w') as file:
+            gen.to_astra(file.name)
+
+            param = parse_astra_phasespace(file.name).analyze()
+
+            for attr in ['n', 'q', 'Sz', 'betay', 'emity']:
+                self.assertAlmostEqual(getattr(param_gt, attr), getattr(param, attr), places=4)
+            self.assertAlmostEqual(param_gt.p, param.p, places=3)
+
+    def testImpacttFromPhasespace(self):
+        pfile = osp.join(
+            _ROOT_DIR, "../../data_processing/tests/impactt_output/impactt.out")
+        ps = parse_impactt_phasespace(pfile)
+        param_gt = ps.analyze()
+
+        gen = ParticleFileGenerator.from_phasespace(ps)
+        with tempfile.NamedTemporaryFile('w') as file:
+            gen.to_impactt(file.name)
+
+            param = parse_impactt_phasespace(file.name).analyze()
+
+            for attr in ['n', 'q', 'gamma', 'St', 'betax', 'emitx']:
+                self.assertAlmostEqual(getattr(param_gt, attr), getattr(param, attr))
 
 
 class TestAstraInputGenerator(unittest.TestCase):

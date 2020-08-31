@@ -49,9 +49,9 @@ class TestMultiCodeOptimization(unittest.TestCase):
             func=lambda a: abs(a.matching.out.betax - a.matching.out.betay),
             ub=0.01)
 
-        self.opt.add_var('laser_spot', value=0.1, lb=0.04, ub=0.30)
-        self.opt.add_var('MQZM1_G', value=0.0, lb=-6.0, ub=0.0)
-        self.opt.add_var('MQZM2_G', value=0.0, lb=0.0, ub=6.0)
+        self.opt.add_var('gun.laser_spot', value=0.1, lb=0.04, ub=0.30)
+        self.opt.add_var('matching.MQZM1_G', value=0.0, lb=-6.0, ub=0.0)
+        self.opt.add_var('matching.MQZM2_G', value=0.0, lb=0.0, ub=6.0)
 
     def tearDown(self):
         for file in glob.glob(os.path.join(test_path, "astra/injector.*.001")):

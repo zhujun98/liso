@@ -15,6 +15,7 @@ from .phasespace_analysis import (
 
 
 class Phasespace:
+
     def __init__(self, data, charge):
         """Initialization.
 
@@ -177,12 +178,14 @@ class Phasespace:
 
         :return BeamParameters: Beam parameters.
         """
+        charge = 0 if self.charge is None else self.charge
+
         data = self._data
         params = BeamParameters()
 
         n0 = len(data)
         params.n = n0  # Number of particles after processing
-        params.q = self.charge / n0  # charge per particle
+        params.q = charge / n0  # charge per particle
 
         # Too few particles may cause error during the following
         # calculation, e.g. negative value in sqrt.

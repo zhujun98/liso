@@ -126,14 +126,10 @@ class Beamline(ABC):
         self._input_gen.update(mapping)
 
     @abstractmethod
-    def generate_initial_particle_file(self, data, charge):
+    def generate_initial_particle_file(self, data):
         """Generate the initial particle file.
 
-        :param data: Pandas.DataFrame
-            Particle data. See data_processing/phasespace_parser for details
-            of the data columns.
-        :param charge: float / None
-            Charge of the beam.
+        :param Phasespace data: particle phasespace.
         """
         raise NotImplementedError
 
@@ -213,10 +209,11 @@ class Beamline(ABC):
         self._check_file(pout, 'Output')
 
         data = self._parse_phasespace(pout)
-        charge = self._charge if data.charge is None else data.charge
+        if data.charge is None:
+            data.charge = self._charge
         self._out = data.analyze()
         if self.next is not None:
-            self.next.generate_initial_particle_file(data, charge)
+            self.next.generate_initial_particle_file(data)
 
         return data
 
@@ -370,11 +367,11 @@ class AstraBeamline(Beamline):
         """Override."""
         return parse_astra_line(rootname)
 
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
+    def generate_initial_particle_file(self, data):
+        """Override."""
         pin = osp.join(self._swd, self._pin)
         if pin is not None:
-            ParticleFileGenerator(data, pin).to_astra_pfile(charge)
+            ParticleFileGenerator.from_phasespace(data).to_astra()
 
 
 class ImpacttBeamline(Beamline):
@@ -409,11 +406,11 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_line(rootname)
 
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
+    def generate_initial_particle_file(self, data):
+        """Override."""
         pin = osp.join(self._swd, self._pin)
         if pin is not None:
-            ParticleFileGenerator.fromDataframeToImpactt(data, pin)
+            ParticleFileGenerator.from_phasespace(data).to_impactt(pin)
 
 
 def create_beamline(bl_type, *args, **kwargs):
