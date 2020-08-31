@@ -1,9 +1,12 @@
 import unittest
 from unittest.mock import patch
 import os.path as osp
+import asyncio
 
+from liso.io import TempSimulationDirectory
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
+from liso.simulation.output import OutputData
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
@@ -81,3 +84,30 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                     patched_compile.assert_called_once_with(mapping)
                     patched_gun_run.assert_called_once_with(1, None)
                     patched_chicane_run.assert_called_once_with(1, None)
+
+    def testSyncRun(self):
+        index = 10
+        mapping = dict()
+
+        loop = asyncio.get_event_loop()
+        with TempSimulationDirectory('temp_dir') as tmp_dir:
+            with patch.object(self._linac, 'compile') as patched_compile:
+                with patch.object(self._linac['gun'], 'async_run') \
+                        as patched_gun_run:
+                    with patch.object(self._linac['chicane'], 'async_run') \
+                            as patched_chicane_run:
+                        future1 = asyncio.Future()
+                        future1.set_result(OutputData(dict(), dict()))
+                        patched_gun_run.return_value = future1
+
+                        future2 = asyncio.Future()
+                        future2.set_result(OutputData(dict(), dict()))
+                        patched_chicane_run.return_value = future2
+
+                        loop.run_until_complete(
+                            self._linac.async_run(index, mapping, tmp_dir))
+                        patched_compile.assert_called_once_with(mapping)
+                        patched_gun_run.assert_called_once_with(
+                            tmp_dir, timeout=None)
+                        patched_chicane_run.assert_called_once_with(
+                            tmp_dir, timeout=None)
