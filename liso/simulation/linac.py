@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from collections import OrderedDict
 from .beamline import create_beamline
 from .output import OutputData
-from .input import generate_input
+from .input import generate_input, ParticleFileGenerator
 
 
 class Linac(Mapping):
@@ -21,7 +21,10 @@ class Linac(Mapping):
     simulated using different codes.
     """
     def __init__(self):
+        self._generator = None
         self._beamlines = OrderedDict()
+
+        self._n0 = None
 
     def __getitem__(self, item):
         """Override."""
@@ -34,6 +37,16 @@ class Linac(Mapping):
     def __len__(self):
         """Override."""
         return self._beamlines.__len__()
+
+    @property
+    def n0(self):
+        if self._n0 is None:
+            raise RuntimeError("Call compile first to initialize the linac!")
+        return self._n0
+
+    def add_initial_distribution(self, *args, **kwargs):
+        """Add initial particle distribution of the linac."""
+        self._generator = ParticleFileGenerator()
 
     def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
@@ -78,6 +91,12 @@ class Linac(Mapping):
         if not_found:
             raise ValueError(f"{not_found} not found in the templates!")
 
+    def compile(self):
+        """Initialize the linac."""
+        bl0 = self._beamlines[next(iter(self._beamlines))]
+
+        self._n0 = bl0.n0
+
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
 
@@ -86,6 +105,9 @@ class Linac(Mapping):
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
+        if self._generator is not None:
+            pass
+
         self._check_template(mapping)
         for i, bl in enumerate(self._beamlines.values()):
             bl.run(mapping, n_workers, timeout)

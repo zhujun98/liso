@@ -110,6 +110,8 @@ class LinacScan(object):
         :param int n_tasks: maximum number of concurrent tasks.
         :param str output: output file.
         """
+        self._linac.compile()
+
         logger.info(str(self._linac) + self._get_info())
 
         loop = asyncio.get_event_loop()
