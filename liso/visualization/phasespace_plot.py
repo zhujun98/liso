@@ -10,19 +10,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import analyze_beam, tailor_beam
+from ..data_processing import (
+    density_phasespace, Phasespace, pixel_phasespace, sample_phasespace
+)
 from .vis_utils import (
-    fast_sample_data, get_default_unit, get_label,
-    get_phasespace_column_by_name, get_unit_label_and_scale, sample_data
+    get_default_unit, get_label, get_unit_label_and_scale
 )
 
 
 class PhasespacePlot(object):
     """Plot the beam phase-space."""
 
-    _options = ['x', 'y', 'dz', 'xp', 'yp', 't', 'p', 'delta']
-
-    def __init__(self, data, charge, *,
+    def __init__(self, data, *,
                  halo=0.0,
                  tail=0.0,
                  rotation=0.0,
@@ -37,26 +36,26 @@ class PhasespacePlot(object):
                  **kwargs):
         """Initialization.
 
-        :param Pandas.DataFrame data: phasespace data.
-        :param float charge: bunch charge.
-        :param halo: float
-            Percentage of particles to be removed based on their
-            transverse distance to the bunch centroid. Applied
+        :param Phasespace data: phasespace data.
+        :param float halo: Percentage of particles to be removed based
+            on their transverse distance to the bunch centroid. Applied
             before tail cutting.
-        :param tail: float
-            Percentage of particles to be removed in the tail.
-        :param rotation: float
-            Angle of the rotation in rad.
+        :param float tail: Percentage of particles to be removed in the tail.
+        :param float rotation: Angle of the rotation in rad.
         """
-        self._data, self._charge = data, charge
+        if not isinstance(data, Phasespace):
+            raise TypeError("data must be a Phasespace object!")
+        self._data = data
 
         n0 = len(self._data)
-        self._data = tailor_beam(self._data,
-                                 tail=tail, halo=halo, rotation=rotation)
 
-        self._charge *= len(self._data) / n0
+        self._data.rotate(rotation)
+        self._data.cut_tail(tail)
+        self._data.cut_halo(halo)
 
-        self._params = analyze_beam(self._data, self._charge, **kwargs)
+        self._data.charge *= len(self._data) / n0
+
+        self._params = self._data.analyze(**kwargs)
 
         self._figsize = figsize
 
@@ -115,8 +114,6 @@ class PhasespacePlot(object):
         """
         var_x = var_x.lower()
         var_y = var_y.lower()
-        if var_x not in self._options or var_y not in self._options:
-            raise ValueError(f"Valid options are: {self._options}")
 
         x_label, x_unit_label, x_scale = self._get_label_and_scale(
             var_x, x_unit)
@@ -145,20 +142,20 @@ class PhasespacePlot(object):
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
         if cloud_plot is True:
-            x_sample, y_sample, density_color = sample_data(
-                get_phasespace_column_by_name(self._data, var_x),
-                get_phasespace_column_by_name(self._data, var_y),
+            density, x_sample, y_sample = density_phasespace(
+                self._data[var_x],
+                self._data[var_y],
                 n=samples,
-                bins=bins_2d,
+                n_bins=bins_2d,
                 sigma=sigma_2d)
 
             cb = ax.scatter(x_sample*x_scale, y_sample*y_scale,
-                            c=density_color,
+                            c=density,
                             s=ms,
                             alpha=alpha,
                             cmap='jet')
 
-            if (var_x, var_y) == ('t', 'p'):
+            if (var_x, var_y) == ('dt', 'p'):
                 y1_unit = get_default_unit('i') if y1_unit is None else y1_unit
                 y1_unit_label, y1_scale = get_unit_label_and_scale(y1_unit)
 
@@ -187,10 +184,8 @@ class PhasespacePlot(object):
             cbar.ax.tick_params(labelsize=14)
 
         else:
-            x_sample, y_sample = fast_sample_data(
-                get_phasespace_column_by_name(self._data, var_x),
-                get_phasespace_column_by_name(self._data, var_y),
-                n=samples)
+            x_sample, y_sample = sample_phasespace(
+                self._data[var_x], self._data[var_y], n=samples)
 
             ax.scatter(x_sample * x_scale, y_sample * y_scale,
                        alpha=alpha, c=mc, s=ms)
@@ -217,7 +212,7 @@ class PhasespacePlot(object):
                     % float("%.2g" % (self._params.emity*1e6)),
                     fontsize=self._tick_fontsize, y=1.02)
 
-            elif var_x == 't' and (var_y == 'p' or var_y == 'delta'):
+            elif var_x == 'dt' and (var_y == 'p' or var_y == 'delta'):
                 ax.set_title(
                     r"$\sigma_t$ = %s " % float("%.2g" % (self._params.St*x_scale))
                     + x_unit_label.replace('(', '').replace(')', '')
@@ -233,11 +228,11 @@ class PhasespacePlot(object):
 
         :param int n_bins: number of bins used in histogram.
         """
-        var_x, var_y = 't', 'i'
+        var_x, var_y = 'dt', 'i'
         x_label, x_unit_label, x_scale = self._get_label_and_scale(var_x, x_unit)
         y_label, y_unit_label, y_scale = self._get_label_and_scale(var_y, y_unit)
 
-        t = get_phasespace_column_by_name(self._data, var_x)
+        t = self._data[var_x]
         hist, edges = np.histogram(t, bins=n_bins)
         centers = (edges[1:] + edges[:-1]) / 2.
 
@@ -268,3 +263,18 @@ class PhasespacePlot(object):
                       fontsize=self._label_fontsize,
                       labelpad=self._label_pad)
         ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)
+
+    @classmethod
+    def imshow(cls, x, y, *, ax=None, cmap=None, **kwargs):
+        if ax is None:
+            _, ax = plt.subplots()
+
+        i, xc, yc = pixel_phasespace(y, x, **kwargs)
+
+        if cmap is None:
+            cmap = 'viridis'
+
+        ax.imshow(np.flip(i, axis=0),
+                  aspect='auto',
+                  cmap=cmap,
+                  extent=[yc.min(), yc.max(), xc.min(), xc.max()])

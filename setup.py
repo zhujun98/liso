@@ -53,9 +53,8 @@ setup(
     },
     extras_require={
         'testing': [
-            'codecov',
             'pytest',
-            'pytest-cov',
+            'matplotlib',
         ],
         'docs': [
             'sphinx',
