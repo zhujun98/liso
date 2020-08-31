@@ -13,8 +13,7 @@ import sys
 import traceback
 from threading import Thread
 
-import numpy as np
-
+from .scan_param import ScanParam
 from ..io import SimWriter
 from ..logging import logger
 
@@ -44,44 +43,51 @@ class LinacScan(object):
 
         self._params = OrderedDict()
 
-        self._x_map = dict()
-
-    def add_param(self, name, values):
+    def add_param(self, name, *args, **kwargs):
         """Add a parameter for scan.
 
         :param str name: parameter name.
-        :param array-like values: a list of values for scanning.
         """
         if name in self._params:
-            logger.warning(f"Overwrite existing parameter: {name}!")
+            raise ValueError(f"Parameter {name} already exists!")
 
-        self._params[name] = values
+        self._params[name] = ScanParam(name, *args, **kwargs)
 
-    async def _async_scan(self, n_tasks, output, **kwargs):
+    def _generate_param_sequence(self, repeat):
+        ret = []
+        for i in range(repeat):
+            for param in self._params.values():
+                param.reset()
+            ret.extend(itertools.product(*self._params.values()))
+        return ret
+
+    async def _async_scan(self, n_tasks, output, repeat=1, **kwargs):
+        x_map = dict()
+
         tasks = set()
+        sequence = self._generate_param_sequence(repeat)
+        num = len(sequence)
+        writer = SimWriter(num, output)
         count = 0
-        param_list = list(itertools.product(*self._params.values()))
-        n_total = len(param_list)
-        writer = SimWriter(n_total, output)
         while True:
-            if count < n_total:
+            if count < num:
                 for i, k in enumerate(self._params):
-                    self._x_map[k] = param_list[count][i]
+                    x_map[k] = sequence[count][i]
 
                 task = asyncio.ensure_future(
                     self._linac.async_run(
-                        count, self._x_map, f'tmp{count:06d}', **kwargs))
+                        count, x_map, f'tmp{count:06d}', **kwargs))
                 tasks.add(task)
 
                 count += 1
 
                 logger.info(f"Scan {count:06d}: "
-                            + str(self._x_map)[1:-1].replace(': ', ' = '))
+                            + str(x_map)[1:-1].replace(': ', ' = '))
 
             if len(tasks) == 0:
                 break
 
-            if len(tasks) >= n_tasks or count == n_total:
+            if len(tasks) >= n_tasks or count == num:
                 done, _ = await asyncio.wait(
                     tasks, return_when=asyncio.FIRST_COMPLETED)
 
@@ -104,38 +110,22 @@ class LinacScan(object):
 
                     tasks.remove(task)
 
-    def scan(self, n_tasks=1, output='scan.hdf5', **kwargs):
+    def scan(self, n_tasks=1, *, repeat=1, output='scan.hdf5', **kwargs):
         """Start a parameter scan.
 
         :param int n_tasks: maximum number of concurrent tasks.
+        :param int repeat: number of repeats of the parameter space. For
+            pure jitter study, it is the number of runs since the size
+            of variable space is 1.
         :param str output: output file.
         """
         logger.info(str(self._linac) + self._get_info())
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._async_scan(n_tasks, output, **kwargs))
+        loop.run_until_complete(
+            self._async_scan(n_tasks, output, repeat=repeat, **kwargs))
 
         logger.info(f"Scan finished!")
-
-    @staticmethod
-    def _generate_randoms(n, size):
-        """Generate multi-dimensional random numbers.
-
-        Each dimension has a mean of 0 and a standard deviation of 1.0.
-
-        :param int n: int
-            Dimensions.
-        :param size: int
-            Length.
-
-        :return: numpy.ndarray
-            A n by size 2D array
-        """
-        mean = np.zeros(n)
-        cov = np.zeros([n, n])
-        np.fill_diagonal(cov, 1.0)
-
-        return np.random.multivariate_normal(mean, cov, size)
 
     def _get_info(self):
         text = '\n' + '=' * 80 + '\n'
