@@ -11,14 +11,16 @@ import h5py
 class SimWriter:
     """Write simulation parameters in file."""
 
-    def __init__(self, n, path):
+    def __init__(self, pulses, particles, path):
         """Initialization.
 
-        :param int n: number of data points.
+        :param int pulses: number of macro-pulses.
+        :param int particles: number of particles per simulation.
         :param str path: path of the hdf5 file.
         """
         # TODO: restrict the number of data points in a single file
-        self._n = n
+        self._n_pulses = pulses
+        self._n_particles = particles
 
         self._path = path
         # self._file.attrs['writer'] = f'liso {__version__}'
@@ -50,13 +52,13 @@ class SimWriter:
                     ds[:] = list(data['metadata'][k])
 
                 for k in data['input']:
-                    fp.create_dataset(f"input/{k}", (self._n,), dtype='f8')
+                    fp.create_dataset(
+                        f"input/{k}", (self._n_pulses,), dtype='f8')
 
                 for k, v in data['phasespace'].items():
                     for col in v.columns:
-                        # TODO: how to pass the number of particles information?
                         fp.create_dataset(f"phasespace/{col}/{k}",
-                                          (self._n, 2000),
+                                          (self._n_pulses, self._n_particles),
                                           dtype='f8')
 
                 self._initialized = True

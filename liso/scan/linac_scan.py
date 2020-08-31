@@ -76,11 +76,11 @@ class LinacScan(object):
 
         tasks = set()
         sequence = self._generate_param_sequence(repeat)
-        num = len(sequence)
-        writer = SimWriter(num, output)
+        n_pulses = len(sequence)
+        writer = SimWriter(n_pulses, 2000, output)
         count = 0
         while True:
-            if count < num:
+            if count < n_pulses:
                 for i, k in enumerate(self._params):
                     x_map[k] = sequence[count][i]
 
@@ -97,7 +97,7 @@ class LinacScan(object):
             if len(tasks) == 0:
                 break
 
-            if len(tasks) >= n_tasks or count == num:
+            if len(tasks) >= n_tasks or count == n_pulses:
                 done, _ = await asyncio.wait(
                     tasks, return_when=asyncio.FIRST_COMPLETED)
 
