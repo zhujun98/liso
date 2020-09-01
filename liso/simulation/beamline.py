@@ -363,9 +363,8 @@ class AstraBeamline(Beamline):
 
     def generate_initial_particle_file(self, data):
         """Override."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator.from_phasespace(data).to_astra()
+        ParticleFileGenerator.from_phasespace(data).to_astra(
+            osp.join(self._swd, self._pin))
 
 
 class ImpacttBeamline(Beamline):
@@ -402,9 +401,8 @@ class ImpacttBeamline(Beamline):
 
     def generate_initial_particle_file(self, data):
         """Override."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator.from_phasespace(data).to_impactt(pin)
+        ParticleFileGenerator.from_phasespace(data).to_impactt(
+            osp.join(self._swd, self._pin))
 
 
 def create_beamline(bl_type, *args, **kwargs):
