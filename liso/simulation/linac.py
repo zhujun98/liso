@@ -64,6 +64,12 @@ class Linac(Mapping):
         bl.add_watch(*args, **kwargs)
 
     def _split_mapping(self, mapping):
+        """Split mapping into different groups.
+
+        The keys in the dictionary "mapping" are expected to have the
+        format beamline.variable. If beamline is not presented, the
+        default one (the name of the first beamline will be assigned).
+        """
         mapping_grp = defaultdict(dict)
         default = next(iter(self._beamlines))
         for key, value in mapping.items():
@@ -77,8 +83,13 @@ class Linac(Mapping):
     def compile(self, mapping):
         """Compile all the input before running the simulation."""
         mapping_grp = self._split_mapping(mapping)
+        mapping_norm = {}
         for name, bl in self._beamlines.items():
             bl.compile(mapping_grp[name])
+            mapping_norm.update({
+                f"{name}.{k}": v for k, v in mapping_grp[name].items()
+            })
+        return mapping_norm
 
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
@@ -94,15 +105,12 @@ class Linac(Mapping):
             bl.run(n_workers, timeout)
 
     async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
-        self.compile(mapping)
-
-        inputs = dict()
-        phasespaces = dict()
-        for i, bl in enumerate(self._beamlines.values()):
-            output = await bl.async_run(tmp_dir, timeout=timeout)
-            inputs.update(output['input'])
-            phasespaces.update(output['phasespace'])
-        return idx, OutputData(inputs, phasespaces)
+        inputs = self.compile(mapping)
+        outs = dict()
+        for name, bl in self._beamlines.items():
+            phasespace = await bl.async_run(tmp_dir, timeout=timeout)
+            outs[f"{name}.out"] = phasespace
+        return idx, OutputData(inputs, outs)
 
     def status(self):
         """Return the status of the linac."""
