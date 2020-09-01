@@ -6,7 +6,6 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
-import os
 import os.path as osp
 from abc import ABC, abstractmethod
 import subprocess
@@ -153,10 +152,10 @@ class Beamline(ABC):
         """
         raise NotImplementedError
 
-    def reset(self, tmp_dir=None):
+    def reset(self, swd=None):
         """Reset status and output files."""
-        swd = self._swd if tmp_dir is None else \
-            osp.join(os.getcwd(), tmp_dir)
+        if swd is None:
+            swd = self._swd
 
         # input file
         with open(osp.join(swd, self._fin), 'w') as fp:
@@ -235,17 +234,7 @@ class Beamline(ABC):
         self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
-    def run(self, n_workers, timeout):
-        """Run simulation for the beamline."""
-        self.reset()
-
-        fin = osp.join(self._swd, self._fin)
-        self._input_gen.write(fin)
-
-        if not isinstance(n_workers, int) or not n_workers > 0:
-            raise ValueError("n_workers must be a positive integer!")
-
-        self._check_file(fin, 'Input')
+    def _run_core(self, fin, n_workers, timeout):
         executable = self._check_run(n_workers > 1)
         command = f"{executable} {fin}"
         if n_workers > 1:
@@ -266,42 +255,59 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
+    def run(self, n_workers, timeout):
+        """Run simulation for the beamline."""
+        if not isinstance(n_workers, int) or not n_workers > 0:
+            raise ValueError("n_workers must be a positive integer!")
+
+        self.reset()
+
+        fin = osp.join(self._swd, self._fin)
+        self._input_gen.write(fin)
+        self._check_file(fin, 'Input')
+
+        self._run_core(fin, n_workers, timeout)
+
         self._update_output()
         self._update_statistics()
 
+    async def _async_run_core(self, fin, timeout):
+        executable = self._check_run()
+
+        command = f"{executable} {fin}"
+        if timeout is not None:
+            command = f"timeout {timeout}s " + command
+
+        # Astra will find external files in the simulation working
+        # directory but output files in the directory where the input
+        # file is located.
+
+        # We do not want to generate a full history of the simulation
+        # log. The current one is good enough for debugging. It is not
+        # a problem even if different processes write the file
+        # interleavingly.
+        with open(f'simulation.log', "w") as out_file:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=out_file,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._swd
+            )
+
+        _, stderr = await proc.communicate()
+        if stderr:
+            raise RuntimeError(stderr)
+
     async def async_run(self, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(os.getcwd(), tmp_dir)) as swd:
-            self.reset(tmp_dir)
+        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+            self.reset(swd)
 
             fin = osp.join(swd, self._fin)
             self._input_gen.write(fin)
             self._check_file(fin, 'Input')
-            executable = self._check_run()
 
-            command = f"{executable} {fin}"
-            if timeout is not None:
-                command = f"timeout {timeout}s " + command
-
-            # Astra will find external files in the simulation working
-            # directory but output files in the directory where the input
-            # file is located.
-
-            # We do not want to generate a full history of the simulation
-            # log. The current one is good enough for debugging. It is not
-            # a problem even if different processes write the file
-            # interleavingly.
-            with open(f'simulation.log', "w") as out_file:
-                proc = await asyncio.create_subprocess_shell(
-                    command,
-                    stdout=out_file,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=self._swd
-                )
-
-            _, stderr = await proc.communicate()
-            if stderr:
-                raise RuntimeError(stderr)
+            await self._async_run_core(fin, timeout)
 
             return self._update_output(swd)
 

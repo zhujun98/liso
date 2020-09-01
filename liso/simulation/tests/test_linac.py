@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import patch
 import os.path as osp
 import asyncio
+import tempfile
 
 from liso.io import TempSimulationDirectory
-from liso.data_processing import Phasespace
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 from liso.simulation.output import OutputData
@@ -43,24 +43,53 @@ class TestBeamline(unittest.TestCase):
 
 
 class TestLinacOneBeamLine(unittest.TestCase):
-    def setUp(self):
-        self._linac = Linac()
 
-        self._linac.add_beamline('astra',
-                                 name='gun',
-                                 swd=_ROOT_DIR,
-                                 fin='injector.in',
-                                 template=osp.join(_ROOT_DIR, 'injector.in.000'),
-                                 pout='injector.0450.001')
+    def run(self, result=None):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self._tmp_dir = tmp_dir
+            self._mapping = {
+                'gun_gradient': 1.,
+                'gun_phase': 2.,
+            }
+            self._linac = Linac()
+            self._linac.add_beamline(
+                'astra',
+                name='gun',
+                swd=tmp_dir,
+                fin='injector.in',
+                template=osp.join(_ROOT_DIR, 'injector.in.000'),
+                pout='injector.0450.001')
+            super().run(result)
 
     def testCompile(self):
-        mapping = {
-            'gun_gradient': 1.,
-            'gun_phase': 2.,
-        }
+
         self.assertDictEqual({
             'gun.gun_gradient': 1.0, 'gun.gun_phase': 2.0
-        }, self._linac.compile(mapping))
+        }, self._linac.compile(self._mapping))
+
+    @patch('liso.simulation.beamline.Beamline._run_core')
+    def testRun(self, mocked_run_core):
+        with patch('liso.simulation.beamline.Beamline.reset') as mocked_reset:
+            with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
+                with patch('liso.simulation.beamline.Beamline._update_statistics') as mocked_us:
+                    self._linac.run(self._mapping, n_workers=1, timeout=60)
+                    mocked_reset.assert_called_once_with()
+                    mocked_uo.assert_called_once_with()
+                    mocked_us.assert_called_once_with()
+
+    @patch('liso.simulation.beamline.Beamline._async_run_core')
+    def testAsyncRun(self, mocked_async_run_core):
+        loop = asyncio.get_event_loop()
+        with patch('liso.simulation.beamline.Beamline.reset') as mocked_reset:
+            with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
+                future = asyncio.Future()
+                future.set_result(OutputData(dict(), dict()))
+                mocked_async_run_core.return_value = future
+
+                loop.run_until_complete(self._linac.async_run(0, self._mapping, "tmp0001"))
+                tmp_dir = osp.join(self._tmp_dir, 'tmp0001')
+                mocked_reset.assert_called_once_with(tmp_dir)
+                mocked_uo.assert_called_once_with(tmp_dir)
 
 
 class TestLinacTwoBeamLine(unittest.TestCase):
