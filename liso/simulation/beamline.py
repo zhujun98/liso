@@ -191,9 +191,7 @@ class Beamline(ABC):
 
     def _check_run(self, parallel=False):
         executable = find_executable(self._get_executable(parallel))
-        if executable is None:
-            raise RuntimeError(
-               f"{executable} is not a valid bash command!")
+        assert executable is not None
         return executable
 
     def _update_output(self, swd=None):
@@ -287,6 +285,7 @@ class Beamline(ABC):
         # a problem even if different processes write the file
         # interleavingly.
         with open(f'simulation.log', "w") as out_file:
+            # It does not raise even if command
             proc = await asyncio.create_subprocess_shell(
                 command,
                 stdout=out_file,
@@ -294,9 +293,7 @@ class Beamline(ABC):
                 cwd=self._swd
             )
 
-        _, stderr = await proc.communicate()
-        if stderr:
-            raise RuntimeError(stderr)
+            _, err = await proc.communicate()
 
     async def async_run(self, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""

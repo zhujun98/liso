@@ -7,7 +7,6 @@ import tempfile
 from liso.io import TempSimulationDirectory
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
-from liso.simulation.output import OutputData
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
@@ -83,7 +82,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
         with patch('liso.simulation.beamline.Beamline.reset') as mocked_reset:
             with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
                 future = asyncio.Future()
-                future.set_result(OutputData(dict(), dict()))
+                future.set_result(object())
                 mocked_async_run_core.return_value = future
 
                 loop.run_until_complete(self._linac.async_run(0, self._mapping, "tmp0001"))
@@ -162,11 +161,11 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                     with patch.object(self._linac['chicane'], 'async_run') \
                             as patched_chicane_run:
                         future1 = asyncio.Future()
-                        future1.set_result(OutputData(dict(), dict()))
+                        future1.set_result(object())
                         patched_gun_run.return_value = future1
 
                         future2 = asyncio.Future()
-                        future2.set_result(OutputData(dict(), dict()))
+                        future2.set_result(object())
                         patched_chicane_run.return_value = future2
 
                         loop.run_until_complete(
