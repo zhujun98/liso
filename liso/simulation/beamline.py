@@ -324,10 +324,8 @@ class Beamline(ABC):
         text = 'Beamline: %s\n' % self.name
         text += f'Simulation working directory: {self._swd}\n'
         text += f'Input file: {osp.basename(self._fin)}\n'
-        if self._pin is not None:
-            text += f'Input particle file: {self._pin}\n'
-        if self._pout is not None:
-            text += f'Output particle file: {self._pout}\n'
+        text += f'Input particle file: {self._pin}\n'
+        text += f'Output particle file: {self._pout}\n'
         return text
 
 
@@ -363,9 +361,8 @@ class AstraBeamline(Beamline):
 
     def generate_initial_particle_file(self, data):
         """Override."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator.from_phasespace(data).to_astra()
+        ParticleFileGenerator.from_phasespace(data).to_astra(
+            osp.join(self._swd, self._pin))
 
 
 class ImpacttBeamline(Beamline):
@@ -402,9 +399,8 @@ class ImpacttBeamline(Beamline):
 
     def generate_initial_particle_file(self, data):
         """Override."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator.from_phasespace(data).to_impactt(pin)
+        ParticleFileGenerator.from_phasespace(data).to_impactt(
+            osp.join(self._swd, self._pin))
 
 
 def create_beamline(bl_type, *args, **kwargs):

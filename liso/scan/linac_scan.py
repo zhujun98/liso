@@ -30,7 +30,7 @@ def run_in_thread(daemon=False):
 
 
 class LinacScan(object):
-    def __init__(self, linac, *, name='scan_prob'):
+    def __init__(self, linac, *, name=''):
         """Initialization.
 
         :param Linac linac: Linac instance.
@@ -129,7 +129,9 @@ class LinacScan(object):
             of variable space is 1.
         :param str output: output file.
         """
-        logger.info(str(self._linac) + self._get_info())
+        logger.info(str(self._linac))
+
+        logger.info(self.summarize())
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(
@@ -137,11 +139,17 @@ class LinacScan(object):
 
         logger.info(f"Scan finished!")
 
-    def _get_info(self):
+    def summarize(self):
         text = '\n' + '=' * 80 + '\n'
         text += 'Parameter scan: %s\n' % self.name
         text += self.__str__()
-        text += '\n' + '=' * 80 + '\n'
+        text += '\n'
+        for i, ele in enumerate(self._params.values()):
+            if i == 0:
+                text += ele.__str__()
+            else:
+                text += ele.list_item()
+        text += '=' * 80 + '\n'
         return text
 
     def __str__(self):

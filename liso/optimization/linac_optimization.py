@@ -241,8 +241,7 @@ class Optimization(object):
 
         :param Optimizer optimizer: Optimizer instance.
         """
-        text = "\n\n***Start solving***\n" \
-               + self.summarize(False) \
+        text = self.summarize(False) \
                + "\n***with***\n" \
                + str(optimizer)
         logger.info(text)
@@ -323,7 +322,7 @@ class LinacOptimization(Optimization):
 
         Override.
         """
-        logger.debug("\n" + str(self._linac) + "\n")
+        logger.info(str(self._linac))
         return super().solve(optimizer, *args, **kwargs)
 
     def eval_objs_cons(self, x, *args, **kwargs):

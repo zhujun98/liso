@@ -19,8 +19,8 @@ linac.add_beamline('astra',
 
 sc = LinacScan(linac)
 
-sc.add_param('gun_gradient', 120, 140, num=2)
-sc.add_param('gun_phase', -10, 10, num=2)
+sc.add_param('gun_gradient', 120, 140, num=2, sigma=-0.001)
+sc.add_param('gun_phase', -10, 10, num=2, sigma=0.1)
 sc.add_param('tws_gradient', 25, 35, num=3)
 sc.add_param('tws_phase', -90, -60, num=3)
 

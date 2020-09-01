@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import abstractmethod
+import os
 import re
 
 import numpy as np
@@ -143,7 +144,8 @@ class ParticleFileGenerator:
         # flag (standard particles)
         data['flag'] = -1 if self._cathode else 5
 
-        with open(filepath, 'w') as fp:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w+') as fp:
             np.savetxt(fp, data,
                        fmt=" ".join(["%20.12E"] * 8 + ["%3d"] * 2),
                        delimiter='')
@@ -168,7 +170,8 @@ class ParticleFileGenerator:
         data['z'][:] = self._data[:, 4]
         data['pz'][:] = self._data[:, 5]
 
-        with open(filepath, 'w') as fp:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w+') as fp:
             fp.write(str(self._n) + '\n')
             np.savetxt(fp, data,
                        fmt=" ".join(["%20.12E"] * 6),
