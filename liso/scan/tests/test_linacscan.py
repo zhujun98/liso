@@ -13,15 +13,17 @@ class TestLinacscan(unittest.TestCase):
         self._sc = LinacScan(self._linac)
 
     def testScanParams(self):
-        self._sc.add_param("param1", -0.1, 0.1, 5)
-        self._sc.add_param("param2", -1., 1., 3)
+        self._sc.add_param("param1", -0.1, 0.1, 20)
+        self._sc.add_param("param2", -1., 1., 50)
         self._sc.add_param("param3", -1., sigma=0.01)
         with self.assertRaises(ValueError):
             self._sc.add_param("param3")
 
         lst = self._sc._generate_param_sequence(1)
-        self.assertEqual(15, len(lst))
-        self.assertEqual(3, len(lst[0]))
+        self.assertEqual(1000, len(lst))
+
+        lst1, lst2, lst3 = zip(*lst)
+        self.assertLess(abs(0.01 - np.std(lst3)), 0.0005)
 
     def testJitterParams(self):
         n = 1000

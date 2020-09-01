@@ -39,6 +39,9 @@ class ScanParam(OperationalElement):
         self._count = 0
         self._values = np.linspace(self._start, self._stop, self._num)
 
+    def __len__(self):
+        return self._num
+
     def __iter__(self):
         return self
 
