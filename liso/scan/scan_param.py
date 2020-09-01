@@ -68,5 +68,5 @@ class ScanParam(OperationalElement):
 
     def __str__(self):
         return '{:12}  {:^12}  {:^12}  {:^12}  {:^12}\n'.format(
-               'Name', 'Start', 'Stop', 'Num', 'Jitter') + \
+               'Name', 'Start', 'Stop', 'Num', 'Sigma') + \
                self.list_item()

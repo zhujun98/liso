@@ -324,10 +324,8 @@ class Beamline(ABC):
         text = 'Beamline: %s\n' % self.name
         text += f'Simulation working directory: {self._swd}\n'
         text += f'Input file: {osp.basename(self._fin)}\n'
-        if self._pin is not None:
-            text += f'Input particle file: {self._pin}\n'
-        if self._pout is not None:
-            text += f'Output particle file: {self._pout}\n'
+        text += f'Input particle file: {self._pin}\n'
+        text += f'Output particle file: {self._pout}\n'
         return text
 
 

@@ -121,8 +121,9 @@ class Linac(Mapping):
 
     def __str__(self):
         text = '\n' + '=' * 80 + '\n'
-        text += 'Linac definition:\n\n'
+        text += 'Linac definition:\n'
         for bl in self._beamlines.values():
+            text += '\n'
             text += bl.__str__()
         text += '=' * 80 + '\n'
         return text
