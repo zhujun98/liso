@@ -139,7 +139,7 @@ class Beamline(ABC):
 
         :param str pfile: phasespace file name.
 
-        :returns: data, charge.
+        :returns Phasespace: particle phasespace.
         """
         raise NotImplementedError
 
@@ -208,14 +208,14 @@ class Beamline(ABC):
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')
 
-        data = self._parse_phasespace(pout)
-        if data.charge is None:
-            data.charge = self._charge
-        self._out = data.analyze()
+        ps = self._parse_phasespace(pout)
+        if ps.charge is None:
+            ps.charge = self._charge
+        self._out = ps.analyze()
         if self.next is not None:
-            self.next.generate_initial_particle_file(data)
+            self.next.generate_initial_particle_file(ps)
 
-        return data
+        return ps
 
     def _update_statistics(self, swd=None):
         """Analysis output beam evolution files.
@@ -303,16 +303,7 @@ class Beamline(ABC):
             if stderr:
                 raise RuntimeError(stderr)
 
-            ps = self._update_output(swd)
-
-            inputs = {
-                f'{self.name}.{k}': v
-                for k, v in dict()
-            }
-            phasespaces = {
-                f'{self.name}.out': ps
-            }
-            return OutputData(inputs, phasespaces)
+            return self._update_output(swd)
 
     def status(self):
         """Return the status of the beamline."""

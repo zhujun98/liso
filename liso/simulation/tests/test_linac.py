@@ -4,11 +4,42 @@ import os.path as osp
 import asyncio
 
 from liso.io import TempSimulationDirectory
+from liso.data_processing import Phasespace
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 from liso.simulation.output import OutputData
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
+
+
+class TestBeamline(unittest.TestCase):
+    def setUp(self):
+        linac = Linac()
+
+        linac.add_beamline('astra',
+                           name='gun',
+                           swd=_ROOT_DIR,
+                           fin='injector.in',
+                           template=osp.join(_ROOT_DIR, 'injector.in.000'),
+                           pout='injector.0450.001')
+
+        self._bl = next(iter(linac._beamlines.values()))
+
+    def testUpdateOutput(self):
+        with self.assertRaisesRegex(RuntimeError, "Output file"):
+            self._bl._update_output()
+
+        with patch.object(self._bl, '_check_file'):
+            with patch.object(self._bl, '_parse_phasespace') as patched:
+                self._bl._update_output()
+
+                patched.assert_called_once_with(
+                    osp.join(_ROOT_DIR, "injector.0450.001"))
+                patched.reset_mock()
+
+                self._bl._update_output("tmp")
+                patched.assert_called_once_with("tmp/injector.0450.001")
+                patched.reset_mock()
 
 
 class TestLinacOneBeamLine(unittest.TestCase):
@@ -27,7 +58,9 @@ class TestLinacOneBeamLine(unittest.TestCase):
             'gun_gradient': 1.,
             'gun_phase': 2.,
         }
-        self._linac.compile(mapping)
+        self.assertDictEqual({
+            'gun.gun_gradient': 1.0, 'gun.gun_phase': 2.0
+        }, self._linac.compile(mapping))
 
 
 class TestLinacTwoBeamLine(unittest.TestCase):
@@ -73,7 +106,10 @@ class TestLinacTwoBeamLine(unittest.TestCase):
             self._linac.compile(mapping)
 
         del mapping['gun.charge']
-        self._linac.compile(mapping)
+        self.assertDictEqual({
+            'gun.gun_gradient': 1.0, 'gun.gun_phase': 1.0,
+            'chicane.MQZM1_G': 1.0, 'chicane.MQZM2_G': 1.0,
+        }, self._linac.compile(mapping))
 
     def testRun(self):
         mapping = dict()
