@@ -8,7 +8,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 import functools
-import itertools
 import sys
 import traceback
 from threading import Thread
@@ -54,11 +53,22 @@ class LinacScan(object):
         self._params[name] = ScanParam(name, *args, **kwargs)
 
     def _generate_param_sequence(self, repeat):
+        num = 1
+        for param in self._params.values():
+            num *= len(param)
+
+        # itertools.product is not used here since we don't want
+        # the jitter to repeat.
         ret = []
-        for i in range(repeat):
+        for i in range(num*repeat):
+            item = []
             for param in self._params.values():
-                param.reset()
-            ret.extend(itertools.product(*self._params.values()))
+                try:
+                    item.append(next(param))
+                except StopIteration:
+                    param.reset()
+                    item.append(next(param))
+            ret.append(item)
         return ret
 
     async def _async_scan(self, n_tasks, output, repeat=1, **kwargs):
