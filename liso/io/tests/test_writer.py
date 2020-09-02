@@ -10,19 +10,24 @@ from liso.simulation.output import OutputData
 
 
 class TestWriter(unittest.TestCase):
+    def setUp(self):
+        self._ps = Phasespace(
+            pd.DataFrame(np.ones((100, 7)),
+                         columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
+
     def testWrite(self):
         with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
-            writer = SimWriter(10, 1000, fp.name)
+            writer = SimWriter(10, 100, fp.name)
 
             with self.assertRaisesRegex(ValueError, 'out of range'):
                 writer.write(10, OutputData(
                     {'gun.gun_gradient': 1, 'gun.gun_phase': 2},
-                    {'out': Phasespace(pd.DataFrame(), 0.1)}
+                    {'out': self._ps}
                 ))
 
             writer.write(9, OutputData(
                 {'gun.gun_gradient': 1, 'gun.gun_phase': 2},
-                {'out': Phasespace(pd.DataFrame(), 0.1)}
+                {'out': self._ps}
             ))
 
             with h5py.File(fp.name, 'r') as fp_h5:

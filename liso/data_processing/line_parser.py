@@ -209,3 +209,7 @@ def parse_astra_line(root_name):
     data['alphay'] = -y_yp*gamma_beta/data['emity_tr']
 
     return data
+
+
+def parse_elegant_line(root_name):
+    pass

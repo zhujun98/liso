@@ -1,0 +1,17 @@
+&run_setup
+    lattice             = ../lattice.lte,
+    rootname            = lps,
+    use_beamline        = Line,
+    output              = %s.out,
+    p_central           = 8.713366e+01,
+&end
+
+&run_control
+    n_indices = 0,
+&end
+
+&sdds_beam
+    input               = ../input.sdds,
+&end
+
+&track &end

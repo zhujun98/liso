@@ -16,13 +16,14 @@ import numpy as np
 from ..config import config
 from ..data_processing import (
     analyze_line,
-    parse_astra_phasespace, parse_impactt_phasespace,
-    parse_astra_line, parse_impactt_line,
+    parse_astra_phasespace, parse_astra_line,
+    parse_impactt_phasespace, parse_impactt_line,
+    parse_elegant_phasespace, parse_elegant_line,
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .input import (
-    AstraInputGenerator, ImpacttInputGenerator
+    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
 )
 
 
@@ -33,6 +34,7 @@ class Beamline(ABC):
                  template=None,
                  swd=None,
                  fin=None,
+                 pin=None,
                  pout=None,
                  charge=None,
                  z0=None):
@@ -46,6 +48,7 @@ class Beamline(ABC):
             noted that the input file does not have to be put in this
             directory.
         :param str fin: input file name.
+        :param str pin: input particle file name.
         :param str pout: final particle file name. It must be located in the
             same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
@@ -63,7 +66,7 @@ class Beamline(ABC):
         self._swd = osp.abspath('./' if swd is None else swd)
 
         self._fin = fin
-        self._pin = None  # Initial particle distribution file name.
+        self._pin = pin
         self._pout = pout
         self._rootname = None
 
@@ -274,7 +277,7 @@ class Beamline(ABC):
         self._update_output()
         self._update_statistics()
 
-    async def _async_run_core(self, fin, timeout):
+    async def _async_run_core(self, swd, fin, timeout):
         executable = self._check_run()
         fin = self._check_fin(fin)
 
@@ -296,7 +299,7 @@ class Beamline(ABC):
                 command,
                 stdout=out_file,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=self._swd
+                cwd=swd
             )
 
             _, err = await proc.communicate()
@@ -310,7 +313,7 @@ class Beamline(ABC):
             self._input_gen.write(fin)
             self._check_file(fin, 'Input')
 
-            await self._async_run_core(fin, timeout)
+            await self._async_run_core(swd, fin, timeout)
 
             return self._update_output(swd)
 
@@ -419,6 +422,37 @@ class ImpacttBeamline(Beamline):
             osp.join(self._swd, self._pin))
 
 
+class ElegantBeamline(Beamline):
+    """Beamline simulated using ELEGANT."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._rootname = 'fort'
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            raise NotImplementedError
+        return config['EXECUTABLE']['ELEGANT']
+
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return ElegantInputGenerator(filepath)
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_elegant_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        raise NotImplementedError
+
+    def generate_initial_particle_file(self, data):
+        """Override."""
+        ParticleFileGenerator.from_phasespace(data).to_elegant(
+            osp.join(self._swd, self._pin))
+
+
 def create_beamline(bl_type, *args, **kwargs):
     """Create and return a Beamline instance.
 
@@ -429,5 +463,8 @@ def create_beamline(bl_type, *args, **kwargs):
 
     if bl_type.lower() in ('impactt', 't'):
         return ImpacttBeamline(*args, **kwargs)
+
+    if bl_type.lower() in ('elegant', 'e'):
+        return ElegantBeamline(*args, **kwargs)
 
     raise ValueError(f"Unknown beamline type {bl_type}!")

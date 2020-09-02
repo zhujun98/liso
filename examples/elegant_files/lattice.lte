@@ -1,0 +1,19 @@
+% 299792458 sto c_mks
+% 2856e6 sto f0
+% c_mks f0 / 2 / 5 * sto LCav
+
+Q1:	QUAD, L=0.2, K1= 1e-50
+Q2:	QUAD, L=0.2, K1=-1e-50
+Q3:	QUAD, L=0.2, K1= 1e-50
+
+rfDeflector:    RFDF, FREQUENCY="f0", L="LCav", VOLTAGE=1e6, PHASE=90.0, TILT="pi 2 /", N_KICKS=50, STANDING_WAVE=1, MAGNETIC_DEFLECTION=0, VOLTAGE_NOISE=0.00, PHASE_NOISE=0.00
+
+d_START_Q1:         edrift, L=0.4
+d_Q1_Q2:            edrift, L=0.4
+d_Q2_Q3:            edrift, L=0.4
+d_Q3_Deflector:     edrift, L=0.4
+d_Deflector_SCREEN: edrift, L=1.0
+
+Q: CHARGE, TOTAL=1e-9
+
+Line:   line=(Q, d_START_Q1, Q1, d_Q1_Q2, Q2, d_Q2_Q3, Q3, d_Q3_Deflector, rfDeflector, d_Deflector_SCREEN)
