@@ -66,6 +66,8 @@ class TestLinacscan(unittest.TestCase):
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 self._sc.scan(repeat=2, output=fp.name)
+                # Testing with a real file is necessary to check the
+                # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
                     self.assertSetEqual(
                         {'gun.gun_gradient', 'gun.gun_phase'},
