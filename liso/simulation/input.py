@@ -274,6 +274,7 @@ class InputGenerator(object):
         if self._input is None:
             raise RuntimeError("Input is not initialized!")
 
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as fp:
             for line in self._input:
                 fp.write(line)
