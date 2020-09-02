@@ -4,6 +4,7 @@ import os.path as osp
 import asyncio
 import tempfile
 
+from liso.config import config
 from liso.io import TempSimulationDirectory
 from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
@@ -11,7 +12,7 @@ from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
-class TestBeamline(unittest.TestCase):
+class TestAstraBeamline(unittest.TestCase):
     def setUp(self):
         linac = Linac()
 
@@ -39,6 +40,18 @@ class TestBeamline(unittest.TestCase):
                 self._bl._update_output("tmp")
                 patched.assert_called_once_with("tmp/injector.0450.001")
                 patched.reset_mock()
+
+    @patch.dict(config['EXECUTABLE'], {"ASTRA": "astra_fake"})
+    def testCheckExecutable(self):
+        with self.assertRaisesRegex(AssertionError, "executable file is not available"):
+            self._bl._check_run()
+
+    def testCheckInputFile(self):
+        fin = 'x' * 70
+        self.assertEqual(fin, self._bl._check_fin(osp.join(self._bl._swd, fin)))
+
+        with self.assertRaisesRegex(ValueError, "too long for ASTRA"):
+            self._bl._check_fin(fin + 'x')
 
 
 class TestLinacOneBeamLine(unittest.TestCase):

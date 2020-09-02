@@ -21,7 +21,6 @@ from ..data_processing import (
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
-from .output import OutputData
 from .input import (
     AstraInputGenerator, ImpacttInputGenerator
 )
@@ -191,8 +190,12 @@ class Beamline(ABC):
 
     def _check_run(self, parallel=False):
         executable = find_executable(self._get_executable(parallel))
-        assert executable is not None
+        assert executable is not None, "executable file is not available"
         return executable
+
+    def _check_fin(self, fin):
+        """Concrete class should override this method if needed."""
+        return fin
 
     def _update_output(self, swd=None):
         """Analyse output particle file.
@@ -234,6 +237,8 @@ class Beamline(ABC):
 
     def _run_core(self, fin, n_workers, timeout):
         executable = self._check_run(n_workers > 1)
+        fin = self._check_fin(fin)
+
         command = f"{executable} {fin}"
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
@@ -271,6 +276,7 @@ class Beamline(ABC):
 
     async def _async_run_core(self, fin, timeout):
         executable = self._check_run()
+        fin = self._check_fin(fin)
 
         command = f"{executable} {fin}"
         if timeout is not None:
@@ -340,6 +346,16 @@ class AstraBeamline(Beamline):
         self._output_suffixes = [
             '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
+
+    def _check_fin(self, fin):
+        """Concrete class should override this method if needed."""
+        max_len = 70  # this number is a little bit conservative
+        if len(fin) > max_len:
+            fin = osp.relpath(fin, self._swd)
+            if len(fin) > max_len:
+                raise ValueError("Both the absolute and relative paths of "
+                                 "the input file are too long for ASTRA!")
+        return fin
 
     def _get_executable(self, parallel):
         """Override."""
