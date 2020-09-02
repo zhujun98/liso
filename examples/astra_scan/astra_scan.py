@@ -22,4 +22,4 @@ sc.add_param('gun_phase', -10, 10, num=2, sigma=0.1)
 sc.add_param('tws_gradient', 25, 35, num=3)
 sc.add_param('tws_phase', -90, -60, num=3)
 
-sc.scan(n_tasks=4)
+sc.scan(n_tasks=4, n_particles=2000)

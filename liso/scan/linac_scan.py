@@ -71,13 +71,14 @@ class LinacScan(object):
             ret.append(item)
         return ret
 
-    async def _async_scan(self, n_tasks, output, repeat=1, **kwargs):
+    async def _async_scan(self, n_tasks, output, repeat, n_particles,
+                          **kwargs):
         x_map = dict()
 
         tasks = set()
         sequence = self._generate_param_sequence(repeat)
         n_pulses = len(sequence)
-        writer = SimWriter(n_pulses, 2000, output)
+        writer = SimWriter(n_pulses, n_particles, output)
         count = 0
         while True:
             if count < n_pulses:
@@ -120,22 +121,24 @@ class LinacScan(object):
 
                     tasks.remove(task)
 
-    def scan(self, n_tasks=1, *, repeat=1, output='scan.hdf5', **kwargs):
+    def scan(self, n_tasks=1, *,
+             repeat=1, n_particles=2000, output='scan.hdf5', **kwargs):
         """Start a parameter scan.
 
         :param int n_tasks: maximum number of concurrent tasks.
         :param int repeat: number of repeats of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
+        :param int n_particles: number of particles to be stored.
         :param str output: output file.
         """
         logger.info(str(self._linac))
-
         logger.info(self.summarize())
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            self._async_scan(n_tasks, output, repeat=repeat, **kwargs))
+        loop.run_until_complete(self._async_scan(
+            n_tasks, output,
+            repeat=repeat, n_particles=n_particles, **kwargs))
 
         logger.info(f"Scan finished!")
 
