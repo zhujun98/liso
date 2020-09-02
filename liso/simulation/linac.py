@@ -7,10 +7,9 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections.abc import Mapping
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from .beamline import create_beamline
 from .output import OutputData
-from .input import generate_input
 
 
 class Linac(Mapping):
@@ -64,19 +63,33 @@ class Linac(Mapping):
 
         bl.add_watch(*args, **kwargs)
 
-    def _check_template(self, mapping):
-        templates = []
-        for bl in self._beamlines.values():
-            templates.append(bl._template)
+    def _split_mapping(self, mapping):
+        """Split mapping into different groups.
 
-        found = set()
-        for template in templates:
-            found = found.union(
-                generate_input(template, mapping, dry_run=True))
+        The keys in the dictionary "mapping" are expected to have the
+        format beamline.variable. If beamline is not presented, the
+        default one (the name of the first beamline will be assigned).
+        """
+        mapping_grp = defaultdict(dict)
+        default = next(iter(self._beamlines))
+        for key, value in mapping.items():
+            splitted = key.split('.', 1)
+            if len(splitted) == 1:
+                mapping_grp[default][splitted[0]] = value
+            else:
+                mapping_grp[splitted[0]][splitted[1]] = value
+        return mapping_grp
 
-        not_found = mapping.keys() - found
-        if not_found:
-            raise ValueError(f"{not_found} not found in the templates!")
+    def compile(self, mapping):
+        """Compile all the input before running the simulation."""
+        mapping_grp = self._split_mapping(mapping)
+        mapping_norm = {}
+        for name, bl in self._beamlines.items():
+            bl.compile(mapping_grp[name])
+            mapping_norm.update({
+                f"{name}.{k}": v for k, v in mapping_grp[name].items()
+            })
+        return mapping_norm
 
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
@@ -86,20 +99,18 @@ class Linac(Mapping):
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
-        self._check_template(mapping)
+        self.compile(mapping)
+
         for i, bl in enumerate(self._beamlines.values()):
-            bl.run(mapping, n_workers, timeout)
+            bl.run(n_workers, timeout)
 
     async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
-        self._check_template(mapping)
-
-        inputs = dict()
-        phasespaces = dict()
-        for i, bl in enumerate(self._beamlines.values()):
-            output = await bl.async_run(mapping, tmp_dir, timeout=timeout)
-            inputs.update(output['input'])
-            phasespaces.update(output['phasespace'])
-        return idx, OutputData(inputs, phasespaces)
+        inputs = self.compile(mapping)
+        outs = dict()
+        for name, bl in self._beamlines.items():
+            phasespace = await bl.async_run(tmp_dir, timeout=timeout)
+            outs[f"{name}.out"] = phasespace
+        return idx, OutputData(inputs, outs)
 
     def status(self):
         """Return the status of the linac."""
@@ -110,8 +121,9 @@ class Linac(Mapping):
 
     def __str__(self):
         text = '\n' + '=' * 80 + '\n'
-        text += 'Linac definition:\n\n'
+        text += 'Linac definition:\n'
         for bl in self._beamlines.values():
+            text += '\n'
             text += bl.__str__()
         text += '=' * 80 + '\n'
         return text

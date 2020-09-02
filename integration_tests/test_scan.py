@@ -34,11 +34,8 @@ class TestLinacScan(unittest.TestCase):
         os.remove(os.path.join(test_path, "injector.in"))
 
     def testGeneral(self):
-        n = 5
-        self._sc.add_param('gun_gradient', np.linspace(130 - 0.06, 130 + 0.06, n))
-        with self.assertRaisesRegex(ValueError, "different lengths"):
-            self._sc.add_param('gun_phase', np.linspace(-0.02, 0.02, n + 1))
-        self._sc.add_param('gun_phase', np.linspace(-0.02, 0.02, n))
+        self._sc.add_param('gun_gradient', 120, 130, 5)
+        self._sc.add_param('gun_phase', -0.02, 0.02, 3)
         self._sc.scan()
 
 

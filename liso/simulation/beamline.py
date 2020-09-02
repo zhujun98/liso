@@ -6,7 +6,6 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
-import os
 import os.path as osp
 from abc import ABC, abstractmethod
 import subprocess
@@ -22,8 +21,9 @@ from ..data_processing import (
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
-from .output import OutputData
-from .input import generate_input
+from .input import (
+    AstraInputGenerator, ImpacttInputGenerator
+)
 
 
 class Beamline(ABC):
@@ -58,10 +58,7 @@ class Beamline(ABC):
         """
         self.name = name
 
-        # Read the template file only once. Make the 'template' read-only by
-        # converting it to a tuple.
-        with open(template) as fp:
-            self._template = tuple(fp.readlines())
+        self._input_gen = self._parse_template_in(template)
 
         self._swd = osp.abspath('./' if swd is None else swd)
 
@@ -119,14 +116,18 @@ class Beamline(ABC):
         return self._std
 
     @abstractmethod
-    def generate_initial_particle_file(self, data, charge):
+    def _parse_template_in(self, filepath):
+        """Parse the template input file."""
+        raise NotImplementedError
+
+    def compile(self, mapping):
+        self._input_gen.update(mapping)
+
+    @abstractmethod
+    def generate_initial_particle_file(self, data):
         """Generate the initial particle file.
 
-        :param data: Pandas.DataFrame
-            Particle data. See data_processing/phasespace_parser for details
-            of the data columns.
-        :param charge: float / None
-            Charge of the beam.
+        :param Phasespace data: particle phasespace.
         """
         raise NotImplementedError
 
@@ -136,7 +137,7 @@ class Beamline(ABC):
 
         :param str pfile: phasespace file name.
 
-        :returns: data, charge.
+        :returns Phasespace: particle phasespace.
         """
         raise NotImplementedError
 
@@ -150,10 +151,10 @@ class Beamline(ABC):
         """
         raise NotImplementedError
 
-    def reset(self, tmp_dir=None):
+    def reset(self, swd=None):
         """Reset status and output files."""
-        swd = self._swd if tmp_dir is None else \
-            osp.join(os.getcwd(), tmp_dir)
+        if swd is None:
+            swd = self._swd
 
         # input file
         with open(osp.join(swd, self._fin), 'w') as fp:
@@ -189,10 +190,12 @@ class Beamline(ABC):
 
     def _check_run(self, parallel=False):
         executable = find_executable(self._get_executable(parallel))
-        if executable is None:
-            raise RuntimeError(
-               f"{executable} is not a valid bash command!")
+        assert executable is not None, "executable file is not available"
         return executable
+
+    def _check_fin(self, fin):
+        """Concrete class should override this method if needed."""
+        return fin
 
     def _update_output(self, swd=None):
         """Analyse output particle file.
@@ -205,13 +208,14 @@ class Beamline(ABC):
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')
 
-        data = self._parse_phasespace(pout)
-        charge = self._charge if data.charge is None else data.charge
-        self._out = data.analyze()
+        ps = self._parse_phasespace(pout)
+        if ps.charge is None:
+            ps.charge = self._charge
+        self._out = ps.analyze()
         if self.next is not None:
-            self.next.generate_initial_particle_file(data, charge)
+            self.next.generate_initial_particle_file(ps)
 
-        return data
+        return ps
 
     def _update_statistics(self, swd=None):
         """Analysis output beam evolution files.
@@ -231,18 +235,10 @@ class Beamline(ABC):
         self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
-    def run(self, mapping, n_workers, timeout):
-        """Run simulation for the beamline."""
-        self.reset()
-
-        fin = osp.join(self._swd, self._fin)
-        generate_input(self._template, mapping, fin)
-
-        if not isinstance(n_workers, int) or not n_workers > 0:
-            raise ValueError("n_workers must be a positive integer!")
-
-        self._check_file(fin, 'Input')
+    def _run_core(self, fin, n_workers, timeout):
         executable = self._check_run(n_workers > 1)
+        fin = self._check_fin(fin)
+
         command = f"{executable} {fin}"
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
@@ -262,52 +258,61 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
+    def run(self, n_workers, timeout):
+        """Run simulation for the beamline."""
+        if not isinstance(n_workers, int) or not n_workers > 0:
+            raise ValueError("n_workers must be a positive integer!")
+
+        self.reset()
+
+        fin = osp.join(self._swd, self._fin)
+        self._input_gen.write(fin)
+        self._check_file(fin, 'Input')
+
+        self._run_core(fin, n_workers, timeout)
+
         self._update_output()
         self._update_statistics()
 
-    async def async_run(self, mapping, tmp_dir, *, timeout=None):
+    async def _async_run_core(self, fin, timeout):
+        executable = self._check_run()
+        fin = self._check_fin(fin)
+
+        command = f"{executable} {fin}"
+        if timeout is not None:
+            command = f"timeout {timeout}s " + command
+
+        # Astra will find external files in the simulation working
+        # directory but output files in the directory where the input
+        # file is located.
+
+        # We do not want to generate a full history of the simulation
+        # log. The current one is good enough for debugging. It is not
+        # a problem even if different processes write the file
+        # interleavingly.
+        with open(f'simulation.log', "w") as out_file:
+            # It does not raise even if command
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=out_file,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._swd
+            )
+
+            _, err = await proc.communicate()
+
+    async def async_run(self, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(os.getcwd(), tmp_dir)) as swd:
-            self.reset(tmp_dir)
+        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+            self.reset(swd)
 
             fin = osp.join(swd, self._fin)
-            generate_input(self._template, mapping, fin)
+            self._input_gen.write(fin)
             self._check_file(fin, 'Input')
-            executable = self._check_run()
 
-            command = f"{executable} {fin}"
-            if timeout is not None:
-                command = f"timeout {timeout}s " + command
+            await self._async_run_core(fin, timeout)
 
-            # Astra will find external files in the simulation working
-            # directory but output files in the directory where the input
-            # file is located.
-
-            # We do not want to generate a full history of the simulation
-            # log. The current one is good enough for debugging. It is not
-            # a problem even if different processes write the file
-            # interleavingly.
-            with open(f'simulation.log', "w") as out_file:
-                proc = await asyncio.create_subprocess_shell(
-                    command,
-                    stdout=out_file,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=self._swd
-                )
-
-            _, stderr = await proc.communicate()
-            if stderr:
-                raise RuntimeError(stderr)
-
-            ps = self._update_output(swd)
-
-            inputs = {
-                f'{self.name}.{k}': v for k, v in mapping.items()
-            }
-            phasespaces = {
-                f'{self.name}.out': ps
-            }
-            return OutputData(inputs, phasespaces)
+            return self._update_output(swd)
 
     def status(self):
         """Return the status of the beamline."""
@@ -325,10 +330,8 @@ class Beamline(ABC):
         text = 'Beamline: %s\n' % self.name
         text += f'Simulation working directory: {self._swd}\n'
         text += f'Input file: {osp.basename(self._fin)}\n'
-        if self._pin is not None:
-            text += f'Input particle file: {self._pin}\n'
-        if self._pout is not None:
-            text += f'Output particle file: {self._pout}\n'
+        text += f'Input particle file: {self._pin}\n'
+        text += f'Output particle file: {self._pout}\n'
         return text
 
 
@@ -344,11 +347,25 @@ class AstraBeamline(Beamline):
             '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
 
+    def _check_fin(self, fin):
+        """Concrete class should override this method if needed."""
+        max_len = 70  # this number is a little bit conservative
+        if len(fin) > max_len:
+            fin = osp.relpath(fin, self._swd)
+            if len(fin) > max_len:
+                raise ValueError("Both the absolute and relative paths of "
+                                 "the input file are too long for ASTRA!")
+        return fin
+
     def _get_executable(self, parallel):
         """Override."""
         if parallel:
             return config['EXECUTABLE_PARA']['ASTRA']
         return config['EXECUTABLE']['ASTRA']
+
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return AstraInputGenerator(filepath)
 
     def _parse_phasespace(self, pfile):
         """Override."""
@@ -358,11 +375,10 @@ class AstraBeamline(Beamline):
         """Override."""
         return parse_astra_line(rootname)
 
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator(data, pin).to_astra_pfile(charge)
+    def generate_initial_particle_file(self, data):
+        """Override."""
+        ParticleFileGenerator.from_phasespace(data).to_astra(
+            osp.join(self._swd, self._pin))
 
 
 class ImpacttBeamline(Beamline):
@@ -385,6 +401,10 @@ class ImpacttBeamline(Beamline):
             return config['EXECUTABLE_PARA']['IMPACTT']
         return config['EXECUTABLE']['IMPACTT']
 
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return ImpacttInputGenerator(filepath)
+
     def _parse_phasespace(self, pfile):
         """Override."""
         return parse_impactt_phasespace(pfile)
@@ -393,11 +413,10 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_line(rootname)
 
-    def generate_initial_particle_file(self, data, charge):
-        """Implement the abstract method."""
-        pin = osp.join(self._swd, self._pin)
-        if pin is not None:
-            ParticleFileGenerator.fromDataframeToImpactt(data, pin)
+    def generate_initial_particle_file(self, data):
+        """Override."""
+        ParticleFileGenerator.from_phasespace(data).to_impactt(
+            osp.join(self._swd, self._pin))
 
 
 def create_beamline(bl_type, *args, **kwargs):

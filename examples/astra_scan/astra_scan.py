@@ -1,8 +1,6 @@
 """
 This is a basic example showing how to study parameter_scan.
 """
-import numpy as np
-
 from liso import Linac, LinacScan
 from liso.logging import logger
 logger.setLevel('DEBUG')
@@ -19,9 +17,9 @@ linac.add_beamline('astra',
 
 sc = LinacScan(linac)
 
-sc.add_param('gun_gradient', values=np.linspace(130 - 10, 130 + 10, 3))
-sc.add_param('gun_phase', values=np.linspace(-15, 5, 3))
-sc.add_param('tws_gradient', values=np.linspace(30 - 5, 30 + 5, 3))
-sc.add_param('tws_phase', values=np.linspace(-90, -60, 3))
+sc.add_param('gun_gradient', 120, 140, num=2, sigma=-0.001)
+sc.add_param('gun_phase', -10, 10, num=2, sigma=0.1)
+sc.add_param('tws_gradient', 25, 35, num=3)
+sc.add_param('tws_phase', -90, -60, num=3)
 
-sc.scan(n_tasks=12)
+sc.scan(n_tasks=4, n_particles=2000)

@@ -21,9 +21,9 @@ linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
-                   swd='astra_files',
+                   swd='../astra_files',
                    fin='injector.in',
-                   template='astra_impactt_combined/injector.in.000',
+                   template='injector.in.000',
                    pout='injector.0450.001')
 
 # Add the second beamline
@@ -32,9 +32,9 @@ linac.add_beamline('astra',
 # will be ignored if the code is Astra.
 linac.add_beamline('impactt',
                    name='chicane',
-                   swd='impactt_files',
+                   swd='../impactt_files',
                    fin='ImpactT.in',
-                   template='astra_impactt_combined/ImpactT.in.000',
+                   template='ImpactT.in.000',
                    pout='fort.106',
                    charge=1e-15)
 
@@ -44,13 +44,13 @@ opt.add_obj('St_betaxy', func=lambda a: max(a['chicane'].out.emitx*1e6,
                                             a['chicane'].out.betax,
                                             a['chicane'].out.betay))
 
-opt.add_var('laser_spot',  value=0.1, lb=0.04, ub=0.30)
-opt.add_var('main_sole_b', value=0.1, lb=0.00, ub=0.40)
-opt.add_var('MQZM1_G', value=0.0, lb=-10, ub=10)
-opt.add_var('MQZM3_G', value=0.0, lb=-10, ub=10)
+opt.add_var('gun.laser_spot',  value=0.1, lb=0.04, ub=0.30)
+opt.add_var('gun.main_sole_b', value=0.1, lb=0.00, ub=0.40)
+opt.add_var('chicane.MQZM1_G', value=0.0, lb=-10, ub=10)
+opt.add_var('chicane.MQZM3_G', value=0.0, lb=-10, ub=10)
 
-opt.add_covar('MQZM2_G', 'MQZM1_G', scale=-1)
-opt.add_covar('MQZM4_G', 'MQZM3_G', scale=-1)
+opt.add_covar('chicane.MQZM2_G', 'chicane.MQZM1_G', scale=-1)
+opt.add_covar('chicane.MQZM4_G', 'chicane.MQZM3_G', scale=-1)
 
 optimizer = NelderMead()
 opt.solve(optimizer)
