@@ -18,10 +18,12 @@ if not osp.isfile(_config_file):
     config['EXECUTABLE'] = {
         'ASTRA': "astra",
         'IMPACTT': "ImpactTv1.7linux",
+        'ELEGANT': 'elegant',
     }
     config['EXECUTABLE_PARA'] = {
         'ASTRA': "astra_r62_Linux_x86_64_OpenMPI_1.6.1",
         'IMPACTT': "ImpactTv1.7linuxPara",
+        'ELEGANT': "",
     }
 
     try:

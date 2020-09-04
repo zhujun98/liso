@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import numpy as np
+import pandas as pd
 
 from .beam_parameters import BeamParameters
 from .phasespace_analysis import (
@@ -24,6 +25,14 @@ class Phasespace:
             x (m), px (mc), y (m), py (mc), z (m), pz (mc), t (s)
         :param None/float charge: bunch charge
         """
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("data must be a pandas.DataFrame")
+
+        columns = {'x', 'px', 'y', 'py', 'z', 'pz', 't'}
+        if set(data.columns) != columns:
+            raise ValueError(f"Data can only have columns: {columns}: "
+                             f"actual {data.columns}")
+
         self._data = data
         self.charge = charge
 

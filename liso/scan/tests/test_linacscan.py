@@ -62,10 +62,11 @@ class TestLinacscan(unittest.TestCase):
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             future = asyncio.Future()
-            future.set_result(Phasespace(pd.DataFrame(), 0.1))
+            future.set_result(Phasespace(pd.DataFrame(
+                columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1))
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
-                self._sc.scan(repeat=2, output=fp.name)
+                self._sc.scan(repeat=2, output=fp.name, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:

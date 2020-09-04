@@ -17,6 +17,11 @@ from .proc_utils import check_data_file
 V_LIGHT = constants.c
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
+# Note:
+#      ASTRA: absolute z, absolute t
+#   IMPACT-T: absolute z, relative t
+#    ELEGANT: relative z, absolute t
+
 
 def parse_astra_phasespace(particle_file, *, cathode=False):
     """Parse the ASTRA particle file.
@@ -65,7 +70,8 @@ def parse_astra_phasespace(particle_file, *, cathode=False):
     # At this step, the timing can be used for timing parameter_scan study.
     t_ref = data['t'].iloc[0] * 1.e-9
     if not cathode:
-        data['t'] = t_ref - (data['z'] - z_ref) / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
+        data['t'] = t_ref - (data['z'] - z_ref) \
+                    / (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
     else:
         data['t'][1:] = data['t'][1:] * 1.e-9 + t_ref
 
@@ -96,6 +102,35 @@ def parse_impactt_phasespace(particle_file):
     p = np.sqrt(data['px'] ** 2 + data['py'] ** 2 + data['pz'] ** 2)
 
     # Impact-T does not support timing, here 't' is the relative number
-    data['t'] = (data['z'].mean() - data['z']) / (V_LIGHT * data['pz']/np.sqrt(p ** 2 + 1))
+    data['t'] = (data['z'].mean() - data['z']) / \
+                (V_LIGHT * data['pz'] / np.sqrt(p ** 2 + 1))
 
     return Phasespace(data, None)
+
+
+def parse_elegant_phasespace(particle_file):
+    from sdds import SDDS
+
+    sd = SDDS(0)
+    sd.load(particle_file)
+
+    charge = sd.parameterData[sd.parameterName.index('Charge')][0]
+
+    columns = ['x', 'y', 'xp', 'yp', 'p', 't']
+    data = dict()
+    for col in columns:
+        data[col] = sd.columnData[sd.columnName.index(col)][0]
+    data = pd.DataFrame.from_dict(data)
+    data['z'] = np.zeros_like(data['t'])
+
+    data['pz'] = data['p'] / np.sqrt(data['xp'] ** 2 + data['yp'] ** 2 + 1)
+    data['px'] = data['pz'] * data['xp']
+    data['py'] = data['pz'] * data['yp']
+    data['dt'] = data['t'] - data['t'].mean()
+    data['z'] = data['dt'] * V_LIGHT * data['pz'] / np.sqrt(data['p'] ** 2 + 1)
+    data['x'] += data['xp'] * data['z']
+    data['y'] += data['yp'] * data['z']
+
+    data.drop(['xp', 'yp', 'p', 'dt'], inplace=True, axis=1)
+
+    return Phasespace(data, charge)

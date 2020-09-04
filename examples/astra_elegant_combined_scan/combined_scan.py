@@ -1,12 +1,17 @@
 """
-This is a basic example showing how to study parameter_scan.
+This is a basic example showing
+
+```
+python elegant_basic.py
+```
+
+Author: Jun Zhu
 """
 from liso import Linac, LinacScan
 from liso.logging import logger
 logger.setLevel('DEBUG')
 
-
-linac = Linac()  # instantiate a Linac
+linac = Linac()
 
 linac.add_beamline('astra',
                    name='gun',
@@ -14,6 +19,15 @@ linac.add_beamline('astra',
                    fin='injector.in',
                    template='injector.in.000',
                    pout='injector.0450.001')
+
+linac.add_beamline('elegant',
+                   name='tds',
+                   swd='../elegant_files',
+                   fin='run.ele',
+                   template='run.ele.000',
+                   pin='input.sdds',
+                   pout='lps.out')
+
 
 sc = LinacScan(linac)
 

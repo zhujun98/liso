@@ -177,9 +177,47 @@ class ParticleFileGenerator:
                        fmt=" ".join(["%20.12E"] * 6),
                        delimiter='')
 
+    def to_elegant(self, filepath):
+        """Generate an Elegant particle file."""
+        from sdds import SDDS
+
+        sd = SDDS(0)
+        sd.mode = sd.SDDS_BINARY
+
+        sd.description[0] = ""
+        sd.description[1] = ""
+
+        sd.parameterName = ["Charge"]
+        sd.parameterData = [[self._q]]
+        sd.parameterDefinition = [["", "", "", "", sd.SDDS_DOUBLE, ""]]
+
+        xp = self._data[:, 1] / self._data[:, 5]  # px / pz
+        yp = self._data[:, 3] / self._data[:, 5]  # py / pz
+
+        z = self._data[:, 4] - self._data[:, 4].mean()
+        x = self._data[:, 0] - z * xp
+        y = self._data[:, 2] - z * yp
+
+        p = np.sqrt(self._data[:, 1] ** 2
+                    + self._data[:, 3] ** 2
+                    + self._data[:, 5] ** 2)
+
+        sd.columnName = ["x", "xp", "y", "yp", "p", "t"]
+        sd.columnData = [[x.tolist()], [xp.tolist()],
+                         [y.tolist()], [yp.tolist()],
+                         [p.tolist()], [self._data[:, 6].tolist()]]
+        sd.columnDefinition = [["", "m", "", "", sd.SDDS_DOUBLE, 0],
+                               ["x'", "", "", "", sd.SDDS_DOUBLE, 0],
+                               ["", "m", "", "", sd.SDDS_DOUBLE, 0],
+                               ["y'", "", "", "", sd.SDDS_DOUBLE, 0],
+                               ["", "m$be$nc", "", "", sd.SDDS_DOUBLE, 0],
+                               ["", "s", "", "", sd.SDDS_DOUBLE, 0]]
+        sd.save(filepath)
+        del sd
+
     @classmethod
     def from_phasespace(cls, ps):
-        """Generate an Astra particle file from a data frame.
+        """Construct from a Phasespace instance.
 
         :param Phasespace ps: phasespace.
         """
@@ -290,6 +328,15 @@ class AstraInputGenerator(InputGenerator):
 
 
 class ImpacttInputGenerator(InputGenerator):
+    def _parse(self, filepath):
+        """Override."""
+        with open(filepath, 'r') as fp:
+            template = tuple(fp.readlines())
+
+        return template
+
+
+class ElegantInputGenerator(InputGenerator):
     def _parse(self, filepath):
         """Override."""
         with open(filepath, 'r') as fp:

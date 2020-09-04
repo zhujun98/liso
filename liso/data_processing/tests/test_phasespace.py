@@ -10,9 +10,17 @@ import pandas as pd
 import numpy as np
 
 from liso.data_processing import (
-    parse_astra_phasespace, parse_impactt_phasespace,
+    parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
     density_phasespace, pixel_phasespace, sample_phasespace,
 )
+from liso import Phasespace
+
+SKIP_TEST = False
+try:
+    import sdds
+except ImportError:
+    SKIP_TEST = True
+
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
@@ -21,6 +29,13 @@ class TestPhasespace(unittest.TestCase):
     def setUp(self):
         pfile = osp.join(_ROOT_DIR, "astra_output/astra.out")
         self.data = parse_astra_phasespace(pfile)
+
+    def testInitialization(self):
+        with self.assertRaises(TypeError):
+            Phasespace(object(), 1.0)
+
+        with self.assertRaises(ValueError):
+            Phasespace(pd.DataFrame(columns=['x', 'y', 'px', 'py']), 1.0)
 
     def testAccessItem(self):
         self.assertListEqual(['x', 'y', 'z', 'px', 'py', 'pz', 't'],
@@ -133,7 +148,7 @@ class TestPhasespaceImpactt(unittest.TestCase):
         self.assertEqual(params.charge, 0.0)
         self.data.charge = charge
 
-    def testImpactt(self):
+    def testAnalysis(self):
         params = self.data.analyze()
 
         self.assertAlmostEqual(params.charge, self.data.charge, places=4)
@@ -164,6 +179,45 @@ class TestPhasespaceImpactt(unittest.TestCase):
         self.assertAlmostEqual(params.emity_slice*1e6, 0.1061, places=4)
         self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2108, places=4)
         self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1207, places=4)
+
+
+@unittest.skipIf(SKIP_TEST is True, "Failed to import library")
+class TestPhasespaceElegant(unittest.TestCase):
+    def setUp(self):
+        pfile = osp.join(_ROOT_DIR, "elegant_output/elegant.out")
+        self.data = parse_elegant_phasespace(pfile)
+
+    def testAnalysis(self):
+        params = self.data.analyze()
+
+        self.assertAlmostEqual(params.charge, 1.0e-12, places=4)
+        self.assertEqual(params.n, 500)
+        self.assertAlmostEqual(params.p, 100.2111, places=4)
+        self.assertAlmostEqual(params.Sdelta*1e2, 0.1359, places=4)
+        self.assertAlmostEqual(params.St*1e12, 2.3475, places=4)
+
+        self.assertAlmostEqual(params.emitx*1e6, 0.1215, places=2)
+        self.assertAlmostEqual(params.emity*1e6, 0.1235, places=2)
+        self.assertAlmostEqual(params.Sx*1e6, 149.1825, places=4)
+        self.assertAlmostEqual(params.Sy*1e6, 149.4347, places=4)
+
+        self.assertAlmostEqual(params.betax, 18.0618, places=4)
+        self.assertAlmostEqual(params.betay, 17.8270, places=4)
+        self.assertAlmostEqual(params.alphax, 21.0327, places=4)
+        self.assertAlmostEqual(params.alphay, 20.7565, places=4)
+
+        self.assertAlmostEqual(params.I_peak, 3.3560, places=4)
+
+        self.assertAlmostEqual(params.Cx*1e6, -0.0846, places=1)
+        self.assertAlmostEqual(params.Cy*1e6, -0.0164, places=2)
+        self.assertAlmostEqual(params.Cxp*1e6, 0.1290, places=4)
+        self.assertAlmostEqual(params.Cyp*1e6, 0.0195, places=4)
+        self.assertAlmostEqual(params.Ct*1e9, 13.3910, places=4)
+
+        self.assertAlmostEqual(params.emitx_slice*1e6, 0.1009, places=2)
+        self.assertAlmostEqual(params.emity_slice*1e6, 0.1061, places=2)
+        self.assertAlmostEqual(params.Sdelta_slice*1e4, 0.2098, places=4)
+        self.assertAlmostEqual(params.Sdelta_un*1e4, 0.1199, places=4)
 
 
 if __name__ == "__main__":
