@@ -46,13 +46,6 @@ class TestAstraBeamline(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "executable file is not available"):
             self._bl._check_run()
 
-    def testCheckInputFile(self):
-        fin = 'x' * 70
-        self.assertEqual(fin, self._bl._check_fin(osp.join(self._bl._swd, fin)))
-
-        with self.assertRaisesRegex(ValueError, "too long for ASTRA"):
-            self._bl._check_fin(fin + 'x')
-
 
 class TestLinacOneBeamLine(unittest.TestCase):
 
