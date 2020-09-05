@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 from ..data_processing import (
-    density_phasespace, Phasespace, pixel_phasespace, sample_phasespace
+    density_phasespace, Phasespace, mesh_phasespace, sample_phasespace
 )
 from .vis_utils import (
     get_default_unit, get_label, get_unit_label_and_scale
@@ -269,7 +269,7 @@ class PhasespacePlot(object):
         if ax is None:
             _, ax = plt.subplots()
 
-        i, xc, yc = pixel_phasespace(y, x, **kwargs)
+        i, xc, yc = mesh_phasespace(y, x, **kwargs)
 
         if cmap is None:
             cmap = 'viridis'

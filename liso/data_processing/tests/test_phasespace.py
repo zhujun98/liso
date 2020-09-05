@@ -11,7 +11,7 @@ import numpy as np
 
 from liso.data_processing import (
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
-    density_phasespace, pixel_phasespace, sample_phasespace,
+    density_phasespace, mesh_phasespace, sample_phasespace,
 )
 from liso import Phasespace
 
@@ -125,9 +125,21 @@ class TestPhasespace(unittest.TestCase):
         self.assertEqual(1000, len(xs))
         self.assertEqual(1000, len(ys))
 
-    def testPixelizePhasespace(self):
-        x, y = self.data['x'], self.data['y']
-        intensity, _, _ = pixel_phasespace(x, y)
+    def testMeshPhasespace(self):
+        x, y = self.data['t'], self.data['pz']
+
+        intensity, xc, yc = mesh_phasespace(x, y, n_bins=20, normalize=False)
+        self.assertTupleEqual((20, 20), intensity.shape)
+        self.assertEqual(len(self.data), np.sum(intensity))
+        self.assertGreater(np.mean(xc), 1e-8)
+        self.assertGreater(np.mean(yc), 99.8)
+
+        intensity, xc, yc = mesh_phasespace(
+            x, y, n_bins=[10, 20], ranges=[[-10, 10], [99, 101]], normalize=[True, False])
+        self.assertTupleEqual((10, 20), intensity.shape)
+        self.assertEqual(len(self.data), np.sum(intensity))
+        self.assertAlmostEqual(np.mean(xc), 0.)
+        self.assertAlmostEqual(np.mean(yc), 100.)
 
     def testDensityPhasespace(self):
         x, y = self.data['x'], self.data['y']
