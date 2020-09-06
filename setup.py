@@ -46,7 +46,7 @@ setup(
     install_requires=[
         'numpy>=1.18',
         'pandas>=1.1',
-        'scipy>=1.5',
+        'scipy>=1.4.1',
         'h5py>=2.10',
     ],
     entry_points={
