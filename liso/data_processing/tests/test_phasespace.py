@@ -37,6 +37,20 @@ class TestPhasespace(unittest.TestCase):
         with self.assertRaises(ValueError):
             Phasespace(pd.DataFrame(columns=['x', 'y', 'px', 'py']), 1.0)
 
+    def testConstructFromColumns(self):
+        ps = Phasespace.from_columns(x=self.data['x'],
+                                     px=self.data['px'],
+                                     y=self.data['y'],
+                                     py=self.data['py'],
+                                     z=self.data['z'],
+                                     pz=self.data['pz'],
+                                     t=self.data['t'],
+                                     charge=self.data.charge)
+
+        for col in ['x', 'px', 'y', 'py', 'z', 'pz', 't']:
+            np.testing.assert_array_equal(ps[col], self.data[col])
+        self.assertEqual(self.data.charge, ps.charge)
+
     def testAccessItem(self):
         self.assertListEqual(['x', 'y', 'z', 'px', 'py', 'pz', 't'],
                              list(self.data.columns))

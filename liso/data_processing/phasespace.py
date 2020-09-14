@@ -269,3 +269,13 @@ class Phasespace:
             pass
 
         return params
+
+    @classmethod
+    def from_columns(cls,
+                     x=None, px=None,
+                     y=None, py=None,
+                     z=None, pz=None, t=None, *, charge=0.):
+        df = pd.DataFrame({
+            'x': x, 'px': px, 'y': y, 'py': py, 'z': z, 'pz': pz, 't': t
+        })
+        return cls(df, charge)
