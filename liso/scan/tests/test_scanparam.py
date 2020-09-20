@@ -32,5 +32,19 @@ class TestScanParam(unittest.TestCase):
 
         with self.assertRaises(StopIteration):
             next(param5)
-        param5.reset()
-        self.assertEqual(1000, len(list(iter(param5))))
+
+    def testItertools(self):
+        param = ScanParam('param', -1., 1., 3)
+
+        self.assertListEqual([-1.0, -1.0, 0.0, 0.0, 1.0, 1.0], param.repeat(2))
+        self.assertListEqual([-1.0, -1.0, 0.0, 0.0, 1.0, 1.0] * 3, param.cycle(3, 2))
+
+        param = ScanParam('param', 1., sigma=0.1)
+        self.assertLess(abs(0.1 - np.std(param.cycle(200, repeat=3))), 0.01)
+
+        param = ScanParam('param', -1., 1., 2, sigma=0.1)
+        lst = param.cycle(200, repeat=2)
+        self.assertNotEqual(lst[0], lst[1])
+        self.assertNotEqual(lst[3], lst[4])
+        self.assertLess(abs(0.1 - np.std(lst[::4] + lst[1::4])), 0.01)
+        self.assertLess(abs(0.1 - np.std(lst[2::4] + lst[3::4])), 0.01)
