@@ -10,6 +10,7 @@ from .scan import *
 from .data_processing import *
 from .optimization import *
 from .optimizers import *
+from .visualization import *
 
 __all__ = []
 
@@ -18,6 +19,7 @@ __all__ += scan.__all__
 __all__ += data_processing.__all__
 __all__ += optimization.__all__
 __all__ += optimizers.__all__
+__all__ += visualization.__all__
 
 
 __version__ = "0.3.0dev"
