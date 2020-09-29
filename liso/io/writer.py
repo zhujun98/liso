@@ -23,51 +23,59 @@ class SimWriter:
         self._n_particles = n_particles
 
         self._path = path
-        # self._file.attrs['writer'] = f'liso {__version__}'
 
         with h5py.File(path, 'w') as fp:
-            fp.create_group('metadata')
+            fp.create_group('METADATA/SOURCE')
+            fp.create_group('INDEX')
 
-            fp.create_group('input')
+            fp.create_group('CONTROL')
 
-            # phasespace
-            grp = fp.create_group('phasespace')
-            for axis in ['x', 'px', 'y', 'py', 'z', 'pz', 't']:
+            grp = fp.create_group('PHASESPACE')
+            for axis in ['X', 'PX', 'Y', 'PY', 'Z', 'PZ', 'T']:
                 grp.create_group(axis)
 
         self._initialized = False
 
-    def write(self, idx, data):
+    def write(self, idx, controls, phasespaces):
         """Write data into file incrementally.
 
         :param int idx: scan index.
-        :param OutputData data: output data.
+        :param dict controls: dictionary of the control data.
+        :param dict phasespaces: dictionary of the phasespace data.
         """
         with h5py.File(self._path, 'a') as fp:
             if not self._initialized:
-                for k in data['metadata']:
-                    ds = fp.create_dataset(f"metadata/{k}",
-                                           (len(data['metadata'][k]), ),
-                                           dtype=h5py.string_dtype())
-                    ds[:] = list(data['metadata'][k])
+                fp.create_dataset(
+                    "INDEX/simId", (self._n_pulses,), dtype='i8')
 
-                for k in data['input']:
+                fp.create_dataset(
+                    "METADATA/SOURCE/control", (len(controls),),
+                    dtype=h5py.string_dtype())
+                for i, k in enumerate(controls):
+                    fp["METADATA/SOURCE/control"][i] = k
                     fp.create_dataset(
-                        f"input/{k}", (self._n_pulses,), dtype='f8')
+                        f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
-                for k, v in data['phasespace'].items():
+                fp.create_dataset("METADATA/SOURCE/phasespace",
+                                  (len(phasespaces),),
+                                  dtype=h5py.string_dtype())
+                for i, (k, v) in enumerate(phasespaces.items()):
+                    fp["METADATA/SOURCE/phasespace"][i] = k
                     for col in v.columns:
-                        fp.create_dataset(f"phasespace/{col}/{k}",
-                                          (self._n_pulses, self._n_particles),
-                                          dtype='f8')
+                        fp.create_dataset(
+                            f"PHASESPACE/{col.upper()}/{k}",
+                            (self._n_pulses, self._n_particles),
+                            dtype='f8')
 
                 self._initialized = True
 
-            for k, v in data['input'].items():
-                fp[f"input/{k}"][idx] = v
+            fp["INDEX/simId"][idx] = idx + 1
 
-            for k, v in data['phasespace'].items():
+            for k, v in controls.items():
+                fp[f"CONTROL/{k}"][idx] = v
+
+            for k, v in phasespaces.items():
                 # TODO: the predefined number of particles must be exactly
                 #       the same as the number in the data.
                 for col in v.columns:
-                    fp[f"phasespace/{col}/{k}"][idx] = v[col]
+                    fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]

@@ -43,7 +43,7 @@ class TestAstraBeamline(unittest.TestCase):
 
     @patch.dict(config['EXECUTABLE'], {"ASTRA": "astra_fake"})
     def testCheckExecutable(self):
-        with self.assertRaisesRegex(AssertionError, "executable file is not available"):
+        with self.assertRaisesRegex(AssertionError, "executable .astra_fake. is not available"):
             self._bl._check_run()
 
 

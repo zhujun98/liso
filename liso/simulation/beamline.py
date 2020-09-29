@@ -189,8 +189,10 @@ class Beamline(ABC):
             raise RuntimeError(f"{title} file {filepath} is empty!")
 
     def _check_run(self, parallel=False):
-        executable = find_executable(self._get_executable(parallel))
-        assert executable is not None, "executable file is not available"
+        filepath = self._get_executable(parallel)
+        executable = find_executable(filepath)
+        assert executable is not None, \
+            f"executable [{filepath}] is not available"
         return executable
 
     def _update_output(self, swd=None):

@@ -99,8 +99,8 @@ class LinacScan(object):
 
                 for task in done:
                     try:
-                        idx, output = task.result()
-                        writer.write(idx, output)
+                        idx, controls, phasespaces = task.result()
+                        writer.write(idx, controls, phasespaces)
                     except RuntimeError as e:
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         logger.debug(repr(traceback.format_tb(exc_traceback))
