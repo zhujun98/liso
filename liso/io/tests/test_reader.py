@@ -29,6 +29,7 @@ class TestReader(unittest.TestCase):
                              {'out1': ps1, 'out2': ps2})
 
             data = open_sim(fp.name)
+            data.info()
             self.assertIsInstance(data, DataCollection)
             self.assertSetEqual({'gun.gun_gradient', 'gun.gun_phase'},
                                 data.control_sources)

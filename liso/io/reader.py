@@ -32,6 +32,17 @@ class DataCollection:
         # this returns a list!
         self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
 
+    def info(self):
+        print('# of simulations:     ', len(self.sim_ids))
+
+        print(f"\nControl sources ({len(self.control_sources)}):")
+        for src in self.control_sources:
+            print('  - ', src)
+
+        print(f"\nPhasespace sources ({len(self.phasespace_sources)}):")
+        for src in self.phasespace_sources:
+            print('  - ', src)
+
     @classmethod
     def from_path(cls, path):
         files = [FileAccess(path)]
