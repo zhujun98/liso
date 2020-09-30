@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from .file_access import FileAccess
+from ..data_processing import Phasespace
 
 
 class DataCollection:
@@ -33,6 +34,10 @@ class DataCollection:
     def from_path(cls, path):
         files = [FileAccess(path)]
         return cls(files)
+
+    def get_controls(self):
+        """Return a Phasespace instance."""
+        pass
 
 
 def open_sim(filepath):
