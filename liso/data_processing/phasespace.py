@@ -236,26 +236,34 @@ class Phasespace:
         params.Ct = data['t'].mean()
 
         # Calculate the slice parameters
-        sorted_data = data.reindex(data['t'].abs().sort_values(ascending=True).index)
+        sorted_data = data.reindex(
+            data['t'].abs().sort_values(ascending=True).index)
 
         try:
             filtered_currents = gaussian_filter1d(currents, sigma=filter_size)
             if slice_with_peak_current and params.charge != 0.0:
-                Ct_slice = centers[np.argmax(filtered_currents)]  # currents could be all 0
+                # currents could be all 0
+                Ct_slice = centers[np.argmax(filtered_currents)]
             else:
                 Ct_slice = params.Ct
 
-            dt_slice = 4 * params.St * slice_percent  # assume 4-sigma full bunch length
+            # assume 4-sigma full bunch length
+            dt_slice = 4 * params.St * slice_percent
             slice_data = sorted_data[(sorted_data.t > Ct_slice - dt_slice / 2) &
                                      (sorted_data.t < Ct_slice + dt_slice / 2)]
 
             if len(slice_data) < min_particles:
-                raise RuntimeError(f"Too few particles {len(slice_data)} in the slice")
+                raise RuntimeError(
+                    f"Too few particles {len(slice_data)} in the slice")
 
-            p_slice = np.sqrt(slice_data['pz'] ** 2 + slice_data['px'] ** 2 + slice_data['py'] ** 2)
+            p_slice = np.sqrt(slice_data['pz'] ** 2
+                              + slice_data['px'] ** 2
+                              + slice_data['py'] ** 2)
 
-            params.emitx_slice = compute_canonical_emit(slice_data.x, slice_data.px)
-            params.emity_slice = compute_canonical_emit(slice_data.y, slice_data.py)
+            params.emitx_slice = compute_canonical_emit(
+                slice_data.x, slice_data.px)
+            params.emity_slice = compute_canonical_emit(
+                slice_data.y, slice_data.py)
             params.Sdelta_slice = p_slice.std(ddof=0) / p_slice.mean()
             params.dt_slice = slice_data.t.max() - slice_data.t.min()
 
@@ -263,7 +271,9 @@ class Phasespace:
             # because the slightly different No of particles sliced. It
             # affects the correlation calculation since the value is
             # already very close to 1.
-            params.Sdelta_un = params.Sdelta_slice * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
+            params.Sdelta_un = \
+                params.Sdelta_slice \
+                * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
 
         except Exception:
             pass
@@ -279,3 +289,7 @@ class Phasespace:
             'x': x, 'px': px, 'y': y, 'py': py, 'z': z, 'pz': pz, 't': t
         })
         return cls(df, charge)
+
+    @classmethod
+    def from_dict(cls, data, charge=0.):
+        return cls(pd.DataFrame(data), charge)
