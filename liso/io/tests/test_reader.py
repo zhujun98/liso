@@ -39,3 +39,5 @@ class TestReader(unittest.TestCase):
                                           control_data['gun.gun_gradient'])
             np.testing.assert_array_equal(20 * np.arange(10),
                                           control_data['gun.gun_phase'])
+            self.assertListEqual([i+1 for i in range(n_sims)],
+                                 control_data.index.tolist())

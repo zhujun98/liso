@@ -40,9 +40,11 @@ class DataCollection:
         """Return a pandas.DataFrame containing control data."""
         data = []
         for fa in self._files:
-            data.append(pd.DataFrame.from_dict({
+            df = pd.DataFrame.from_dict({
                 k: v[()] for k, v in fa.file["CONTROL"].items()
-            }))
+            })
+            df.set_index(fa.sim_ids, inplace=True)
+            data.append(df)
         return pd.concat(data)
 
 
