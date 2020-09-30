@@ -59,8 +59,8 @@ class TestLinacscan(unittest.TestCase):
         self.assertLess(abs(1 - np.std(lst2)), 0.1)
 
     def testScan(self):
-        self._sc.add_param('gun_gradient', 1.)
-        self._sc.add_param('gun_phase', 2.)
+        self._sc.add_param('gun_gradient', 10.)
+        self._sc.add_param('gun_phase', 20.)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             future = asyncio.Future()
@@ -74,8 +74,13 @@ class TestLinacscan(unittest.TestCase):
                 with h5py.File(fp.name, 'r') as fp_h5:
                     self.assertSetEqual(
                         {'gun.gun_gradient', 'gun.gun_phase'},
-                        set(fp_h5['metadata']['input']))
+                        set(fp_h5['METADATA']['SOURCE']['control'])
+                    )
+                    self.assertSetEqual(
+                        {'gun.out'}, set(fp_h5['METADATA']['SOURCE']['phasespace']))
                     np.testing.assert_array_equal(
-                        [1, 1], fp_h5['input']['gun.gun_gradient'][()])
+                        [1, 2], fp_h5['INDEX']['simId'][()])
                     np.testing.assert_array_equal(
-                        [2, 2], fp_h5['input']['gun.gun_phase'][()])
+                        [10, 10], fp_h5['CONTROL']['gun.gun_gradient'][()])
+                    np.testing.assert_array_equal(
+                        [20, 20], fp_h5['CONTROL']['gun.gun_phase'][()])

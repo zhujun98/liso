@@ -5,39 +5,35 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import os.path as osp
-
-import h5py
-
 from .file_access import FileAccess
 
 
 class DataCollection:
-    """A collection of
-
-    """
-    def __init__(self, files, data_ids=None):
+    """A collection of simulated data."""
+    def __init__(self, files):
         """Initialization
 
-        :param list files:
-        :param iterable data_ids: ids of the data set.
+        :param list files: a list of FileAccess instances.
         """
         self._files = list(files)
 
-        if data_ids is None:
-            data_ids = sorted(set().union(*(f.data_ids for f in files)))
-        self._data_ids = data_ids
+        self.control_sources = set()
+        self.phasespace_sources = set()
+        for fa in self._files:
+            self.control_sources.update(fa.control_sources)
+            self.phasespace_sources.update(fa.phasespace_sources)
 
-    @staticmethod
-    def _open_file(path):
-        try:
-            fa = FileAccess(path)
-        except Exception as e:
-            return osp.basename(path), str(e)
-        else:
-            return osp.basename(path), fa
+        self.control_sources = frozenset(self.control_sources)
+        self.phasespace_sources = frozenset(self.phasespace_sources)
+
+        # this returns a list!
+        self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
 
     @classmethod
     def from_path(cls, path):
         files = [FileAccess(path)]
         return cls(files)
+
+
+def open_sim(filepath):
+    return DataCollection.from_path(filepath)

@@ -9,7 +9,6 @@ from collections.abc import Mapping
 
 from collections import defaultdict, OrderedDict
 from .beamline import create_beamline
-from .output import OutputData
 
 
 class Linac(Mapping):
@@ -81,7 +80,7 @@ class Linac(Mapping):
         return mapping_grp
 
     def compile(self, mapping):
-        """Compile all the input before running the simulation."""
+        """Compile all the inputs before running the simulation."""
         mapping_grp = self._split_mapping(mapping)
         mapping_norm = {}
         for name, bl in self._beamlines.items():
@@ -105,12 +104,12 @@ class Linac(Mapping):
             bl.run(n_workers, timeout)
 
     async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
-        inputs = self.compile(mapping)
-        outs = dict()
+        controls = self.compile(mapping)
+        phasespaces = dict()
         for name, bl in self._beamlines.items():
-            phasespace = await bl.async_run(tmp_dir, timeout=timeout)
-            outs[f"{name}.out"] = phasespace
-        return idx, OutputData(inputs, outs)
+            ps = await bl.async_run(tmp_dir, timeout=timeout)
+            phasespaces[f"{name}.out"] = ps
+        return idx, controls, phasespaces
 
     def status(self):
         """Return the status of the linac."""
