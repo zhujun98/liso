@@ -5,8 +5,9 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import pandas as pd
+
 from .file_access import FileAccess
-from ..data_processing import Phasespace
 
 
 class DataCollection:
@@ -36,8 +37,13 @@ class DataCollection:
         return cls(files)
 
     def get_controls(self):
-        """Return a Phasespace instance."""
-        pass
+        """Return a pandas.DataFrame containing control data."""
+        data = []
+        for fa in self._files:
+            data.append(pd.DataFrame.from_dict({
+                k: v[()] for k, v in fa.file["CONTROL"].items()
+            }))
+        return pd.concat(data)
 
 
 def open_sim(filepath):

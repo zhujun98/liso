@@ -21,7 +21,7 @@ class TestReader(unittest.TestCase):
 
             for i in range(n_sims):
                 writer.write(i,
-                             {'gun.gun_gradient': 1, 'gun.gun_phase': 2},
+                             {'gun.gun_gradient': 10 * i, 'gun.gun_phase': 20 * i},
                              {'out': ps})
 
             data = open_sim(fp.name)
@@ -30,3 +30,12 @@ class TestReader(unittest.TestCase):
                                 data.control_sources)
             self.assertSetEqual({'out'}, data.phasespace_sources)
             self.assertListEqual([i+1 for i in range(n_sims)], data.sim_ids)
+
+            control_data = data.get_controls()
+            self.assertEqual(n_sims, len(control_data))
+            self.assertEqual(['gun.gun_gradient', 'gun.gun_phase'],
+                             control_data.columns.tolist())
+            np.testing.assert_array_equal(10 * np.arange(10),
+                                          control_data['gun.gun_gradient'])
+            np.testing.assert_array_equal(20 * np.arange(10),
+                                          control_data['gun.gun_phase'])
