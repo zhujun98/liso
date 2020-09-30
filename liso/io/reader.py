@@ -8,6 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import pandas as pd
 
 from .file_access import FileAccess
+from ..data_processing import Phasespace
 
 
 class DataCollection:
@@ -46,6 +47,30 @@ class DataCollection:
             df.set_index(fa.sim_ids, inplace=True)
             data.append(df)
         return pd.concat(data)
+
+    def __getitem__(self, item):
+        fa = self._find_data(item)
+        ret = dict()
+        index = item - 1
+        for src in self.control_sources:
+            ret[src] = fa.file["CONTROL"][src][index]
+        for src in self.phasespace_sources:
+            ret[src] = Phasespace.from_dict(
+                {col.lower(): fa.file["PHASESPACE"][col][src][index]
+                 for col in fa.file["PHASESPACE"]}
+            )
+
+        return ret
+
+    def __iter__(self):
+        for sid in self.sim_ids:
+            yield sid, self.__getitem__(sid)
+
+    def _find_data(self, item) -> FileAccess:
+        for fa in self._files:
+            if item in fa.sim_ids:
+                return fa
+        raise IndexError
 
 
 def open_sim(filepath):
