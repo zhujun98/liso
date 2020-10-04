@@ -14,7 +14,10 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+
+import liso
+
+sys.path.insert(0, os.path.abspath('../..'))
 
 
 # -- Project information -----------------------------------------------------
@@ -24,9 +27,9 @@ copyright = '2018, Jun Zhu'
 author = 'Jun Zhu'
 
 # The short X.Y version
-version = ''
+version = liso.__version__
 # The full version, including alpha/beta/rc tags
-release = ''
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,7 +44,8 @@ release = ''
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.mathjax',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -48,19 +48,13 @@ setup(
         'pandas>=1.1',
         'scipy>=1.4.1',
         'h5py>=2.10',
+        'matplotlib',
     ],
     entry_points={
     },
     extras_require={
         'testing': [
             'pytest',
-            'matplotlib',
-        ],
-        'docs': [
-            'sphinx',
-            'nbsphinx',
-            'sphinx-rtd-theme',
-            'ipython',  # For nbsphinx syntax highlighting
         ],
     }
 )
