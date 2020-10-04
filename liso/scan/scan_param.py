@@ -5,6 +5,8 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import itertools
+
 import numpy as np
 
 from ..elements import OperationalElement
@@ -58,8 +60,22 @@ class ScanParam(OperationalElement):
 
         raise StopIteration
 
-    def reset(self):
+    def repeat(self, times=1):
+        ret = []
         self._count = 0
+        while self._count < self._num:
+            for _ in range(times):
+                ret.append(self.__next__())
+                self._count -= 1
+            self._count += 1
+        self._count = 0  # reset iterator
+        return ret
+
+    def cycle(self, times=1, repeat=1):
+        ret = []
+        for _ in range(times):
+            ret.extend(self.repeat(repeat))
+        return ret
 
     def list_item(self):
         """Override."""

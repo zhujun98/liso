@@ -5,12 +5,18 @@ import tempfile
 import numpy as np
 
 from liso.data_processing import (
-    parse_astra_phasespace, parse_impactt_phasespace
+    parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
 )
 from liso.simulation import ParticleFileGenerator
 from liso.simulation.input import (
-    AstraInputGenerator, ImpacttInputGenerator
+    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator
 )
+
+SKIP_TEST = False
+try:
+    import sdds
+except ImportError:
+    SKIP_TEST = True
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
@@ -78,6 +84,22 @@ class TestParticleFileGenerator(unittest.TestCase):
             for attr in ['n', 'q', 'gamma', 'St', 'betax', 'emitx']:
                 self.assertAlmostEqual(getattr(param_gt, attr), getattr(param, attr))
 
+    @unittest.skipIf(SKIP_TEST is True, "Failed to import library")
+    def testElegantFromPhasespace(self):
+        pfile = osp.join(
+            _ROOT_DIR, "../../data_processing/tests/elegant_output/elegant.out")
+        ps = parse_elegant_phasespace(pfile)
+        param_gt = ps.analyze()
+
+        gen = ParticleFileGenerator.from_phasespace(ps)
+        with tempfile.NamedTemporaryFile('w') as file:
+            gen.to_elegant(file.name)
+
+            param = parse_elegant_phasespace(file.name).analyze()
+
+            for attr in ['n', 'q', 'gamma', 'St', 'betax', 'emitx']:
+                self.assertAlmostEqual(getattr(param_gt, attr), getattr(param, attr))
+
 
 class TestAstraInputGenerator(unittest.TestCase):
     def setUp(self):
@@ -116,6 +138,17 @@ class TestImpacttInputGenerator(unittest.TestCase):
 
     def test_not_raise(self):
         mapping = {'MQZM1_G': 10, 'MQZM2_G': 20}
+        self._gen.update(mapping)
+        with tempfile.NamedTemporaryFile('w') as file:
+            self._gen.write(file.name)
+
+
+class TestElegantInputGenerator(unittest.TestCase):
+    def setUp(self):
+        self._gen = ElegantInputGenerator(osp.join(_ROOT_DIR, "./elegant.ele.000"))
+
+    def test_not_raise(self):
+        mapping = {}
         self._gen.update(mapping)
         with tempfile.NamedTemporaryFile('w') as file:
             self._gen.write(file.name)

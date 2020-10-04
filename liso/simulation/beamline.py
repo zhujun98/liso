@@ -16,13 +16,14 @@ import numpy as np
 from ..config import config
 from ..data_processing import (
     analyze_line,
-    parse_astra_phasespace, parse_impactt_phasespace,
-    parse_astra_line, parse_impactt_line,
+    parse_astra_phasespace, parse_astra_line,
+    parse_impactt_phasespace, parse_impactt_line,
+    parse_elegant_phasespace, parse_elegant_line,
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 from .input import (
-    AstraInputGenerator, ImpacttInputGenerator
+    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
 )
 
 
@@ -33,6 +34,7 @@ class Beamline(ABC):
                  template=None,
                  swd=None,
                  fin=None,
+                 pin=None,
                  pout=None,
                  charge=None,
                  z0=None):
@@ -41,11 +43,9 @@ class Beamline(ABC):
         :param str name: Name of the beamline.
         :param str template: path of the template of the input file.
         :param str swd: path of the simulation working directory. This where
-            ASTRA expects to find all the data files (i.e. initial particle
-            file and field files) specified in the input file. It should be
-            noted that the input file does not have to be put in this
-            directory.
+            the Python subprocess runs.
         :param str fin: input file name.
+        :param str pin: input particle file name.
         :param str pout: final particle file name. It must be located in the
             same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
@@ -63,7 +63,7 @@ class Beamline(ABC):
         self._swd = osp.abspath('./' if swd is None else swd)
 
         self._fin = fin
-        self._pin = None  # Initial particle distribution file name.
+        self._pin = pin
         self._pout = pout
         self._rootname = None
 
@@ -189,13 +189,11 @@ class Beamline(ABC):
             raise RuntimeError(f"{title} file {filepath} is empty!")
 
     def _check_run(self, parallel=False):
-        executable = find_executable(self._get_executable(parallel))
-        assert executable is not None, "executable file is not available"
+        filepath = self._get_executable(parallel)
+        executable = find_executable(filepath)
+        assert executable is not None, \
+            f"executable [{filepath}] is not available"
         return executable
-
-    def _check_fin(self, fin):
-        """Concrete class should override this method if needed."""
-        return fin
 
     def _update_output(self, swd=None):
         """Analyse output particle file.
@@ -235,11 +233,11 @@ class Beamline(ABC):
         self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
-    def _run_core(self, fin, n_workers, timeout):
+    def _run_core(self, n_workers, timeout):
         executable = self._check_run(n_workers > 1)
-        fin = self._check_fin(fin)
 
-        command = f"{executable} {fin}"
+        # self._fin must be in the swd
+        command = f"{executable} {self._fin}"
         if n_workers > 1:
             command = f"mpirun -np {n_workers} " + command
 
@@ -265,20 +263,19 @@ class Beamline(ABC):
 
         self.reset()
 
-        fin = osp.join(self._swd, self._fin)
-        self._input_gen.write(fin)
-        self._check_file(fin, 'Input')
+        # need absolute path here
+        self._input_gen.write(osp.join(self._swd, self._fin))
 
-        self._run_core(fin, n_workers, timeout)
+        self._run_core(n_workers, timeout)
 
         self._update_output()
         self._update_statistics()
 
-    async def _async_run_core(self, fin, timeout):
+    async def _async_run_core(self, swd, timeout):
         executable = self._check_run()
-        fin = self._check_fin(fin)
 
-        command = f"{executable} {fin}"
+        # self._fin must be in the swd
+        command = f"{executable} {self._fin}"
         if timeout is not None:
             command = f"timeout {timeout}s " + command
 
@@ -296,7 +293,7 @@ class Beamline(ABC):
                 command,
                 stdout=out_file,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=self._swd
+                cwd=swd
             )
 
             _, err = await proc.communicate()
@@ -306,11 +303,10 @@ class Beamline(ABC):
         with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
             self.reset(swd)
 
-            fin = osp.join(swd, self._fin)
-            self._input_gen.write(fin)
-            self._check_file(fin, 'Input')
+            # need absolute path here
+            self._input_gen.write(osp.join(swd, self._fin))
 
-            await self._async_run_core(fin, timeout)
+            await self._async_run_core(swd, timeout)
 
             return self._update_output(swd)
 
@@ -346,16 +342,6 @@ class AstraBeamline(Beamline):
         self._output_suffixes = [
             '.Xemit.001', '.Yemit.001', '.Zemit.001'
         ]
-
-    def _check_fin(self, fin):
-        """Concrete class should override this method if needed."""
-        max_len = 70  # this number is a little bit conservative
-        if len(fin) > max_len:
-            fin = osp.relpath(fin, self._swd)
-            if len(fin) > max_len:
-                raise ValueError("Both the absolute and relative paths of "
-                                 "the input file are too long for ASTRA!")
-        return fin
 
     def _get_executable(self, parallel):
         """Override."""
@@ -419,6 +405,37 @@ class ImpacttBeamline(Beamline):
             osp.join(self._swd, self._pin))
 
 
+class ElegantBeamline(Beamline):
+    """Beamline simulated using ELEGANT."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._rootname = 'fort'
+
+    def _get_executable(self, parallel):
+        """Override."""
+        if parallel:
+            raise NotImplementedError
+        return config['EXECUTABLE']['ELEGANT']
+
+    def _parse_template_in(self, filepath):
+        """Override."""
+        return ElegantInputGenerator(filepath)
+
+    def _parse_phasespace(self, pfile):
+        """Override."""
+        return parse_elegant_phasespace(pfile)
+
+    def _parse_line(self, rootname):
+        """Override."""
+        raise NotImplementedError
+
+    def generate_initial_particle_file(self, data):
+        """Override."""
+        ParticleFileGenerator.from_phasespace(data).to_elegant(
+            osp.join(self._swd, self._pin))
+
+
 def create_beamline(bl_type, *args, **kwargs):
     """Create and return a Beamline instance.
 
@@ -429,5 +446,8 @@ def create_beamline(bl_type, *args, **kwargs):
 
     if bl_type.lower() in ('impactt', 't'):
         return ImpacttBeamline(*args, **kwargs)
+
+    if bl_type.lower() in ('elegant', 'e'):
+        return ElegantBeamline(*args, **kwargs)
 
     raise ValueError(f"Unknown beamline type {bl_type}!")

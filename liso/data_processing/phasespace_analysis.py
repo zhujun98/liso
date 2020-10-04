@@ -124,28 +124,29 @@ def sample_phasespace(x, y, n=1):
     return x.sample(n).values, y.sample(n).values
 
 
-def pixel_phasespace(x, y, *,
-                     n_bins=10,
-                     range=None,
-                     normalize=True):
-    """Return the pixelized phasespace.
+def mesh_phasespace(x, y, *, n_bins=10, ranges=None, normalize=True):
+    """Return the meshed phasespace.
 
     :param array-like x: 1D x data.
     :param array-like y: 1D y data.
     :param int/array-like n_bins: number of bins.
-    :param array-like range: bin ranges in the format of
+    :param array-like ranges: bin ranges in the format of
         [[xmin, xmax], [ymin, ymax]] if specified.
-    :param bool normalize: True for normalizing the x and y edges.
+    :param bool/array-like normalize: True for normalizing the x and y data
+        by their averages, respectively.
     """
-    counts, x_edges, y_edges = np.histogram2d(x, y, bins=n_bins, range=range)
+    try:
+        norm_x, norm_y = normalize
+    except TypeError:
+        norm_x = norm_y = normalize
+
+    xx = x - np.mean(x) if norm_x else x
+    yy = y - np.mean(y) if norm_y else y
+
+    counts, x_edges, y_edges = np.histogram2d(
+        xx, yy, bins=n_bins, range=ranges)
     x_centers = (x_edges[1:] + x_edges[0:-1]) / 2
     y_centers = (y_edges[1:] + y_edges[0:-1]) / 2
-
-    if normalize:
-        x_centers -= np.mean(x)
-        x_centers /= np.std(x)
-        y_centers -= np.mean(y)
-        y_centers /= np.std(y)
 
     return counts, x_centers, y_centers
 
@@ -164,7 +165,7 @@ def density_phasespace(x, y, *, n=20000, n_bins=10, sigma=None):
     :returns pandas.Series y_sample: sampled y data
     :returns numpy.ndarray z: Normalized density at each sample point.
     """
-    counts, x_centers, y_centers = pixel_phasespace(x, y, n_bins=n_bins)
+    counts, x_centers, y_centers = mesh_phasespace(x, y, n_bins=n_bins)
 
     if sigma is not None:
         counts = gaussian_filter(counts, sigma=sigma)

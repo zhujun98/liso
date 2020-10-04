@@ -32,17 +32,19 @@ class TestLinacscan(unittest.TestCase):
             super().run(result)
 
     def testScanParams(self):
-        self._sc.add_param("param1", -0.1, 0.1, 20)
-        self._sc.add_param("param2", -1., 1., 50)
-        self._sc.add_param("param3", -1., sigma=0.01)
+        self._sc.add_param("param1", -0.1, 0.1, 2)
+        self._sc.add_param("param2", -1., 1., 3)
+        self._sc.add_param("param3",  3.,  4., 2)
+        self._sc.add_param("param4", -1.)
         with self.assertRaises(ValueError):
-            self._sc.add_param("param3")
+            self._sc.add_param("param4")
 
-        lst = self._sc._generate_param_sequence(1)
-        self.assertEqual(1000, len(lst))
-
-        lst1, lst2, lst3 = zip(*lst)
-        self.assertLess(abs(0.01 - np.std(lst3)), 0.001)
+        lst = self._sc._generate_param_sequence(2)
+        self.assertListEqual([
+            (-0.1, -1.0, 3.0, -1.0), (-0.1, -1.0, 4.0, -1.0), (-0.1, 0.0, 3.0, -1.0),
+            (-0.1,  0.0, 4.0, -1.0), (-0.1,  1.0, 3.0, -1.0), (-0.1, 1.0, 4.0, -1.0),
+            ( 0.1, -1.0, 3.0, -1.0), ( 0.1, -1.0, 4.0, -1.0), ( 0.1, 0.0, 3.0, -1.0),
+            ( 0.1,  0.0, 4.0, -1.0), ( 0.1,  1.0, 3.0, -1.0), ( 0.1, 1.0, 4.0, -1.0)] * 2, lst)
 
     def testJitterParams(self):
         n = 1000
@@ -57,22 +59,28 @@ class TestLinacscan(unittest.TestCase):
         self.assertLess(abs(1 - np.std(lst2)), 0.1)
 
     def testScan(self):
-        self._sc.add_param('gun_gradient', 1.)
-        self._sc.add_param('gun_phase', 2.)
+        self._sc.add_param('gun_gradient', 10.)
+        self._sc.add_param('gun_phase', 20.)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             future = asyncio.Future()
-            future.set_result(Phasespace(pd.DataFrame(), 0.1))
+            future.set_result(Phasespace(pd.DataFrame(
+                columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1))
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
-                self._sc.scan(repeat=2, output=fp.name)
+                self._sc.scan(repeat=2, output=fp.name, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
                     self.assertSetEqual(
                         {'gun.gun_gradient', 'gun.gun_phase'},
-                        set(fp_h5['metadata']['input']))
+                        set(fp_h5['METADATA']['SOURCE']['control'])
+                    )
+                    self.assertSetEqual(
+                        {'gun.out'}, set(fp_h5['METADATA']['SOURCE']['phasespace']))
                     np.testing.assert_array_equal(
-                        [1, 1], fp_h5['input']['gun.gun_gradient'][()])
+                        [1, 2], fp_h5['INDEX']['simId'][()])
                     np.testing.assert_array_equal(
-                        [2, 2], fp_h5['input']['gun.gun_phase'][()])
+                        [10, 10], fp_h5['CONTROL']['gun.gun_gradient'][()])
+                    np.testing.assert_array_equal(
+                        [20, 20], fp_h5['CONTROL']['gun.gun_phase'][()])

@@ -6,7 +6,6 @@
 [![Build Status](https://dev.azure.com/zhujun981661/zhujun981661/_apis/build/status/zhujun98.liso?branchName=master)](https://dev.azure.com/zhujun981661/zhujun981661/_build/latest?definitionId=1&branchName=master)
 [![codecov.io](https://codecov.io/github/zhujun98/liso/coverage.svg?branch=master)](https://codecov.io/github/zhujun98/liso?branch=master)
 [![Documentation](https://img.shields.io/readthedocs/liso)](https://liso.readthedocs.io/en/latest/)
-[![Documentation](https://img.shields.io/badge/documentation-online-blue)](https://liso.readthedocs.io/en/latest/)
 
 Author: Jun Zhu, zhujun981661@gmail.com
 
@@ -18,3 +17,9 @@ Now, it aims to provide an high-level API to:
 experiments;
 3. Provide a toolbox to process and visualize the data for deep learning and deep reinforcement 
 learning studies.
+
+## Documentation
+
+To get started with `liso`, checkout the full documentation at 
+
+https://liso.readthedocs.io/

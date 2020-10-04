@@ -5,39 +5,84 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import os.path as osp
-
-import h5py
+import pandas as pd
 
 from .file_access import FileAccess
+from ..data_processing import Phasespace
 
 
 class DataCollection:
-    """A collection of
-
-    """
-    def __init__(self, files, data_ids=None):
+    """A collection of simulated data."""
+    def __init__(self, files):
         """Initialization
 
-        :param list files:
-        :param iterable data_ids: ids of the data set.
+        :param list files: a list of FileAccess instances.
         """
         self._files = list(files)
 
-        if data_ids is None:
-            data_ids = sorted(set().union(*(f.data_ids for f in files)))
-        self._data_ids = data_ids
+        self.control_sources = set()
+        self.phasespace_sources = set()
+        for fa in self._files:
+            self.control_sources.update(fa.control_sources)
+            self.phasespace_sources.update(fa.phasespace_sources)
 
-    @staticmethod
-    def _open_file(path):
-        try:
-            fa = FileAccess(path)
-        except Exception as e:
-            return osp.basename(path), str(e)
-        else:
-            return osp.basename(path), fa
+        self.control_sources = frozenset(self.control_sources)
+        self.phasespace_sources = frozenset(self.phasespace_sources)
+
+        # this returns a list!
+        self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
+
+    def info(self):
+        print('# of simulations:     ', len(self.sim_ids))
+
+        print(f"\nControl sources ({len(self.control_sources)}):")
+        for src in self.control_sources:
+            print('  - ', src)
+
+        print(f"\nPhasespace sources ({len(self.phasespace_sources)}):")
+        for src in self.phasespace_sources:
+            print('  - ', src)
 
     @classmethod
     def from_path(cls, path):
         files = [FileAccess(path)]
         return cls(files)
+
+    def get_controls(self):
+        """Return a pandas.DataFrame containing control data."""
+        data = []
+        for fa in self._files:
+            df = pd.DataFrame.from_dict({
+                k: v[()] for k, v in fa.file["CONTROL"].items()
+            })
+            df.set_index(fa.sim_ids, inplace=True)
+            data.append(df)
+        return pd.concat(data)
+
+    def __getitem__(self, item):
+        fa = self._find_data(item)
+        ret = dict()
+        index = item - 1
+        for src in self.control_sources:
+            ret[src] = fa.file["CONTROL"][src][index]
+        for src in self.phasespace_sources:
+            ret[src] = Phasespace.from_dict(
+                {col.lower(): fa.file["PHASESPACE"][col][src][index]
+                 for col in fa.file["PHASESPACE"]}
+            )
+
+        return ret
+
+    def __iter__(self):
+        for sid in self.sim_ids:
+            yield sid, self.__getitem__(sid)
+
+    def _find_data(self, item) -> FileAccess:
+        for fa in self._files:
+            if item in fa.sim_ids:
+                return fa
+        raise IndexError
+
+
+def open_sim(filepath):
+    return DataCollection.from_path(filepath)

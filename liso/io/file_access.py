@@ -5,15 +5,10 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-
-# This module is implemented based on:
-# https://github.com/European-XFEL/EXtra-data/blob/master/extra_data/file_access.py
-
-import os
 import os.path as osp
 import resource
 
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 from weakref import WeakValueDictionary
 
 import h5py
@@ -22,28 +17,31 @@ import h5py
 _file_access_registry = WeakValueDictionary()
 
 
-class OpenFilesLimiter(object):
+class FileOpenRegistry:
 
-    def __init__(self, n_max=128):
+    def __init__(self, n_max):
+        """Initialization.
+
+        :param int n_max: maximum number of files.
+        """
         self._n_max = n_max
 
+        # key: filepath, value: None (not used)
         self._cache = OrderedDict()
 
-    @property
-    def cache(self):
-        return OrderedDict.fromkeys(
+    def n_opened(self):
+        """Return the number of opened files."""
+        # remove files which are not in the registry
+        self._cache = OrderedDict.fromkeys(
             path for path in self._cache if path in _file_access_registry
         )
-
-    def n_opened(self):
-        """Return the number of currently opened files."""
-        return len(self.cache)
+        return len(self._cache)
 
     def close_old_files(self):
+        """Close old files if the number of opened files exceed the maximum."""
         if len(self._cache) <= self._n_max:
             return
 
-        # Now check how many paths still have an existing FileAccess object
         n = self.n_opened()
         while n > self._n_max:
             path, _ = self._cache.popitem(last=False)
@@ -52,35 +50,26 @@ class OpenFilesLimiter(object):
                 file_access.close()
             n -= 1
 
-    def touch(self, filename):
-        """
-        Add/move the touched file to the end of the `cache`.
-        If adding a new file takes it over the limit of open files, another file
-        will be closed.
-
-        For use of the file cache, FileAccess should use `touch(filename)` every time
-        it provides the underying instance of `h5py.File` for reading.
-        """
-        if filename in self._cache:
-            self._cache.move_to_end(filename)
+    def touch(self, filepath):
+        """Add a new file or move the existing file to the end of the cache."""
+        if filepath in self._cache:
+            self._cache.move_to_end(filepath)
         else:
-            self._cache[filename] = None
+            self._cache[filepath] = None
             self.close_old_files()
 
-    def closed(self, filename):
-        """Discard a closed file from the cache"""
+    def remove(self, filename):
+        """Remove a closed file from the cache."""
         self._cache.pop(filename, None)
 
 
-def _init_open_files_limiter():
-    # Raise the limit for open files (1024 -> 4096 on Maxwell)
-    nofile = resource.getrlimit(resource.RLIMIT_NOFILE)
-    resource.setrlimit(resource.RLIMIT_NOFILE, (nofile[1], nofile[1]))
-    maxfiles = nofile[1] // 2
-    return OpenFilesLimiter(maxfiles)
+def _init_file_open_registry():
+    # (soft, hard) = (1024, 4096) on the Maxwell cluster
+    max_files = resource.getrlimit(resource.RLIMIT_NOFILE)
+    return FileOpenRegistry(max_files[0])
 
 
-_open_files_limiter = _init_open_files_limiter()
+_file_open_registry = _init_file_open_registry()
 
 
 class FileAccess:
@@ -91,49 +80,49 @@ class FileAccess:
     """
     _file = None
 
-    def __new__(cls, filename):
-        filename = osp.abspath(filename)
-        instance = _file_access_registry.get(filename, None)
+    def __new__(cls, filepath):
+        filepath = osp.abspath(filepath)
+        instance = _file_access_registry.get(filepath, None)
         if instance is None:
             instance = super().__new__(cls)
-            _file_access_registry[filename] = instance
+            instance._filepath = filepath
+            _file_access_registry[filepath] = instance
         return instance
 
-    def __init__(self, filename):
-        self.filename = osp.abspath(filename)
+    def __init__(self, filepath):
+        self.control_sources, self.phasespace_sources = \
+            self._read_data_sources()
 
-        tid_data = self.file['INDEX/trainId'][:]
-        self.train_ids = tid_data[tid_data != 0]
-
-        self.control_sources, self.instrument_sources = self._read_data_sources()
-
-        # Store the stat of the file as it was when we read the metadata.
-        # This is used by the run files map.
-        self.metadata_fstat = os.stat(self.file.id.get_vfd_handle())
-
-        # {(file, source, group): (firsts, counts)}
-        self._index_cache = {}
-        # {source: set(keys)}
-        self._keys_cache = {}
-        # {source: set(keys)} - including incomplete sets
-        self._known_keys = defaultdict(set)
+        self.sim_ids = self.file["INDEX/simId"][()]
 
     @property
     def file(self):
-        _open_files_limiter.touch(self.filename)
+        _file_open_registry.touch(self._filepath)
         if self._file is None:
-            self._file = h5py.File(self.filename, 'r')
+            self._file = h5py.File(self._filepath, 'r')
         return self._file
+
+    def _read_data_sources(self):
+        control_sources, phasespace_sources = set(), set()
+
+        data_sources_path = 'METADATA/SOURCE'
+        for src in self.file[data_sources_path]['control'][()]:
+            control_sources.add(src)
+        for src in self.file[data_sources_path]['phasespace'][()]:
+            phasespace_sources.add(src)
+
+        return frozenset(control_sources), frozenset(phasespace_sources)
 
     def close(self):
         """Close the HDF5 file this refers to.
+
         The file may not actually be closed if there are still references to
         objects from it, e.g. while iterating over trains. This is what HDF5
         calls 'weak' closing.
         """
         if self._file:
             self._file = None
-        _open_files_limiter.closed(self.filename)
+        _file_open_registry.remove(self._filepath)
 
     def __repr__(self):
-        return "{}({})".format(type(self).__name__, repr(self.filename))
+        return "{}({})".format(type(self).__name__, repr(self._filepath))

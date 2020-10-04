@@ -10,12 +10,25 @@ Linac Optimization and Simulation (LISO)
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: INSTALLATION:
 
-   Installation
-   Simulation
-   DataProcessing
-   Scan
-   Optimization
-   Optimizers
-   GUI
+   installation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: USAGE:
+
+   param_optimization
+   param_scan
+   data_visualization
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API REFERENCE:
+
+   api_simulation
+   api_data_processing
+   api_scan
+   api_optimization
+   api_optimizers
+   api_visualization
