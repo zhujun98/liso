@@ -24,4 +24,4 @@ __all__ += simulation.__all__
 __all__ += visualization.__all__
 
 
-__version__ = "0.3.0"
+__version__ = "0.4.0dev"
