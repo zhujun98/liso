@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 from liso import Phasespace
-from liso.io import SimWriter, open_sim
-from liso.io.reader import DataCollection
+from liso.io import SimWriter, open_run, open_sim
+from liso.io.reader import ExpDataCollection, SimDataCollection
 
 
 class TestReader(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestReader(unittest.TestCase):
 
             data = open_sim(fp.name)
             data.info()
-            self.assertIsInstance(data, DataCollection)
+            self.assertIsInstance(data, SimDataCollection)
             self.assertSetEqual({'gun.gun_gradient', 'gun.gun_phase'},
                                 data.control_sources)
             self.assertSetEqual({'out1', 'out2'}, data.phasespace_sources)
@@ -61,3 +61,6 @@ class TestReader(unittest.TestCase):
                 self.assertEqual(10 * i, sim['gun.gun_gradient'])
                 np.testing.assert_array_equal(np.ones(100) * i, sim['out1']['x'])
                 np.testing.assert_array_equal(np.ones(100) * 10 * i, sim['out2']['y'])
+
+    def testOpenRun(self):
+        pass

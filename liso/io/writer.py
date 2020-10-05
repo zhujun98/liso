@@ -9,7 +9,7 @@ import h5py
 
 
 class SimWriter:
-    """Write simulation parameters in file."""
+    """Write simulated data in HDF5 file."""
 
     def __init__(self, n_pulses, n_particles, path):
         """Initialization.
@@ -27,9 +27,7 @@ class SimWriter:
         with h5py.File(path, 'w') as fp:
             fp.create_group('METADATA/SOURCE')
             fp.create_group('INDEX')
-
             fp.create_group('CONTROL')
-
             grp = fp.create_group('PHASESPACE')
             for axis in ['X', 'PX', 'Y', 'PY', 'Z', 'PZ', 'T']:
                 grp.create_group(axis)
@@ -51,14 +49,15 @@ class SimWriter:
                 fp.create_dataset(
                     "METADATA/SOURCE/control", (len(controls),),
                     dtype=h5py.string_dtype())
+                fp.create_dataset(
+                    "METADATA/SOURCE/phasespace", (len(phasespaces),),
+                    dtype=h5py.string_dtype())
+
                 for i, k in enumerate(controls):
                     fp["METADATA/SOURCE/control"][i] = k
                     fp.create_dataset(
                         f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
-                fp.create_dataset("METADATA/SOURCE/phasespace",
-                                  (len(phasespaces),),
-                                  dtype=h5py.string_dtype())
                 for i, (k, v) in enumerate(phasespaces.items()):
                     fp["METADATA/SOURCE/phasespace"][i] = k
                     for col in v.columns:
