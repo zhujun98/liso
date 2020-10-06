@@ -1,32 +1,23 @@
 Installation
 ============
 
-Install LISO
-------------
+Using PyPI
+----------
 
 .. code-block:: bash
 
-    $ git clone https://github.com/zhujun98/liso.git
-    $ cd liso
-    $ sudo pip3 install -e .
+    pip install liso
 
-    # To update
-    $ git pull origin master  # re-installation is not necessary
 
-    # To uninstall
-    $ sudo pip3 uninstall liso
+From Source
+-----------
 
-Set up the environment
-----------------------
+.. code-block:: bash
 
-Modify the configuration file *liso/config.py*!
+    git clone https://github.com/zhujun98/liso.git
+    cd liso
+    pip install -e .
 
-.. code-block:: python
-
-    ASTRA = "astra"  # Your system command to run ASTRA
-    ASTRA_P = "astra_r62_Linux_x86_64_OpenMPI_1.6.1"  # parallel ASTRA
-    IMPACTT = "ImpactTv1.7linux"
-    IMPACTT_P = "ImpactTv1.7linuxPara"  # paralle IMPACT-T
 
 Install optional 3rd party optimization libraries
 -------------------------------------------------
@@ -39,9 +30,3 @@ pyOpt
     $ git clone https://github.com/zhujun98/pyOpt
     $ cd pyOpt
     $ sudo pip3 install .
-
-
-GUI
-~~~
-
-The GUI is based on `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`_ and `pyqtgraph <http://www.pyqtgraph.org/>`_.
