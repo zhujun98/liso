@@ -68,8 +68,6 @@ class LinacScan(object):
 
     async def _async_scan(self, n_tasks, output, repeat, n_particles,
                           **kwargs):
-        x_map = dict()
-
         tasks = set()
         sequence = self._generate_param_sequence(repeat)
         n_pulses = len(sequence)
@@ -77,6 +75,7 @@ class LinacScan(object):
         count = 0
         while True:
             if count < n_pulses:
+                x_map = dict()
                 for i, k in enumerate(self._params):
                     x_map[k] = sequence[count][i]
 
