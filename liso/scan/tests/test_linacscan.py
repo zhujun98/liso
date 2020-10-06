@@ -59,8 +59,8 @@ class TestLinacscan(unittest.TestCase):
         self.assertLess(abs(1 - np.std(lst2)), 0.1)
 
     def testScan(self):
-        self._sc.add_param('gun_gradient', 10.)
-        self._sc.add_param('gun_phase', 20.)
+        self._sc.add_param('gun_gradient', 1., 3., num=3)
+        self._sc.add_param('gun_phase', 10., 30., num=3)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             future = asyncio.Future()
@@ -68,7 +68,8 @@ class TestLinacscan(unittest.TestCase):
                 columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1))
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
-                self._sc.scan(repeat=2, output=fp.name, n_particles=0)
+                # Note: use n_tasks > 1 here to track bugs
+                self._sc.scan(n_tasks=2, repeat=2, output=fp.name, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
@@ -79,8 +80,10 @@ class TestLinacscan(unittest.TestCase):
                     self.assertSetEqual(
                         {'gun.out'}, set(fp_h5['METADATA']['SOURCE']['phasespace']))
                     np.testing.assert_array_equal(
-                        [1, 2], fp_h5['INDEX']['simId'][()])
+                        np.arange(1, 19), fp_h5['INDEX']['simId'][()])
                     np.testing.assert_array_equal(
-                        [10, 10], fp_h5['CONTROL']['gun.gun_gradient'][()])
+                        [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
+                        fp_h5['CONTROL']['gun.gun_gradient'][()])
                     np.testing.assert_array_equal(
-                        [20, 20], fp_h5['CONTROL']['gun.gun_phase'][()])
+                        [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
+                        fp_h5['CONTROL']['gun.gun_phase'][()])
