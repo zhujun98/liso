@@ -9,7 +9,7 @@ import h5py
 
 
 class SimWriter:
-    """Write simulation parameters in file."""
+    """Write simulated data in HDF5 file."""
 
     def __init__(self, n_pulses, n_particles, path):
         """Initialization.
@@ -24,16 +24,6 @@ class SimWriter:
 
         self._path = path
 
-        with h5py.File(path, 'w') as fp:
-            fp.create_group('METADATA/SOURCE')
-            fp.create_group('INDEX')
-
-            fp.create_group('CONTROL')
-
-            grp = fp.create_group('PHASESPACE')
-            for axis in ['X', 'PX', 'Y', 'PY', 'Z', 'PZ', 'T']:
-                grp.create_group(axis)
-
         self._initialized = False
 
     def write(self, idx, controls, phasespaces):
@@ -46,21 +36,22 @@ class SimWriter:
         with h5py.File(self._path, 'a') as fp:
             if not self._initialized:
                 fp.create_dataset(
-                    "INDEX/simId", (self._n_pulses,), dtype='i8')
+                    "INDEX/simId", (self._n_pulses,), dtype='u8')
 
                 fp.create_dataset(
-                    "METADATA/SOURCE/control", (len(controls),),
+                    "METADATA/CHANNEL/control", (len(controls),),
                     dtype=h5py.string_dtype())
+                fp.create_dataset(
+                    "METADATA/CHANNEL/phasespace", (len(phasespaces),),
+                    dtype=h5py.string_dtype())
+
                 for i, k in enumerate(controls):
-                    fp["METADATA/SOURCE/control"][i] = k
+                    fp["METADATA/CHANNEL/control"][i] = k
                     fp.create_dataset(
                         f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
-                fp.create_dataset("METADATA/SOURCE/phasespace",
-                                  (len(phasespaces),),
-                                  dtype=h5py.string_dtype())
                 for i, (k, v) in enumerate(phasespaces.items()):
-                    fp["METADATA/SOURCE/phasespace"][i] = k
+                    fp["METADATA/CHANNEL/phasespace"][i] = k
                     for col in v.columns:
                         fp.create_dataset(
                             f"PHASESPACE/{col.upper()}/{k}",
