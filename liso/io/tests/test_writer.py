@@ -30,7 +30,7 @@ class TestWriter(unittest.TestCase):
             with h5py.File(fp.name, 'r') as fp_h5:
                 self.assertSetEqual(
                     {'gun/gun_gradient', 'gun/gun_phase'},
-                    set(fp_h5['METADATA/CHANNEL/control']))
+                    set(fp_h5['METADATA/controlChannels']))
                 np.testing.assert_array_equal(
                     [0] * 9 + [10], fp_h5['INDEX/simId'][()])
                 np.testing.assert_array_equal(

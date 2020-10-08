@@ -134,10 +134,9 @@ class SimFileAccess(_FileAccessBase):
         """Override."""
         control_channels, phasespace_channels = set(), set()
 
-        data_channel_path = 'METADATA/CHANNEL'
-        for src in self.file[data_channel_path]['control'][()]:
+        for src in self.file['METADATA/controlChannels'][()]:
             control_channels.add(src)
-        for src in self.file[data_channel_path]['phasespace'][()]:
+        for src in self.file['METADATA/phasespaceChannels'][()]:
             phasespace_channels.add(src)
 
         return frozenset(control_channels), frozenset(phasespace_channels)
@@ -165,10 +164,9 @@ class ExpFileAccess(_FileAccessBase):
         """Override."""
         control_channels, detector_channels = set(), set()
 
-        data_channel_path = 'METADATA/CHANNEL'
-        for src in self.file[data_channel_path]['control'][()]:
+        for src in self.file['METADATA/controlChannels'][()]:
             control_channels.add(src)
-        for src in self.file[data_channel_path]['detector'][()]:
+        for src in self.file['METADATA/detectorChannels'][()]:
             detector_channels.add(src)
 
         return frozenset(control_channels), frozenset(detector_channels)

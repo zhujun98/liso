@@ -39,7 +39,7 @@ class _DataCollectionBase:
         for fa in self._files:
             df = pd.DataFrame.from_dict({
                 ch: fa.file[f"CONTROL/{ch}"][()]
-                for ch in fa.file["METADATA/CHANNEL/control"]
+                for ch in fa.file["METADATA/controlChannels"]
             })
             df.set_index(fa._ids, inplace=True)
             data.append(df)

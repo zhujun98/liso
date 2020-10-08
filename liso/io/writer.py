@@ -39,19 +39,19 @@ class SimWriter:
                     "INDEX/simId", (self._n_pulses,), dtype='u8')
 
                 fp.create_dataset(
-                    "METADATA/CHANNEL/control", (len(controls),),
+                    "METADATA/controlChannels", (len(controls),),
                     dtype=h5py.string_dtype())
                 fp.create_dataset(
-                    "METADATA/CHANNEL/phasespace", (len(phasespaces),),
+                    "METADATA/phasespaceChannels", (len(phasespaces),),
                     dtype=h5py.string_dtype())
 
                 for i, k in enumerate(controls):
-                    fp["METADATA/CHANNEL/control"][i] = k
+                    fp["METADATA/controlChannels"][i] = k
                     fp.create_dataset(
                         f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
                 for i, (k, v) in enumerate(phasespaces.items()):
-                    fp["METADATA/CHANNEL/phasespace"][i] = k
+                    fp["METADATA/phasespaceChannels"][i] = k
                     for col in v.columns:
                         fp.create_dataset(
                             f"PHASESPACE/{col.upper()}/{k}",
