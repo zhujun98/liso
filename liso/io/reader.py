@@ -45,14 +45,14 @@ class SimDataCollection(_DataCollectionBase):
     def __init__(self, files):
         super().__init__(files)
 
-        self.control_sources = set()
-        self.phasespace_sources = set()
+        self.control_channels = set()
+        self.phasespace_channels = set()
         for fa in self._files:
-            self.control_sources.update(fa.control_sources)
-            self.phasespace_sources.update(fa.phasespace_sources)
+            self.control_channels.update(fa.control_channels)
+            self.phasespace_channels.update(fa.phasespace_channels)
 
-        self.control_sources = frozenset(self.control_sources)
-        self.phasespace_sources = frozenset(self.phasespace_sources)
+        self.control_channels = frozenset(self.control_channels)
+        self.phasespace_channels = frozenset(self.phasespace_channels)
 
         # this returns a list!
         self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
@@ -61,12 +61,12 @@ class SimDataCollection(_DataCollectionBase):
         """Override."""
         print('# of simulations:     ', len(self.sim_ids))
 
-        print(f"\nControl sources ({len(self.control_sources)}):")
-        for src in sorted(self.control_sources):
+        print(f"\nControl channels ({len(self.control_channels)}):")
+        for src in sorted(self.control_channels):
             print('  - ', src)
 
-        print(f"\nPhasespace sources ({len(self.phasespace_sources)}):")
-        for src in sorted(self.phasespace_sources):
+        print(f"\nPhasespace channels ({len(self.phasespace_channels)}):")
+        for src in sorted(self.phasespace_channels):
             print('  - ', src)
 
     @classmethod
@@ -89,9 +89,9 @@ class SimDataCollection(_DataCollectionBase):
         fa = self._find_data(item)
         ret = dict()
         index = item - 1
-        for src in self.control_sources:
+        for src in self.control_channels:
             ret[src] = fa.file["CONTROL"][src][index]
-        for src in self.phasespace_sources:
+        for src in self.phasespace_channels:
             ret[src] = Phasespace.from_dict(
                 {col.lower(): fa.file["PHASESPACE"][col][src][index]
                  for col in fa.file["PHASESPACE"]}
@@ -121,14 +121,14 @@ class ExpDataCollection(_DataCollectionBase):
     def __init__(self, files):
         super().__init__(files)
 
-        self.control_sources = set()
-        self.detector_sources = set()
+        self.control_channels = set()
+        self.detector_channels = set()
         for fa in self._files:
-            self.control_sources.update(fa.control_sources)
-            self.detector_sources.update(fa.detector_sources)
+            self.control_channels.update(fa.control_channels)
+            self.detector_channels.update(fa.detector_channels)
 
-        self.control_sources = frozenset(self.control_sources)
-        self.detector_sources = frozenset(self.detector_sources)
+        self.control_channels = frozenset(self.control_channels)
+        self.detector_channels = frozenset(self.detector_channels)
 
         # this returns a list!
         self.pulse_ids = sorted(set().union(*(f.pulse_ids for f in files)))
@@ -137,13 +137,13 @@ class ExpDataCollection(_DataCollectionBase):
         """Override."""
         print('# of macro pulses:     ', len(self.pulse_ids))
 
-        print(f"\nControl sources ({len(self.control_sources)}):")
-        for src in sorted(self.control_sources):
-            print('  - ', src)
+        print(f"\nControl channels ({len(self.control_channels)}):")
+        for ch in sorted(self.control_channels):
+            print('  - ', ch)
 
-        print(f"\ndetector sources ({len(self.detector_sources)}):")
-        for src in sorted(self.detector_sources):
-            print('  - ', src)
+        print(f"\ndetector channels ({len(self.detector_channels)}):")
+        for ch in sorted(self.detector_channels):
+            print('  - ', ch)
 
     @classmethod
     def from_path(cls, path):
@@ -165,13 +165,10 @@ class ExpDataCollection(_DataCollectionBase):
         fa = self._find_data(item)
         ret = dict()
         index = item - 1
-        for src in self.control_sources:
-            ret[src] = fa.file["CONTROL"][src][index]
-        for src in self.detector_sources:
-            ret[src] = Phasespace.from_dict(
-                {col.lower(): fa.file["PHASESPACE"][col][src][index]
-                 for col in fa.file["PHASESPACE"]}
-            )
+        for ch in self.control_channels:
+            ret[ch] = fa.file["CONTROL"][ch][index]
+        for ch in self.detector_channels:
+            ret[ch] = fa.file["DETECTOR"][ch][index]
 
         return ret
 

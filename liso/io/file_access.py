@@ -101,7 +101,7 @@ class _FileAccessBase:
         return self._file
 
     @abstractmethod
-    def _read_data_sources(self):
+    def _read_data_channels(self):
         raise NotImplementedError
 
     def close(self):
@@ -124,22 +124,22 @@ class SimFileAccess(_FileAccessBase):
     def __init__(self, filepath):
         super().__init__(filepath)
 
-        self.control_sources, self.phasespace_sources = \
-            self._read_data_sources()
+        self.control_channels, self.phasespace_channels = \
+            self._read_data_channels()
 
         self.sim_ids = self.file["INDEX/simId"][()]
 
-    def _read_data_sources(self):
+    def _read_data_channels(self):
         """Override."""
-        control_sources, phasespace_sources = set(), set()
+        control_channels, phasespace_channels = set(), set()
 
-        data_sources_path = 'METADATA/SOURCE'
-        for src in self.file[data_sources_path]['control'][()]:
-            control_sources.add(src)
-        for src in self.file[data_sources_path]['phasespace'][()]:
-            phasespace_sources.add(src)
+        data_channel_path = 'METADATA/CHANNEL'
+        for src in self.file[data_channel_path]['control'][()]:
+            control_channels.add(src)
+        for src in self.file[data_channel_path]['phasespace'][()]:
+            phasespace_channels.add(src)
 
-        return frozenset(control_sources), frozenset(phasespace_sources)
+        return frozenset(control_channels), frozenset(phasespace_channels)
 
 
 class ExpFileAccess(_FileAccessBase):
@@ -147,22 +147,22 @@ class ExpFileAccess(_FileAccessBase):
     def __init__(self, filepath):
         super().__init__(filepath)
 
-        self.control_sources, self.detector_sources = \
-            self._read_data_sources()
+        self.control_channels, self.detector_channels = \
+            self._read_data_channels()
 
         try:
             self.pulse_ids = self.file["INDEX/pulseId"][()]
         except KeyError:
             self.pulse_ids = self.file["INDEX/timestamp"][()]
 
-    def _read_data_sources(self):
+    def _read_data_channels(self):
         """Override."""
-        control_sources, detector_sources = set(), set()
+        control_channels, detector_channels = set(), set()
 
-        data_sources_path = 'METADATA/SOURCE'
-        for src in self.file[data_sources_path]['control'][()]:
-            control_sources.add(src)
-        for src in self.file[data_sources_path]['detector'][()]:
-            detector_sources.add(src)
+        data_channel_path = 'METADATA/CHANNEL'
+        for src in self.file[data_channel_path]['control'][()]:
+            control_channels.add(src)
+        for src in self.file[data_channel_path]['detector'][()]:
+            detector_channels.add(src)
 
-        return frozenset(control_sources), frozenset(detector_sources)
+        return frozenset(control_channels), frozenset(detector_channels)

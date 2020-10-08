@@ -32,8 +32,8 @@ class TestReader(unittest.TestCase):
             data.info()
             self.assertIsInstance(data, SimDataCollection)
             self.assertSetEqual({'gun.gun_gradient', 'gun.gun_phase'},
-                                data.control_sources)
-            self.assertSetEqual({'out1', 'out2'}, data.phasespace_sources)
+                                data.control_channels)
+            self.assertSetEqual({'out1', 'out2'}, data.phasespace_channels)
             self.assertListEqual([i+1 for i in range(n_sims)], data.sim_ids)
 
             # test "get_controls" method
