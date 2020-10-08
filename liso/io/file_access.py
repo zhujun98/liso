@@ -91,7 +91,7 @@ class _FileAccessBase:
         return instance
 
     def __init__(self, filepath):
-        pass
+        self._ids = []
 
     @property
     def file(self):
@@ -128,6 +128,7 @@ class SimFileAccess(_FileAccessBase):
             self._read_data_channels()
 
         self.sim_ids = self.file["INDEX/simId"][()]
+        self._ids = self.sim_ids
 
     def _read_data_channels(self):
         """Override."""
@@ -154,6 +155,7 @@ class ExpFileAccess(_FileAccessBase):
             self.pulse_ids = self.file["INDEX/pulseId"][()]
         except KeyError:
             self.pulse_ids = self.file["INDEX/timestamp"][()]
+        self._ids = self.pulse_ids
 
     def _read_data_channels(self):
         """Override."""

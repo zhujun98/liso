@@ -62,5 +62,17 @@ class TestReader(unittest.TestCase):
                 np.testing.assert_array_equal(np.ones(100) * i, sim['out1']['x'])
                 np.testing.assert_array_equal(np.ones(100) * 10 * i, sim['out2']['y'])
 
+            # test access data by index
+
+            sim_id, sim = data.iloc(1)
+            self.assertEqual(2, sim_id)
+            self.assertSetEqual({
+                'gun.gun_phase', 'gun.gun_gradient', 'out1', 'out2'
+            }, set(sim.keys()))
+            self.assertEqual(20 * 1, sim['gun.gun_phase'])
+            self.assertEqual(10 * 1, sim['gun.gun_gradient'])
+            np.testing.assert_array_equal(np.ones(100) * 1, sim['out1']['x'])
+            np.testing.assert_array_equal(np.ones(100) * 10 * 1, sim['out2']['y'])
+
     def testOpenRun(self):
         pass

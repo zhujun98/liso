@@ -21,6 +21,7 @@ class _DataCollectionBase:
         :param list files: a list of FileAccess instances.
         """
         self._files = list(files)
+        self._ids = []
 
     @abc.abstractmethod
     def info(self):
@@ -36,6 +37,28 @@ class _DataCollectionBase:
     def get_controls(self):
         """Return a pandas.DataFrame containing control data."""
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __iter__(self):
+        for id_ in self._ids:
+            yield self.__getitem__(id_)
+
+    def iloc(self, index):
+        """Return the data from the nth pulse given index.
+
+        :param int index: pulse index.
+        """
+        return self.__getitem__(self._ids[index])
+
+    def _find_data(self, id_) -> (ExpFileAccess, int):
+        for fa in self._files:
+            idx = (fa._ids == id_).nonzero()[0]
+            if idx.size > 0:
+                return fa, idx[0]
+        raise IndexError
 
 
 class SimDataCollection(_DataCollectionBase):
@@ -56,6 +79,7 @@ class SimDataCollection(_DataCollectionBase):
 
         # this returns a list!
         self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
+        self._ids = self.sim_ids
 
     def info(self):
         """Override."""
@@ -85,29 +109,18 @@ class SimDataCollection(_DataCollectionBase):
             data.append(df)
         return pd.concat(data)
 
-    def __getitem__(self, item):
-        fa = self._find_data(item)
+    def __getitem__(self, sim_id):
+        fa, idx = self._find_data(sim_id)
         ret = dict()
-        index = item - 1
-        for src in self.control_channels:
-            ret[src] = fa.file["CONTROL"][src][index]
-        for src in self.phasespace_channels:
-            ret[src] = Phasespace.from_dict(
-                {col.lower(): fa.file["PHASESPACE"][col][src][index]
+        for ch in self.control_channels:
+            ret[ch] = fa.file["CONTROL"][ch][idx]
+        for ch in self.phasespace_channels:
+            ret[ch] = Phasespace.from_dict(
+                {col.lower(): fa.file["PHASESPACE"][col][ch][idx]
                  for col in fa.file["PHASESPACE"]}
             )
 
-        return ret
-
-    def __iter__(self):
-        for sid in self.sim_ids:
-            yield sid, self.__getitem__(sid)
-
-    def _find_data(self, item) -> SimFileAccess:
-        for fa in self._files:
-            if item in fa.sim_ids:
-                return fa
-        raise IndexError
+        return sim_id, ret
 
 
 def open_sim(filepath):
@@ -132,6 +145,7 @@ class ExpDataCollection(_DataCollectionBase):
 
         # this returns a list!
         self.pulse_ids = sorted(set().union(*(f.pulse_ids for f in files)))
+        self._ids = self.pulse_ids
 
     def info(self):
         """Override."""
@@ -161,26 +175,15 @@ class ExpDataCollection(_DataCollectionBase):
             data.append(df)
         return pd.concat(data)
 
-    def __getitem__(self, item):
-        fa = self._find_data(item)
+    def __getitem__(self, pulse_id):
+        fa, idx = self._find_data(pulse_id)
         ret = dict()
-        index = item - 1
         for ch in self.control_channels:
-            ret[ch] = fa.file["CONTROL"][ch][index]
+            ret[ch] = fa.file["CONTROL"][ch][idx]
         for ch in self.detector_channels:
-            ret[ch] = fa.file["DETECTOR"][ch][index]
+            ret[ch] = fa.file["DETECTOR"][ch][idx]
 
-        return ret
-
-    def __iter__(self):
-        for pid in self.pulse_ids:
-            yield pid, self.__getitem__(pid)
-
-    def _find_data(self, item) -> ExpFileAccess:
-        for fa in self._files:
-            if item in fa.pulse_ids:
-                return fa
-        raise IndexError
+        return pulse_id, ret
 
 
 def open_run(filepath):
