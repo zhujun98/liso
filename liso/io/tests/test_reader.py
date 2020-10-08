@@ -96,20 +96,21 @@ class TestReader(unittest.TestCase):
                 fp_h5.create_dataset("INDEX/pulseId", data=pulse_ids)
 
                 fp_h5.create_dataset(
-                    "METADATA/CHANNEL/control",
+                    "METADATA/controlChannels",
                     dtype=h5py.string_dtype(),
                     data=[ch.encode("utf-8") for ch in control_data])
                 for ch, data_ in control_data.items():
                     fp_h5.create_dataset(f"CONTROL/{ch}", data=data_)
 
                 fp_h5.create_dataset(
-                    "METADATA/CHANNEL/detector",
+                    "METADATA/detectorChannels",
                     dtype=h5py.string_dtype(),
                     data=[ch.encode("utf-8") for ch in detector_data])
                 for ch, data_ in detector_data.items():
                     fp_h5.create_dataset(f"DETECTOR/{ch}", data=data_)
 
             data = open_run(fp.name)
+            self.assertIsInstance(data, ExpDataCollection)
 
             controls = data.get_controls()
             self.assertListEqual(list(control_data.keys()), controls.columns.tolist())
