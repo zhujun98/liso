@@ -69,7 +69,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
     def testCompile(self):
 
         self.assertDictEqual({
-            'gun.gun_gradient': 1.0, 'gun.gun_phase': 2.0
+            'gun/gun_gradient': 1.0, 'gun/gun_phase': 2.0
         }, self._linac.compile(self._mapping))
 
     @patch('liso.simulation.beamline.Beamline._run_core')
@@ -141,8 +141,8 @@ class TestLinacTwoBeamLine(unittest.TestCase):
 
         del mapping['gun.charge']
         self.assertDictEqual({
-            'gun.gun_gradient': 1.0, 'gun.gun_phase': 1.0,
-            'chicane.MQZM1_G': 1.0, 'chicane.MQZM2_G': 1.0,
+            'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
+            'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0,
         }, self._linac.compile(mapping))
 
     def testRun(self):

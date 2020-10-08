@@ -33,10 +33,17 @@ class _DataCollectionBase:
     def from_path(cls, path):
         raise NotImplementedError
 
-    @abc.abstractmethod
     def get_controls(self):
-        """Return a pandas.DataFrame containing control data."""
-        raise NotImplementedError
+        """Return control data in a Pandas.DataFrame."""
+        data = []
+        for fa in self._files:
+            df = pd.DataFrame.from_dict({
+                ch: fa.file[f"CONTROL/{ch}"][()]
+                for ch in fa.file["METADATA/CHANNEL/control"]
+            })
+            df.set_index(fa._ids, inplace=True)
+            data.append(df)
+        return pd.concat(data)
 
     @abc.abstractmethod
     def __getitem__(self, item):
@@ -98,25 +105,14 @@ class SimDataCollection(_DataCollectionBase):
         files = [SimFileAccess(path)]
         return cls(files)
 
-    def get_controls(self):
-        """Override."""
-        data = []
-        for fa in self._files:
-            df = pd.DataFrame.from_dict({
-                k: v[()] for k, v in fa.file["CONTROL"].items()
-            })
-            df.set_index(fa.sim_ids, inplace=True)
-            data.append(df)
-        return pd.concat(data)
-
     def __getitem__(self, sim_id):
         fa, idx = self._find_data(sim_id)
         ret = dict()
         for ch in self.control_channels:
-            ret[ch] = fa.file["CONTROL"][ch][idx]
+            ret[ch] = fa.file[f"CONTROL/{ch}"][idx]
         for ch in self.phasespace_channels:
             ret[ch] = Phasespace.from_dict(
-                {col.lower(): fa.file["PHASESPACE"][col][ch][idx]
+                {col.lower(): fa.file[f"PHASESPACE/{col}/{ch}"][idx]
                  for col in fa.file["PHASESPACE"]}
             )
 
@@ -164,24 +160,13 @@ class ExpDataCollection(_DataCollectionBase):
         files = [ExpFileAccess(path)]
         return cls(files)
 
-    def get_controls(self):
-        """Override."""
-        data = []
-        for fa in self._files:
-            df = pd.DataFrame.from_dict({
-                k: v[()] for k, v in fa.file["CONTROL"].items()
-            })
-            df.set_index(fa.pulse_ids, inplace=True)
-            data.append(df)
-        return pd.concat(data)
-
     def __getitem__(self, pulse_id):
         fa, idx = self._find_data(pulse_id)
         ret = dict()
         for ch in self.control_channels:
-            ret[ch] = fa.file["CONTROL"][ch][idx]
+            ret[ch] = fa.file[f"CONTROL/{ch}"][idx]
         for ch in self.detector_channels:
-            ret[ch] = fa.file["DETECTOR"][ch][idx]
+            ret[ch] = fa.file[f"DETECTOR/{ch}"][idx]
 
         return pulse_id, ret
 

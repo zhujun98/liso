@@ -154,7 +154,11 @@ class ExpFileAccess(_FileAccessBase):
         try:
             self.pulse_ids = self.file["INDEX/pulseId"][()]
         except KeyError:
-            self.pulse_ids = self.file["INDEX/timestamp"][()]
+            try:
+                self.pulse_ids = self.file["INDEX/timestamp"][()]
+            except KeyError:
+                raise KeyError("Cannot find both 'pulseId' and 'timestamp' "
+                               "in the data!")
         self._ids = self.pulse_ids
 
     def _read_data_channels(self):

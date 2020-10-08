@@ -74,16 +74,16 @@ class TestLinacscan(unittest.TestCase):
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
                     self.assertSetEqual(
-                        {'gun.gun_gradient', 'gun.gun_phase'},
+                        {'gun/gun_gradient', 'gun/gun_phase'},
                         set(fp_h5['METADATA/CHANNEL/control'])
                     )
                     self.assertSetEqual(
-                        {'gun.out'}, set(fp_h5['METADATA/CHANNEL/phasespace']))
+                        {'gun/out'}, set(fp_h5['METADATA/CHANNEL/phasespace']))
                     np.testing.assert_array_equal(
                         np.arange(1, 19), fp_h5['INDEX']['simId'][()])
                     np.testing.assert_array_equal(
                         [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
-                        fp_h5['CONTROL']['gun.gun_gradient'][()])
+                        fp_h5['CONTROL']['gun/gun_gradient'][()])
                     np.testing.assert_array_equal(
                         [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
-                        fp_h5['CONTROL']['gun.gun_phase'][()])
+                        fp_h5['CONTROL']['gun/gun_phase'][()])
