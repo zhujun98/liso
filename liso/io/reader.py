@@ -6,9 +6,11 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
+from collections import defaultdict
 
 import pandas as pd
 
+from .channel_data import ChannelData
 from .file_access import SimFileAccess, ExpFileAccess
 from ..data_processing import Phasespace
 
@@ -22,6 +24,9 @@ class _DataCollectionBase:
         """
         self._files = list(files)
         self._ids = []
+
+        # channels are not ubiquitous in each file
+        self._channel_files = defaultdict(list)
 
     @abc.abstractmethod
     def info(self):
@@ -53,7 +58,7 @@ class _DataCollectionBase:
         for id_ in self._ids:
             yield self.__getitem__(id_)
 
-    def iloc(self, index):
+    def from_index(self, index):
         """Return the data from the nth pulse given index.
 
         :param int index: pulse index.
@@ -65,7 +70,28 @@ class _DataCollectionBase:
             idx = (fa._ids == id_).nonzero()[0]
             if idx.size > 0:
                 return fa, idx[0]
-        raise IndexError
+        raise KeyError
+
+    @abc.abstractmethod
+    def _get_channel_category(self, ch):
+        raise NotImplementedError
+
+    def channel(self, address, columns=None):
+        """Return an array for a particular data field.
+
+        :param str address: address of the channel.
+        :param None/str/array-like columns: columns for the phasespace data.
+            If None, all the columns are taken.
+        """
+        files = self._channel_files[address]
+        if not files:
+            raise KeyError(f"No data was found for channel: {address}")
+        category = self._get_channel_category(address)
+        return ChannelData(address,
+                           files=files,
+                           category=category,
+                           ids=self._ids,
+                           columns=columns)
 
 
 class SimDataCollection(_DataCollectionBase):
@@ -80,6 +106,8 @@ class SimDataCollection(_DataCollectionBase):
         for fa in self._files:
             self.control_channels.update(fa.control_channels)
             self.phasespace_channels.update(fa.phasespace_channels)
+            for ch in (fa.control_channels | fa.phasespace_channels):
+                self._channel_files[ch].append(fa)
 
         self.control_channels = frozenset(self.control_channels)
         self.phasespace_channels = frozenset(self.phasespace_channels)
@@ -118,6 +146,9 @@ class SimDataCollection(_DataCollectionBase):
 
         return sim_id, ret
 
+    def _get_channel_category(self, ch):
+        return 'CONTROL' if ch in self.control_channels else 'PHASESPACE'
+
 
 def open_sim(filepath):
     return SimDataCollection.from_path(filepath)
@@ -135,6 +166,8 @@ class ExpDataCollection(_DataCollectionBase):
         for fa in self._files:
             self.control_channels.update(fa.control_channels)
             self.detector_channels.update(fa.detector_channels)
+            for ch in (fa.control_channels | fa.detector_channels):
+                self._channel_files[ch].append(fa)
 
         self.control_channels = frozenset(self.control_channels)
         self.detector_channels = frozenset(self.detector_channels)
@@ -169,6 +202,9 @@ class ExpDataCollection(_DataCollectionBase):
             ret[ch] = fa.file[f"DETECTOR/{ch}"][idx]
 
         return pulse_id, ret
+
+    def _get_channel_category(self, ch):
+        return 'CONTROL' if ch in self.control_channels else 'DETECTOR'
 
 
 def open_run(filepath):

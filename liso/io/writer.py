@@ -90,6 +90,9 @@ class SimWriter(_BaseWriter):
 
             for k, v in phasespaces.items():
                 if len(v) == self._n_particles:
+                    # The rational behind writing different columns separately
+                    # is to avoid reading out all the columns when only one
+                    # or two columns are needed.
                     for col in v.columns:
                         fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
 
