@@ -1,5 +1,8 @@
 import unittest
 import tempfile
+import sys
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import h5py
@@ -18,6 +21,21 @@ class TestWriter(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
             writer = SimWriter(10, 100, fp.name)
 
+            # test failure when hdf5 file  is already initialized
+            with self.assertRaises(RuntimeError):
+                SimWriter(10, 100, fp.name)
+
+            # 'datetime.fromisoformat' was introduced since Python 3.7
+            if sys.version_info.minor >= 7:
+                # test metadata created at initialization
+                with h5py.File(fp.name, 'r') as fp_h5:
+                    create_date = datetime.fromisoformat(
+                        fp_h5['METADATA/createDate'][()])
+                    self.assertLess((create_date - datetime.now()).total_seconds(), 1)
+                    update_date = datetime.fromisoformat(
+                        fp_h5['METADATA/updateDate'][()])
+                    self.assertLess((update_date - datetime.now()).total_seconds(), 1)
+
             with self.assertRaisesRegex(ValueError, 'out of range'):
                 writer.write(10,
                              {'gun/gun_gradient': 1, 'gun/gun_phase': 2},
@@ -28,6 +46,14 @@ class TestWriter(unittest.TestCase):
                          {'out': self._ps})
 
             with h5py.File(fp.name, 'r') as fp_h5:
+
+                if sys.version_info.minor >= 7:
+                    # test updateDate get updated
+                    update_date_new = datetime.fromisoformat(
+                        fp_h5['METADATA/updateDate'][()])
+                    self.assertLess((update_date_new - datetime.now()).total_seconds(), 1)
+                    self.assertNotEqual(update_date_new, update_date)
+
                 self.assertSetEqual(
                     {'gun/gun_gradient', 'gun/gun_phase'},
                     set(fp_h5['METADATA/controlChannels']))

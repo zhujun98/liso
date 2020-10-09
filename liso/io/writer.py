@@ -5,10 +5,30 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from datetime import datetime
+
 import h5py
 
 
-class SimWriter:
+class _BaseWriter:
+    """Base class for HDF5 writer."""
+    def __init__(self, path):
+        """Initialization.
+
+        :param str path: path of the hdf5 file.
+        """
+        self._path = path
+
+        # not allow to overwrite existing file
+        with h5py.File(self._path, 'a') as fp:
+            fp.create_dataset("METADATA/createDate",
+                              data=datetime.now().isoformat())
+            fp.create_dataset("METADATA/updateDate",
+                              data=datetime.now().isoformat())
+        self._initialized = False
+
+
+class SimWriter(_BaseWriter):
     """Write simulated data in HDF5 file."""
 
     def __init__(self, n_pulses, n_particles, path):
@@ -16,18 +36,14 @@ class SimWriter:
 
         :param int n_pulses: number of macro-pulses.
         :param int n_particles: number of particles per simulation.
-        :param str path: path of the hdf5 file.
         """
-        # TODO: restrict the number of data points in a single file
+        super().__init__(path)
+
         self._n_pulses = n_pulses
         self._n_particles = n_particles
 
-        self._path = path
-
-        self._initialized = False
-
     def write(self, idx, controls, phasespaces):
-        """Write data into file incrementally.
+        """Write data from one simulation into the file.
 
         :param int idx: scan index.
         :param dict controls: dictionary of the control data.
@@ -36,14 +52,14 @@ class SimWriter:
         with h5py.File(self._path, 'a') as fp:
             if not self._initialized:
                 fp.create_dataset(
-                    "INDEX/simId", (self._n_pulses,), dtype='u8')
-
-                fp.create_dataset(
                     "METADATA/controlChannels", (len(controls),),
                     dtype=h5py.string_dtype())
                 fp.create_dataset(
                     "METADATA/phasespaceChannels", (len(phasespaces),),
                     dtype=h5py.string_dtype())
+
+                fp.create_dataset(
+                    "INDEX/simId", (self._n_pulses,), dtype='u8')
 
                 for i, k in enumerate(controls):
                     fp["METADATA/controlChannels"][i] = k
@@ -70,3 +86,5 @@ class SimWriter:
                 #       the same as the number in the data.
                 for col in v.columns:
                     fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
+
+            fp["METADATA/updateDate"][()] = datetime.now().isoformat()
