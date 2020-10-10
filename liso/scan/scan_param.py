@@ -17,9 +17,6 @@ class _IterParam(OperationalElement):
         super().__init__(name)
 
     @abc.abstractmethod
-    def _generate_once(self, repeats):
-        raise NotImplementedError
-
     def generate(self, repeats=1, cycles=1):
         """Generate a sequence of parameters.
 
@@ -30,14 +27,11 @@ class _IterParam(OperationalElement):
         For examples, generate(2, 3) = [1 1 2 2 1 1 2 2 1 1 2 2] with parameter
         space being [1 2].
         """
-        ret = []
-        for _ in range(cycles):
-            ret.extend(self._generate_once(repeats))
-        return ret
+        raise NotImplementedError
 
 
-class ScanParam(_IterParam):
-    def __init__(self, name, start, stop, num=1, *, sigma=0.):
+class ScanParam(OperationalElement):
+    def __init__(self, name, start, stop, num, *, sigma=0.):
         """Initialization.
 
         :param float start: the starting value of the scan.
@@ -74,6 +68,13 @@ class ScanParam(_IterParam):
                 ret.extend(v + np.random.normal(size=repeats) * sigma)
         return ret
 
+    def generate(self, repeats=1, cycles=1):
+        """Override."""
+        ret = []
+        for _ in range(cycles):
+            ret.extend(self._generate_once(repeats))
+        return np.array(ret)
+
     def list_item(self):
         """Override."""
         return '{:12}  {:^12.4e}  {:^12.4e}  {:^12d}  {:^12.4e}\n'.format(
@@ -86,7 +87,38 @@ class ScanParam(_IterParam):
                self.list_item()
 
 
-class JitterParam(_IterParam):
+class SampleParam(OperationalElement):
+    def __init__(self, name, lb, ub):
+        """Initialization.
+
+        :param float lb: the lower boundary of the sample.
+        :param float ub: the upper boundary of the sample (not included).
+        """
+        super().__init__(name)
+
+        if lb > ub:
+            lb, ub = ub, lb
+        self._lb = lb
+        self._ub = ub
+
+    def __len__(self):
+        return 1
+
+    def generate(self, repeats=1, cycles=1):
+        """Override."""
+        return np.random.uniform(self._lb, self._ub, repeats * cycles)
+
+    def list_item(self):
+        """Override."""
+        return '{:12}  {:^12.4e}  {:^12.4e}\n'.format(
+            self.name[:12], self._lb, self._ub)
+
+    def __str__(self):
+        return '{:12}  {:^12}  {:^12}\n'.format(
+            'Name', 'Lower bound', 'Upper bound') + self.list_item()
+
+
+class JitterParam(OperationalElement):
     def __init__(self, name, value, *, sigma=0.):
         """Initialization.
 
@@ -103,9 +135,9 @@ class JitterParam(_IterParam):
     def __len__(self):
         return 1
 
-    def _generate_once(self, repeats):
+    def generate(self, repeats=1, cycles=1):
         """Override."""
-        rand_nums = np.random.normal(size=repeats)
+        rand_nums = np.random.normal(size=repeats * cycles)
         if self._sigma < 0:
             return self._value * (1 + rand_nums * self._sigma)
         return self._value + rand_nums * self._sigma

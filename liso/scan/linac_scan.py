@@ -14,7 +14,7 @@ from threading import Thread
 
 import numpy as np
 
-from .scan_param import JitterParam, ScanParam
+from .scan_param import JitterParam, SampleParam, ScanParam
 from ..io import SimWriter
 from ..logging import logger
 
@@ -55,7 +55,10 @@ class LinacScan(object):
         try:
             param = ScanParam(name, *args, **kwargs)
         except TypeError:
-            param = JitterParam(name, *args, **kwargs)
+            try:
+                param = SampleParam(name, *args, **kwargs)
+            except TypeError:
+                param = JitterParam(name, *args, **kwargs)
 
         self._params[name] = param
 
@@ -153,12 +156,30 @@ class LinacScan(object):
         text += 'Parameter scan: %s\n' % self.name
         text += self.__str__()
         text += '\n'
-        for i, ele in enumerate(self._params.values()):
-            if i == 0:
-                text += ele.__str__()
-            else:
-                text += ele.list_item()
+        text += self._summarize_parameters()
         text += '=' * 80 + '\n'
+        return text
+
+    def _summarize_parameters(self):
+        scan_params = []
+        sample_params = []
+        jitter_params = []
+        for param in self._params.values():
+            if isinstance(param, ScanParam):
+                scan_params.append(param)
+            elif isinstance(param, SampleParam):
+                sample_params.append(param)
+            elif isinstance(param, JitterParam):
+                jitter_params.append(param)
+
+        text = ''
+        for params in (scan_params, sample_params, jitter_params):
+            for i, ele in enumerate(params):
+                if i == 0:
+                    text += ele.__str__()
+                else:
+                    text += ele.list_item()
+            text += "\n"
         return text
 
     def __str__(self):
