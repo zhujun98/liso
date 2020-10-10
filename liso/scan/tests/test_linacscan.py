@@ -70,7 +70,7 @@ class TestLinacscan(unittest.TestCase):
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, repeat=2, output=fp.name, n_particles=0)
+                self._sc.scan(n_tasks=2, cycles=2, output=fp.name, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
@@ -89,12 +89,12 @@ class TestLinacscan(unittest.TestCase):
 
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 with self.assertRaises(ValueError):
-                    self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                    self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
                                   n_particles=0, start_id=0)
 
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
                               n_particles=0, start_id=11)
                 sim = open_sim(fp.name)
                 np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
