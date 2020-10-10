@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import h5py
 
+from liso.io import open_sim
 from liso.scan import LinacScan
 from liso.simulation import Linac
 from liso.data_processing import Phasespace
@@ -73,17 +74,27 @@ class TestLinacscan(unittest.TestCase):
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
+                    sim = open_sim(fp.name)
                     self.assertSetEqual(
-                        {'gun/gun_gradient', 'gun/gun_phase'},
-                        set(fp_h5['METADATA/controlChannels'])
-                    )
+                        {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
                     self.assertSetEqual(
-                        {'gun/out'}, set(fp_h5['METADATA/phasespaceChannels']))
-                    np.testing.assert_array_equal(
-                        np.arange(1, 19), fp_h5['INDEX']['simId'][()])
+                        {'gun/out'}, sim.phasespace_channels)
+                    np.testing.assert_array_equal(np.arange(1, 19), sim.sim_ids)
                     np.testing.assert_array_equal(
                         [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
-                        fp_h5['CONTROL']['gun/gun_gradient'][()])
+                        sim.get_controls()['gun/gun_gradient'])
                     np.testing.assert_array_equal(
                         [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
-                        fp_h5['CONTROL']['gun/gun_phase'][()])
+                        sim.get_controls()['gun/gun_phase'])
+
+            with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+                with self.assertRaises(ValueError):
+                    self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                                  n_particles=0, start_id=0)
+
+            with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+                # Note: use n_tasks > 1 here to track bugs
+                self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                              n_particles=0, start_id=11)
+                sim = open_sim(fp.name)
+                np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
