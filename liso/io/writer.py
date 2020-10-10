@@ -31,16 +31,23 @@ class _BaseWriter:
 class SimWriter(_BaseWriter):
     """Write simulated data in HDF5 file."""
 
-    def __init__(self, n_pulses, n_particles, path):
+    def __init__(self, n_pulses, n_particles, path, *, start_id=1):
         """Initialization.
 
         :param int n_pulses: number of macro-pulses.
         :param int n_particles: number of particles per simulation.
+        :param str path: path of the hdf5 file.
+        :param int start_id: starting simulation id.
         """
         super().__init__(path)
 
         self._n_pulses = n_pulses
         self._n_particles = n_particles
+
+        if not isinstance(start_id, int) or start_id < 1:
+            raise ValueError(
+                f"start_id must a positive integer. Actual: {start_id}")
+        self._start_id = start_id
 
     def write(self, idx, controls, phasespaces):
         """Write data from one simulation into the file.
@@ -76,7 +83,7 @@ class SimWriter(_BaseWriter):
 
                 self._initialized = True
 
-            fp["INDEX/simId"][idx] = idx + 1
+            fp["INDEX/simId"][idx] = idx + self._start_id
 
             for k, v in controls.items():
                 fp[f"CONTROL/{k}"][idx] = v

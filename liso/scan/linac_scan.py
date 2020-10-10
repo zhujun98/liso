@@ -66,12 +66,12 @@ class LinacScan(object):
 
         return list(zip(*ret))
 
-    async def _async_scan(self, n_tasks, output, repeat, n_particles,
-                          **kwargs):
+    async def _async_scan(self, n_tasks, output, *,
+                          repeat, n_particles, start_id, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(repeat)
         n_pulses = len(sequence)
-        writer = SimWriter(n_pulses, n_particles, output)
+        writer = SimWriter(n_pulses, n_particles, output, start_id=start_id)
         count = 0
         while True:
             if count < n_pulses:
@@ -115,8 +115,13 @@ class LinacScan(object):
 
                     tasks.remove(task)
 
-    def scan(self, n_tasks=1, *,
-             repeat=1, n_particles=2000, output='scan.hdf5', **kwargs):
+    def scan(self,
+             n_tasks=1, *,
+             repeat=1,
+             n_particles=2000,
+             output='scan.hdf5',
+             start_id=1,
+             **kwargs):
         """Start a parameter scan.
 
         :param int n_tasks: maximum number of concurrent tasks.
@@ -125,6 +130,7 @@ class LinacScan(object):
             of variable space is 1.
         :param int n_particles: number of particles to be stored.
         :param str output: output file.
+        :param int start_id: starting simulation id. Default = 1.
         """
         logger.info(str(self._linac))
         logger.info(self.summarize())
@@ -132,7 +138,10 @@ class LinacScan(object):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
             n_tasks, output,
-            repeat=repeat, n_particles=n_particles, **kwargs))
+            repeat=repeat,
+            n_particles=n_particles,
+            start_id=start_id,
+            **kwargs))
 
         logger.info(f"Scan finished!")
 
