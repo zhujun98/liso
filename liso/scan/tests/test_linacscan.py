@@ -36,16 +36,18 @@ class TestLinacscan(unittest.TestCase):
         self._sc.add_param("param1", -0.1, 0.1, 2)
         self._sc.add_param("param2", -1., 1., 3)
         self._sc.add_param("param3",  3.,  4., 2)
-        self._sc.add_param("param4", -1.)
+        self._sc.add_param("param4", -1.)  # jitter parameter
+        self._sc.add_param("param5", 1., 1.)  # sample parameter
         with self.assertRaises(ValueError):
             self._sc.add_param("param4")
+        self._sc.summarize()
 
         lst = self._sc._generate_param_sequence(2)
         self.assertListEqual([
-            (-0.1, -1.0, 3.0, -1.0), (-0.1, -1.0, 4.0, -1.0), (-0.1, 0.0, 3.0, -1.0),
-            (-0.1,  0.0, 4.0, -1.0), (-0.1,  1.0, 3.0, -1.0), (-0.1, 1.0, 4.0, -1.0),
-            ( 0.1, -1.0, 3.0, -1.0), ( 0.1, -1.0, 4.0, -1.0), ( 0.1, 0.0, 3.0, -1.0),
-            ( 0.1,  0.0, 4.0, -1.0), ( 0.1,  1.0, 3.0, -1.0), ( 0.1, 1.0, 4.0, -1.0)] * 2, lst)
+            (-0.1, -1.0, 3.0, -1.0, 1.), (-0.1, -1.0, 4.0, -1.0, 1.), (-0.1, 0.0, 3.0, -1.0, 1.),
+            (-0.1,  0.0, 4.0, -1.0, 1.), (-0.1,  1.0, 3.0, -1.0, 1.), (-0.1, 1.0, 4.0, -1.0, 1.),
+            ( 0.1, -1.0, 3.0, -1.0, 1.), ( 0.1, -1.0, 4.0, -1.0, 1.), ( 0.1, 0.0, 3.0, -1.0, 1.),
+            ( 0.1,  0.0, 4.0, -1.0, 1.), ( 0.1,  1.0, 3.0, -1.0, 1.), ( 0.1, 1.0, 4.0, -1.0, 1.)] * 2, lst)
 
     def testJitterParams(self):
         n = 1000
@@ -59,6 +61,20 @@ class TestLinacscan(unittest.TestCase):
         self.assertLess(abs(0.01 - np.std(lst1)), 0.001)
         self.assertLess(abs(1 - np.std(lst2)), 0.1)
 
+    def testSampleParm(self):
+        n = 10
+        self._sc.add_param("param1", -0.1, 0.1)
+        self._sc.add_param("param2", -10., 20)
+        lst = self._sc._generate_param_sequence(n)
+        self.assertEqual(n, len(lst))
+        self.assertEqual(2, len(lst[0]))
+
+        lst1, lst2 = zip(*lst)
+        self.assertTrue(np.all(np.array(lst1) >= -0.1))
+        self.assertTrue(np.all(np.array(lst1) < 0.1))
+        self.assertTrue(np.all(np.array(lst2) >= -10))
+        self.assertTrue(np.all(np.array(lst2) < 20))
+
     def testScan(self):
         self._sc.add_param('gun_gradient', 1., 3., num=3)
         self._sc.add_param('gun_phase', 10., 30., num=3)
@@ -70,7 +86,7 @@ class TestLinacscan(unittest.TestCase):
             patched_run.return_value = future
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, repeat=2, output=fp.name, n_particles=0)
+                self._sc.scan(n_tasks=2, cycles=2, output=fp.name, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 with h5py.File(fp.name, 'r') as fp_h5:
@@ -89,12 +105,12 @@ class TestLinacscan(unittest.TestCase):
 
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 with self.assertRaises(ValueError):
-                    self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                    self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
                                   n_particles=0, start_id=0)
 
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, repeat=2, output=fp.name,
+                self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
                               n_particles=0, start_id=11)
                 sim = open_sim(fp.name)
                 np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)

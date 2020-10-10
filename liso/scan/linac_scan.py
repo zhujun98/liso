@@ -12,7 +12,9 @@ import sys
 import traceback
 from threading import Thread
 
-from .scan_param import ScanParam
+import numpy as np
+
+from .scan_param import JitterParam, SampleParam, ScanParam
 from ..io import SimWriter
 from ..logging import logger
 
@@ -50,26 +52,30 @@ class LinacScan(object):
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
 
-        self._params[name] = ScanParam(name, *args, **kwargs)
+        try:
+            param = ScanParam(name, *args, **kwargs)
+        except TypeError:
+            try:
+                param = SampleParam(name, *args, **kwargs)
+            except TypeError:
+                param = JitterParam(name, *args, **kwargs)
 
-    def _generate_param_sequence(self, times):
-        num = 1
-        for param in self._params.values():
-            num *= len(param)
+        self._params[name] = param
 
+    def _generate_param_sequence(self, cycles):
+        repeats = np.prod([len(param) for param in self._params.values()])
         ret = []
-        repeat = num
         for param in self._params.values():
-            repeat = int(repeat / len(param))
-            ret.append(param.cycle(times, repeat))
-            times *= len(param)
+            repeats = int(repeats / len(param))
+            ret.append(param.generate(repeats=repeats, cycles=cycles))
+            cycles *= len(param)
 
         return list(zip(*ret))
 
     async def _async_scan(self, n_tasks, output, *,
-                          repeat, n_particles, start_id, **kwargs):
+                          cycles, n_particles, start_id, **kwargs):
         tasks = set()
-        sequence = self._generate_param_sequence(repeat)
+        sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence)
         writer = SimWriter(n_pulses, n_particles, output, start_id=start_id)
         count = 0
@@ -117,7 +123,7 @@ class LinacScan(object):
 
     def scan(self,
              n_tasks=1, *,
-             repeat=1,
+             cycles=1,
              n_particles=2000,
              output='scan.hdf5',
              start_id=1,
@@ -125,7 +131,7 @@ class LinacScan(object):
         """Start a parameter scan.
 
         :param int n_tasks: maximum number of concurrent tasks.
-        :param int repeat: number of repeats of the parameter space. For
+        :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
         :param int n_particles: number of particles to be stored.
@@ -138,7 +144,7 @@ class LinacScan(object):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
             n_tasks, output,
-            repeat=repeat,
+            cycles=cycles,
             n_particles=n_particles,
             start_id=start_id,
             **kwargs))
@@ -150,12 +156,30 @@ class LinacScan(object):
         text += 'Parameter scan: %s\n' % self.name
         text += self.__str__()
         text += '\n'
-        for i, ele in enumerate(self._params.values()):
-            if i == 0:
-                text += ele.__str__()
-            else:
-                text += ele.list_item()
+        text += self._summarize_parameters()
         text += '=' * 80 + '\n'
+        return text
+
+    def _summarize_parameters(self):
+        scan_params = []
+        sample_params = []
+        jitter_params = []
+        for param in self._params.values():
+            if isinstance(param, ScanParam):
+                scan_params.append(param)
+            elif isinstance(param, SampleParam):
+                sample_params.append(param)
+            elif isinstance(param, JitterParam):
+                jitter_params.append(param)
+
+        text = ''
+        for params in (scan_params, sample_params, jitter_params):
+            for i, ele in enumerate(params):
+                if i == 0:
+                    text += ele.__str__()
+                else:
+                    text += ele.list_item()
+            text += "\n"
         return text
 
     def __str__(self):
