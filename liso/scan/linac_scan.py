@@ -86,15 +86,16 @@ class LinacScan(object):
                 for i, k in enumerate(self._params):
                     x_map[k] = sequence[count][i]
 
+                sim_id = count + start_id
                 task = asyncio.ensure_future(
                     self._linac.async_run(
-                        count, x_map, f'tmp{count:06d}', **kwargs))
+                        count, x_map, f'tmp{sim_id:06d}', **kwargs))
                 tasks.add(task)
 
-                count += 1
-
-                logger.info(f"Scan {count:06d}: "
+                logger.info(f"Scan {sim_id:06d}: "
                             + str(x_map)[1:-1].replace(': ', ' = '))
+
+                count += 1
 
             if len(tasks) == 0:
                 break
@@ -111,11 +112,11 @@ class LinacScan(object):
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         logger.debug(repr(traceback.format_tb(exc_traceback))
                                      + str(e))
-                        logger.warning(f"Scan {count:06d}: " + str(e))
+                        logger.warning(str(e))
                     except Exception as e:
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         logger.error(
-                            f"Scan {count:06d} (Unexpected exceptions): "
+                            f"(Unexpected exceptions): "
                             + repr(traceback.format_tb(exc_traceback))
                             + str(e))
                         raise
