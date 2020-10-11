@@ -89,9 +89,8 @@ class SimWriter(_BaseWriter):
                 fp[f"CONTROL/{k}"][idx] = v
 
             for k, v in phasespaces.items():
-                # TODO: the predefined number of particles must be exactly
-                #       the same as the number in the data.
-                for col in v.columns:
-                    fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
+                if len(v) == self._n_particles:
+                    for col in v.columns:
+                        fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
 
             fp["METADATA/updateDate"][()] = datetime.now().isoformat()

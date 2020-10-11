@@ -66,3 +66,14 @@ class TestWriter(unittest.TestCase):
                 for col in ['x', 'y', 'z', 'px', 'py', 'pz', 't']:
                     np.testing.assert_array_equal(
                         self._ps[col], fp_h5[f'PHASESPACE/{col.upper()}/out'][9, ...])
+
+        # test writer with particle loss
+        with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+            writer = SimWriter(10, 101, fp.name)
+            writer.write(0,
+                         {'gun/gun_gradient': 1, 'gun/gun_phase': 2},
+                         {'out': self._ps})
+
+            with h5py.File(fp.name, 'r') as fp_h5:
+                for col in ['x', 'y', 'z', 'px', 'py', 'pz', 't']:
+                    self.assertFalse(np.any(fp_h5[f'PHASESPACE/{col.upper()}/out'][0, ...]))
