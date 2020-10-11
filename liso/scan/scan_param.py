@@ -13,6 +13,7 @@ from ..elements import OperationalElement
 
 
 class _IterParam(OperationalElement):
+    """Base class for parameters used in parameter scan."""
     def __init__(self, name):
         super().__init__(name)
 
@@ -31,6 +32,11 @@ class _IterParam(OperationalElement):
 
 
 class ScanParam(OperationalElement):
+    """ScanParam class.
+
+    A scan parameter is a parameter that changes from start to end
+    values stepwise.
+    """
     def __init__(self, name, start, stop, num, *, sigma=0.):
         """Initialization.
 
@@ -88,6 +94,11 @@ class ScanParam(OperationalElement):
 
 
 class SampleParam(OperationalElement):
+    """SampleParam class.
+
+    A sample parameter is a parameter that is sampled uniformly within a
+    given range.
+    """
     def __init__(self, name, lb, ub):
         """Initialization.
 
@@ -119,6 +130,10 @@ class SampleParam(OperationalElement):
 
 
 class JitterParam(OperationalElement):
+    """JitterParam class.
+
+    A jitter parameter is a parameter that jitters around a given value.
+    """
     def __init__(self, name, value, *, sigma=0.):
         """Initialization.
 

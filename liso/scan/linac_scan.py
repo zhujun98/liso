@@ -62,7 +62,8 @@ class LinacScan(object):
 
         self._params[name] = param
 
-    def _generate_param_sequence(self, cycles):
+    def _generate_param_sequence(self, cycles, seed):
+        np.random.seed(seed)  # set the random state!
         repeats = np.prod([len(param) for param in self._params.values()])
         ret = []
         for param in self._params.values():
@@ -73,9 +74,9 @@ class LinacScan(object):
         return list(zip(*ret))
 
     async def _async_scan(self, n_tasks, output, *,
-                          cycles, n_particles, start_id, **kwargs):
+                          cycles, n_particles, start_id, seed, **kwargs):
         tasks = set()
-        sequence = self._generate_param_sequence(cycles)
+        sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence)
         writer = SimWriter(n_pulses, n_particles, output, start_id=start_id)
         count = 0
@@ -127,6 +128,7 @@ class LinacScan(object):
              n_particles=2000,
              output='scan.hdf5',
              start_id=1,
+             seed=None,
              **kwargs):
         """Start a parameter scan.
 
@@ -137,6 +139,8 @@ class LinacScan(object):
         :param int n_particles: number of particles to be stored.
         :param str output: output file.
         :param int start_id: starting simulation id. Default = 1.
+        :param int/None seed: seed for the legacy MT19937 BitGenerator
+            in numpy.
         """
         logger.info(str(self._linac))
         logger.info(self.summarize())
@@ -147,6 +151,7 @@ class LinacScan(object):
             cycles=cycles,
             n_particles=n_particles,
             start_id=start_id,
+            seed=seed,
             **kwargs))
 
         logger.info(f"Scan finished!")
