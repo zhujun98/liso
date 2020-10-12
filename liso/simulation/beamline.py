@@ -300,7 +300,8 @@ class Beamline(ABC):
 
     async def async_run(self, tmp_dir, *, timeout=None):
         """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(self._swd, tmp_dir)) as swd:
+        with TempSimulationDirectory(osp.join(self._swd, tmp_dir),
+                                     delete_old=True) as swd:
             self.reset(swd)
 
             # need absolute path here

@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+import os
 import os.path as osp
 import asyncio
 import tempfile
@@ -91,8 +92,9 @@ class TestLinacOneBeamLine(unittest.TestCase):
                 future.set_result(object())
                 mocked_async_run_core.return_value = future
 
+                tmp_dir = osp.join(self._tmp_dir, "tmp0001")
+                os.mkdir(tmp_dir)
                 loop.run_until_complete(self._linac.async_run(0, self._mapping, "tmp0001"))
-                tmp_dir = osp.join(self._tmp_dir, 'tmp0001')
                 mocked_reset.assert_called_once_with(tmp_dir)
                 mocked_uo.assert_called_once_with(tmp_dir)
 
