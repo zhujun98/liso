@@ -13,11 +13,16 @@ import weakref
 class TempSimulationDirectory(object):
     """Create temporary directories to hold simulation files."""
 
-    def __init__(self, folder):
+    def __init__(self, folder, *, delete_old=False):
         """Initialization.
 
         :param str folder: full path of the temporary directory.
+        :param bool delete_old: True for deleting the folder if it already
+            exists.
         """
+        if delete_old and os.path.isdir(folder):
+            shutil.rmtree(folder)
+
         # owner can read, write and execute
         # Raise FileExistsError if the directory already exists and
         # 'self._cleanup' will not be registered.
