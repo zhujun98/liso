@@ -7,9 +7,12 @@ import unittest
 from liso.io import TempSimulationDirectory
 
 
+_ROOT_DIR = osp.dirname(osp.abspath(__file__))
+
+
 class TestTempDir(unittest.TestCase):
     def setUp(self):
-        self._tmp_dir = "/tmp/tmp_simulation_dir"
+        self._tmp_dir = osp.join(_ROOT_DIR, "temp_simulation_dir_test")
 
     def tearDown(self):
         # test garbage collected

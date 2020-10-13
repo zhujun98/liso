@@ -124,10 +124,11 @@ class Beamline(ABC):
         self._input_gen.update(mapping)
 
     @abstractmethod
-    def generate_initial_particle_file(self, data):
+    def _generate_initial_particle_file(self, data, swd):
         """Generate the initial particle file.
 
         :param Phasespace data: particle phasespace.
+        :param str swd: simulation working directory.
         """
         raise NotImplementedError
 
@@ -151,10 +152,9 @@ class Beamline(ABC):
         """
         raise NotImplementedError
 
-    def reset(self, swd=None):
+    def reset(self):
         """Reset status and output files."""
-        if swd is None:
-            swd = self._swd
+        swd = self._swd
 
         # input file
         with open(osp.join(swd, self._fin), 'w') as fp:
@@ -188,21 +188,20 @@ class Beamline(ABC):
         if not osp.getsize(filepath):
             raise RuntimeError(f"{title} file {filepath} is empty!")
 
-    def _check_run(self, parallel=False):
+    def _check_executable(self, parallel=False):
         filepath = self._get_executable(parallel)
         executable = find_executable(filepath)
         assert executable is not None, \
             f"executable [{filepath}] is not available"
         return executable
 
-    def _update_output(self, swd=None):
+    def _update_output(self, swd):
         """Analyse output particle file.
 
         Also prepare the input particle file for the downstream simulation.
 
         :param str swd: simulation working directory.
         """
-        swd = self._swd if swd is None else swd
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')
 
@@ -210,18 +209,11 @@ class Beamline(ABC):
         if ps.charge is None:
             ps.charge = self._charge
         self._out = ps.analyze()
-        if self.next is not None:
-            self.next.generate_initial_particle_file(ps)
-
         return ps
 
-    def _update_statistics(self, swd=None):
-        """Analysis output beam evolution files.
-
-        :param str swd: simulation working directory.
-        """
-        swd = self._swd if swd is None else swd
-        rootname = osp.join(swd, self._rootname)
+    def _update_statistics(self):
+        """Analysis output beam evolution files."""
+        rootname = osp.join(self._swd, self._rootname)
         for suffix in self._output_suffixes:
             self._check_file(rootname + suffix, 'Output')
 
@@ -234,7 +226,7 @@ class Beamline(ABC):
         self._std = analyze_line(data, np.std)
 
     def _run_core(self, n_workers, timeout):
-        executable = self._check_run(n_workers > 1)
+        executable = self._check_executable(n_workers > 1)
 
         # self._fin must be in the swd
         command = f"{executable} {self._fin}"
@@ -256,23 +248,27 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(repr(e))
 
-    def run(self, n_workers, timeout):
+    def run(self, phasespace, *, timeout, n_workers):
         """Run simulation for the beamline."""
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
 
         self.reset()
 
+        if phasespace is not None:
+            self._generate_initial_particle_file(phasespace, self._swd)
+
         # need absolute path here
         self._input_gen.write(osp.join(self._swd, self._fin))
 
         self._run_core(n_workers, timeout)
 
-        self._update_output()
         self._update_statistics()
 
+        return self._update_output(self._swd)
+
     async def _async_run_core(self, swd, timeout):
-        executable = self._check_run()
+        executable = self._check_executable()
 
         # self._fin must be in the swd
         command = f"{executable} {self._fin}"
@@ -298,11 +294,13 @@ class Beamline(ABC):
 
             _, err = await proc.communicate()
 
-    async def async_run(self, tmp_dir, *, timeout=None):
+    async def async_run(self, phasespace, tmp_dir, *, timeout):
         """Run simulation asynchronously for the beamline."""
         with TempSimulationDirectory(osp.join(self._swd, tmp_dir),
                                      delete_old=True) as swd:
-            self.reset(swd)
+
+            if phasespace is not None:
+                self._generate_initial_particle_file(phasespace, swd)
 
             # need absolute path here
             self._input_gen.write(osp.join(swd, self._fin))
@@ -362,10 +360,10 @@ class AstraBeamline(Beamline):
         """Override."""
         return parse_astra_line(rootname)
 
-    def generate_initial_particle_file(self, data):
+    def _generate_initial_particle_file(self, data, swd):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_astra(
-            osp.join(self._swd, self._pin))
+            osp.join(swd, self._pin))
 
 
 class ImpacttBeamline(Beamline):
@@ -400,10 +398,10 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_line(rootname)
 
-    def generate_initial_particle_file(self, data):
+    def _generate_initial_particle_file(self, data, swd):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_impactt(
-            osp.join(self._swd, self._pin))
+            osp.join(swd, self._pin))
 
 
 class ElegantBeamline(Beamline):
@@ -431,10 +429,10 @@ class ElegantBeamline(Beamline):
         """Override."""
         raise NotImplementedError
 
-    def generate_initial_particle_file(self, data):
+    def _generate_initial_particle_file(self, data, swd):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_elegant(
-            osp.join(self._swd, self._pin))
+            osp.join(swd, self._pin))
 
 
 def create_beamline(bl_type, *args, **kwargs):
