@@ -8,6 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 import functools
+import multiprocessing
 import sys
 import traceback
 from threading import Thread
@@ -124,7 +125,7 @@ class LinacScan(object):
                     tasks.remove(task)
 
     def scan(self,
-             n_tasks=1, *,
+             n_tasks=None, *,
              cycles=1,
              n_particles=2000,
              output='scan.hdf5',
@@ -133,7 +134,7 @@ class LinacScan(object):
              **kwargs):
         """Start a parameter scan.
 
-        :param int n_tasks: maximum number of concurrent tasks.
+        :param int/None n_tasks: maximum number of concurrent tasks.
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
@@ -143,7 +144,11 @@ class LinacScan(object):
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
+        if n_tasks is None:
+            n_tasks = multiprocessing.cpu_count()
+
         logger.info(str(self._linac))
+        logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
         logger.info(self.summarize())
 
         loop = asyncio.get_event_loop()
@@ -159,9 +164,8 @@ class LinacScan(object):
 
     def summarize(self):
         text = '\n' + '=' * 80 + '\n'
-        text += 'Parameter scan: %s\n' % self.name
+        text += 'Scanned parameters: %s\n' % self.name
         text += self.__str__()
-        text += '\n'
         text += self._summarize_parameters()
         text += '=' * 80 + '\n'
         return text
@@ -180,12 +184,13 @@ class LinacScan(object):
 
         text = ''
         for params in (scan_params, sample_params, jitter_params):
+            if params:
+                text += "\n"
             for i, ele in enumerate(params):
                 if i == 0:
                     text += ele.__str__()
                 else:
                     text += ele.list_item()
-            text += "\n"
         return text
 
     def __str__(self):

@@ -36,7 +36,7 @@ class TestLinacScan(unittest.TestCase):
     def testGeneral(self):
         self._sc.add_param('gun_gradient', 120, 130, 5)
         self._sc.add_param('gun_phase', -0.02, 0.02, 3)
-        self._sc.scan()
+        self._sc.scan(n_tasks=2)
 
 
 if __name__ == "__main__":

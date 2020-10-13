@@ -130,8 +130,7 @@ class TestLinacscan(unittest.TestCase):
                                   n_particles=0, start_id=0)
 
             with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
-                # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
-                              n_particles=0, start_id=11)
+                # test the default value: n_tasks == None
+                self._sc.scan(cycles=2, output=fp.name, n_particles=0, start_id=11)
                 sim = open_sim(fp.name)
                 np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
