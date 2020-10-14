@@ -91,6 +91,7 @@ class TestReader(unittest.TestCase):
 
     def testOpenSimSingleFile(self):
         data = open_sim(self._sim_files[0].name)
+        self.assertIsInstance(data, SimDataCollection)
         data.info()
         self._check_sim_metadata(data, 10)
         self._check_sim_get_control(data, 10)
