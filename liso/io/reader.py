@@ -7,6 +7,8 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import defaultdict
+import os
+import os.path as osp
 
 import pandas as pd
 
@@ -17,6 +19,9 @@ from ..data_processing import Phasespace
 
 class _DataCollectionBase:
     """A collection of simulated or experimental data."""
+
+    _FileAccess = None
+
     def __init__(self, files):
         """Initialization
 
@@ -34,9 +39,38 @@ class _DataCollectionBase:
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
     def from_path(cls, path):
-        raise NotImplementedError
+        """Construct a data collection from a single file.
+
+        :param str path: file path.
+        """
+        files = [cls._FileAccess(path)]
+        return cls(files)
+
+    @classmethod
+    def _open_file(cls, path):
+        try:
+            fa = cls._FileAccess(path)
+        except Exception as e:
+            return osp.basename(path), str(e)
+        else:
+            return osp.basename(path), fa
+
+    @classmethod
+    def from_paths(cls, paths):
+        """Construct a data collection from a list of files.
+
+        :param list paths: a list of file paths.
+        """
+        files = []
+        for path in paths:
+            fname, ret = cls._open_file(path)
+            if isinstance(ret, cls._FileAccess):
+                files.append(ret)
+            else:
+                print(f"Skipping path {fname}: {ret}")
+
+        return cls(files)
 
     def get_controls(self):
         """Return control data in a Pandas.DataFrame."""
@@ -53,7 +87,8 @@ class _DataCollectionBase:
             })
             df.set_index(fa._ids, inplace=True)
             data.append(df)
-        return pd.concat(data)
+        # set "inplace=True" is even slower
+        return pd.concat(data).sort_index()
 
     @abc.abstractmethod
     def __getitem__(self, item):
@@ -133,11 +168,6 @@ class SimDataCollection(_DataCollectionBase):
         for src in sorted(self.phasespace_channels):
             print('  - ', src)
 
-    @classmethod
-    def from_path(cls, path):
-        files = [SimFileAccess(path)]
-        return cls(files)
-
     def __getitem__(self, sim_id):
         fa, idx = self._find_data(sim_id)
         ret = dict()
@@ -155,13 +185,23 @@ class SimDataCollection(_DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'PHASESPACE'
 
 
-def open_sim(filepath):
-    return SimDataCollection.from_path(filepath)
+def open_sim(path):
+    """Open simulation data from a single file or a directory.
+
+    :param str path: file or directory path.
+    """
+    if osp.isfile(path):
+        return SimDataCollection.from_path(path)
+
+    paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
+    if not paths:
+        raise Exception(f"No HDF5 files found in {path}!")
+    return SimDataCollection.from_paths(paths)
 
 
 class ExpDataCollection(_DataCollectionBase):
     """A collection of experimental data."""
-    _FileAccess = SimFileAccess
+    _FileAccess = ExpFileAccess
 
     def __init__(self, files):
         super().__init__(files)
@@ -193,11 +233,6 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.detector_channels):
             print('  - ', ch)
 
-    @classmethod
-    def from_path(cls, path):
-        files = [ExpFileAccess(path)]
-        return cls(files)
-
     def __getitem__(self, pulse_id):
         fa, idx = self._find_data(pulse_id)
         ret = dict()
@@ -213,4 +248,8 @@ class ExpDataCollection(_DataCollectionBase):
 
 
 def open_run(filepath):
+    """Open experimental data from a single file or a directory.
+
+    :param str path: file or directory path.
+    """
     return ExpDataCollection.from_path(filepath)
