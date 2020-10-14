@@ -52,14 +52,14 @@ class TestReader(unittest.TestCase):
             fp_h5.create_dataset("INDEX/pulseId", data=cls._pulse_ids)
 
             fp_h5.create_dataset(
-                "METADATA/controlChannels",
+                "METADATA/controlChannel",
                 dtype=h5py.string_dtype(),
                 data=[ch.encode("utf-8") for ch in cls._exp_control_data])
             for ch, data_ in cls._exp_control_data.items():
                 fp_h5.create_dataset(f"CONTROL/{ch}", data=data_)
 
             fp_h5.create_dataset(
-                "METADATA/detectorChannels",
+                "METADATA/detectorChannel",
                 dtype=h5py.string_dtype(),
                 data=[ch.encode("utf-8") for ch in cls._exp_detector_data])
             for ch, data_ in cls._exp_detector_data.items():

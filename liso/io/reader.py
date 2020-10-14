@@ -42,9 +42,14 @@ class _DataCollectionBase:
         """Return control data in a Pandas.DataFrame."""
         data = []
         for fa in self._files:
+            if 'METADATA/controlChannels' in fa.file:
+                # backward compatibility
+                control_channel_path = 'METADATA/controlChannels'
+            else:
+                control_channel_path = 'METADATA/controlChannel'
             df = pd.DataFrame.from_dict({
                 ch: fa.file[f"CONTROL/{ch}"][()]
-                for ch in fa.file["METADATA/controlChannels"]
+                for ch in fa.file[control_channel_path]
             })
             df.set_index(fa._ids, inplace=True)
             data.append(df)

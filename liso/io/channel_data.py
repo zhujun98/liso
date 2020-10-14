@@ -93,6 +93,7 @@ class ChannelData:
 
     def numpy(self):
         """Return data as a numpy array."""
+        # TODO: improve the performance
         out = np.empty(shape=(len(self._ids), *self._entry_shape),
                        dtype=self._dtype)
         for i, item in enumerate(self):
