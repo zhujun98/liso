@@ -59,22 +59,22 @@ class SimWriter(_BaseWriter):
         with h5py.File(self._path, 'a') as fp:
             if not self._initialized:
                 fp.create_dataset(
-                    "METADATA/controlChannels", (len(controls),),
+                    "METADATA/controlChannel", (len(controls),),
                     dtype=h5py.string_dtype())
                 fp.create_dataset(
-                    "METADATA/phasespaceChannels", (len(phasespaces),),
+                    "METADATA/phasespaceChannel", (len(phasespaces),),
                     dtype=h5py.string_dtype())
 
                 fp.create_dataset(
                     "INDEX/simId", (self._n_pulses,), dtype='u8')
 
                 for i, k in enumerate(controls):
-                    fp["METADATA/controlChannels"][i] = k
+                    fp["METADATA/controlChannel"][i] = k
                     fp.create_dataset(
                         f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
                 for i, (k, v) in enumerate(phasespaces.items()):
-                    fp["METADATA/phasespaceChannels"][i] = k
+                    fp["METADATA/phasespaceChannel"][i] = k
                     for col in v.columns:
                         fp.create_dataset(
                             f"PHASESPACE/{col.upper()}/{k}",
@@ -90,6 +90,9 @@ class SimWriter(_BaseWriter):
 
             for k, v in phasespaces.items():
                 if len(v) == self._n_particles:
+                    # The rational behind writing different columns separately
+                    # is to avoid reading out all the columns when only one
+                    # or two columns are needed.
                     for col in v.columns:
                         fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
 

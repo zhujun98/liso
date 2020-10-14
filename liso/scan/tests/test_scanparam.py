@@ -21,14 +21,14 @@ class TestScanParam(unittest.TestCase):
         # test positive sigma
         param = ScanParam('param', -10., -10., 1000, sigma=0.1)
         param_lst = param.generate()
-        self.assertTrue(abs(-10. - np.mean(param_lst)) < 0.1)
-        self.assertTrue(abs(0.1 - np.std(param_lst)) < 0.01)
+        self.assertLess(abs(-10. - np.mean(param_lst)), 0.1)
+        self.assertLess(abs(0.1 - np.std(param_lst)), 0.01)
 
         # test negative sigma
         param = ScanParam('param', -10., -10., 1000, sigma=-0.1)
         param_lst = param.generate()
-        self.assertTrue(abs(-10. - np.mean(param_lst)) < 0.1)
-        self.assertTrue(abs(1. - np.std(param_lst)) < 0.1)
+        self.assertLess(abs(-10. - np.mean(param_lst)), 0.1)
+        self.assertLess(abs(1. - np.std(param_lst)),  0.1)
 
         # test repeats and cycles
         param = ScanParam('param', -1., 1., 3)

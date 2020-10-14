@@ -25,6 +25,12 @@ class Channel:
         self.location = location
         self.property = property
 
+        self._address = f"{facility}/{device}/{location}/{property}"
+
+    @property
+    def address(self):
+        return self._address
+
     @classmethod
     def from_address(cls, address):
         return cls(*address.split('/'))

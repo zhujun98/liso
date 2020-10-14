@@ -132,11 +132,18 @@ class SimFileAccess(_FileAccessBase):
 
     def _read_data_channels(self):
         """Override."""
-        control_channels, phasespace_channels = set(), set()
+        if 'METADATA/controlChannels' in self.file:
+            # backward compatibility
+            control_channel_path = 'METADATA/controlChannels'
+            phasespace_channel_path = 'METADATA/phasespaceChannels'
+        else:
+            control_channel_path = 'METADATA/controlChannel'
+            phasespace_channel_path = 'METADATA/phasespaceChannel'
 
-        for src in self.file['METADATA/controlChannels'][()]:
+        control_channels, phasespace_channels = set(), set()
+        for src in self.file[control_channel_path][()]:
             control_channels.add(src)
-        for src in self.file['METADATA/phasespaceChannels'][()]:
+        for src in self.file[phasespace_channel_path][()]:
             phasespace_channels.add(src)
 
         return frozenset(control_channels), frozenset(phasespace_channels)
@@ -162,11 +169,18 @@ class ExpFileAccess(_FileAccessBase):
 
     def _read_data_channels(self):
         """Override."""
-        control_channels, detector_channels = set(), set()
+        if 'METADATA/controlChannels' in self.file:
+            # backward compatibility
+            control_channel_path = 'METADATA/controlChannels'
+            detector_channel_path = 'METADATA/detectorChannels'
+        else:
+            control_channel_path = 'METADATA/controlChannel'
+            detector_channel_path = 'METADATA/detectorChannel'
 
-        for src in self.file['METADATA/controlChannels'][()]:
+        control_channels, detector_channels = set(), set()
+        for src in self.file[control_channel_path][()]:
             control_channels.add(src)
-        for src in self.file['METADATA/detectorChannels'][()]:
+        for src in self.file[detector_channel_path][()]:
             detector_channels.add(src)
 
         return frozenset(control_channels), frozenset(detector_channels)
