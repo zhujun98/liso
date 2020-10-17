@@ -17,7 +17,7 @@ _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 _INPUT_DIR = osp.join(_ROOT_DIR, "../../simulation/tests")
 
 
-class TestLinacscan(unittest.TestCase):
+class TestLinacScan(unittest.TestCase):
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
