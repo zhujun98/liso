@@ -108,73 +108,73 @@ def gaussian_filter1d(x, sigma):
     return np.convolve(x, weights, 'same')
 
 
-def sample_phasespace(x, y, n=1):
-    """Sample a fraction of data from x and y.
-
-    :param Pandas.Series x: data series.
-    :param Pandas.Series y: data series.
-    :param int n: number of data to be sampled.
-
-    :return: a tuple (x_sample, y_sample) where x_sample and y_sample
-             are both numpy.array
-    """
-    if n >= x.size:
-        return x, y
-
-    return x.sample(n).values, y.sample(n).values
-
-
-def mesh_phasespace(x, y, *, n_bins=10, ranges=None, normalize=True):
-    """Return the meshed phasespace.
+def mesh_phasespace(x, y, *,
+                    x_bins=30,
+                    y_bins=30,
+                    x_range=None,
+                    y_range=None):
+    """Return the meshed phasespace for displaying as an image.
 
     :param array-like x: 1D x data.
     :param array-like y: 1D y data.
-    :param int/array-like n_bins: number of bins.
-    :param array-like ranges: bin ranges in the format of
-        [[xmin, xmax], [ymin, ymax]] if specified.
-    :param bool/array-like normalize: True for normalizing the x and y data
-        by their averages, respectively.
+    :param int x_bins: number of bins in x.
+    :param int y_bins: number of bins in y.
+    :param tuple x_range: binning range in x.
+    :param tuple y_range: binning range in y.
+
+    :returns numpy.ndarray counts: number of particles in the 2D meshed grid.
+        Shape = (y_bins, x_bins)
+    :returns numpy.ndarray x_centers: bin centers of x data. Shape = (x_bins,)
+    :returns numpy.ndarray y_centers: bin centers of y data. Shape = (y_bins,)
     """
-    try:
-        norm_x, norm_y = normalize
-    except TypeError:
-        norm_x = norm_y = normalize
+    if x_range is None:
+        x_range = (x.min(), x.max())
+    if y_range is None:
+        y_range = (y.min(), y.max())
 
-    xx = x - np.mean(x) if norm_x else x
-    yy = y - np.mean(y) if norm_y else y
-
-    counts, x_edges, y_edges = np.histogram2d(
-        xx, yy, bins=n_bins, range=ranges)
+    counts, y_edges, x_edges = np.histogram2d(
+        y, x, bins=(y_bins, x_bins), range=(y_range, x_range))
     x_centers = (x_edges[1:] + x_edges[0:-1]) / 2
     y_centers = (y_edges[1:] + y_edges[0:-1]) / 2
 
     return counts, x_centers, y_centers
 
 
-def density_phasespace(x, y, *, n=20000, n_bins=10, sigma=None):
-    """Return the sampled phasespace with density.
+def phasespace_density(x, y, *,
+                       samples=20000, x_bins=30, y_bins=30, sigma=None):
+    """Return the sampled phasespace with probability densities.
 
-    :param pandas.Series x: x data.
-    :param pandas.Series y: y data.
-    :param int n: number of data points to be sampled.
-    :param int/(int, int) n_bins: number of bins used in numpy.histogram2d().
+    :param array-like x: 1D x data.
+    :param array-like y: 1D y data.
+    :param int samples: number of data points to be sampled.
+    :param int x_bins: number of bins in x.
+    :param int y_bins: number of bins in y.
     :param numeric sigma: standard deviation of Gaussian kernel of the
         Gaussian filter.
 
-    :returns pandas.Series x_sample: sampled x data.
-    :returns pandas.Series y_sample: sampled y data
     :returns numpy.ndarray z: Normalized density at each sample point.
+        Shape = (samples,)
+    :returns numpy.ndarray x_sample: sampled x data. Shape = (samples,)
+    :returns numpy.ndarray y_sample: sampled y data. Shape = (samples,)
     """
-    counts, x_centers, y_centers = mesh_phasespace(x, y, n_bins=n_bins)
+    counts, x_edges, y_edges = np.histogram2d(x, y, bins=(x_bins, y_bins))
 
     if sigma is not None:
         counts = gaussian_filter(counts, sigma=sigma)
 
-    x_sample, y_sample = sample_phasespace(x, y, n)
+    # sample phasespace
+    if samples >= len(x):
+        x_sample, y_sample = x, y
+    else:
+        x_sample = np.random.choice(x, size=samples)
+        y_sample = np.random.choice(y, size=samples)
 
-    px = np.digitize(x_sample, x_centers)
-    py = np.digitize(y_sample, y_centers)
-    z = counts[px - 1, py - 1]
-    z /= z.max()
+    px = np.digitize(x_sample, x_edges, right=True)
+    py = np.digitize(y_sample, y_edges, right=True)
+
+    px[px == x_bins] = x_bins - 1
+    py[py == y_bins] = y_bins - 1
+    z = counts[px, py]
+    z /= z.sum()
 
     return z, x_sample, y_sample

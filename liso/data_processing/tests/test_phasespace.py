@@ -1,8 +1,3 @@
-"""
-Unittest for Data Analysis
-
-Author: Jun Zhu, zhujun981661@gmail.com
-"""
 import unittest
 import os.path as osp
 
@@ -11,7 +6,6 @@ import numpy as np
 
 from liso.data_processing import (
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
-    density_phasespace, mesh_phasespace, sample_phasespace,
 )
 from liso import Phasespace
 
@@ -25,7 +19,7 @@ except ImportError:
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 
 
-class TestPhasespace(unittest.TestCase):
+class TestPhasespaceAstra(unittest.TestCase):
     def setUp(self):
         pfile = osp.join(_ROOT_DIR, "astra_output/astra.out")
         self.data = parse_astra_phasespace(pfile)
@@ -126,38 +120,6 @@ class TestPhasespace(unittest.TestCase):
         self.data.rotate(0.1)
         params = self.data.analyze()
         self.assertEqual(params.n, 500)
-
-    def testSamplePhasespace(self):
-        x = pd.Series(np.arange(1000))
-        y = pd.Series(np.arange(1000) + 100)
-
-        xs, ys = sample_phasespace(x, y, n=10)
-        self.assertEqual(10, len(xs))
-        self.assertEqual(10, len(ys))
-
-        xs, ys = sample_phasespace(x, y, n=2000)
-        self.assertEqual(1000, len(xs))
-        self.assertEqual(1000, len(ys))
-
-    def testMeshPhasespace(self):
-        x, y = self.data['t'], self.data['pz']
-
-        intensity, xc, yc = mesh_phasespace(x, y, n_bins=20, normalize=False)
-        self.assertTupleEqual((20, 20), intensity.shape)
-        self.assertEqual(len(self.data), np.sum(intensity))
-        self.assertGreater(np.mean(xc), 1e-8)
-        self.assertGreater(np.mean(yc), 99.8)
-
-        intensity, xc, yc = mesh_phasespace(
-            x, y, n_bins=[10, 20], ranges=[[-10, 10], [99, 101]], normalize=[True, False])
-        self.assertTupleEqual((10, 20), intensity.shape)
-        self.assertEqual(len(self.data), np.sum(intensity))
-        self.assertAlmostEqual(np.mean(xc), 0.)
-        self.assertAlmostEqual(np.mean(yc), 100.)
-
-    def testDensityPhasespace(self):
-        x, y = self.data['x'], self.data['y']
-        density_phasespace(x, y, n=20000, n_bins=10, sigma=None)
 
 
 class TestPhasespaceImpactt(unittest.TestCase):

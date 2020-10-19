@@ -5,14 +5,10 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import numpy as np
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import (
-    density_phasespace, Phasespace, mesh_phasespace, sample_phasespace
-)
+from ..data_processing import Phasespace, mesh_phasespace
 from .vis_utils import (
     get_default_unit, get_label, get_unit_label_and_scale
 )
@@ -70,47 +66,35 @@ class PhasespacePlot(object):
 
         self._ax_margin = ax_margin
 
-    def cloud(self, var_x, var_y, **kwargs):
-        self._plot(var_x, var_y, **kwargs)
-
-    def scatter(self, var_x, var_y, **kwargs):
-        self._plot(var_x, var_y, cloud_plot=False, **kwargs)
-
-    def _plot(self, var_x, var_y, *,
-              samples=20000,
-              ax=None,
-              x_unit=None,
-              y_unit=None,
-              y1_unit=None,
-              xlim=None,
-              ylim=None,
-              cloud_plot=True,
-              ms=2,
-              mc='dodgerblue',
-              alpha=1.0,
-              bins_2d=500,
-              sigma_2d=5,
-              show_parameters=True):
-        """Show a phase-space on screen or in a file.
+    def plot(self, var_x, var_y, *,
+             samples=20000,
+             x_unit=None,
+             y_unit=None,
+             xlim=None,
+             ylim=None,
+             ms=2,
+             mc='dodgerblue',
+             alpha=1.0,
+             show_parameters=True,
+             show_current=False,
+             ax=None):
+        """Plot a given phasespace.
 
         :param string var_x: name of variable at x-axis (case insensitive).
         :param string var_y: name of variable at y-axis (case insensitive).
         :param int samples: number of data to be sampled.
         :param string x_unit: unit for x axis.
         :param string y_unit: unit for y axis.
-        :param string y1_unit: unit for y2 axis.
         :param tuple xlim: range (x_min, x_max) of the x axis.
         :param tuple ylim: range (y_min, y_max) of the y axis.
-        :param bool cloud_plot: true for colorful density plot.
-        :param int ms: marker size for scatter plots.
-        :param string mc: color of markers for non-density plot.
+        :param int ms: marker size.
+        :param string mc: marker color.
         :param float alpha: alpha value (transparency). Default = 1.0.
-        :param int/[int, int] bins_2d: number of bins used in
-            numpy.histogram2d.
-        :param float sigma_2d: standard deviation of Gaussian kernel
-            of the Gaussian filter.
         :param bool show_parameters: display beam parameters in the title.
             Default = True.
+        :param bool show_current: show current plot using the y2 axis if the
+            x axis is t or dt.
+        :param matplotlib.axes.Axes/None ax: axis of the plot.
         """
         var_x = var_x.lower()
         var_y = var_y.lower()
@@ -123,8 +107,6 @@ class PhasespacePlot(object):
         if ax is None:
             fig = plt.figure(figsize=self._figsize, tight_layout=True)
             ax = fig.add_subplot(111)
-        else:
-            fig = None
 
         ax.margins(self._ax_margin)
 
@@ -141,54 +123,40 @@ class PhasespacePlot(object):
         ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
-        if cloud_plot is True:
-            density, x_sample, y_sample = density_phasespace(
-                self._data[var_x],
-                self._data[var_y],
-                n=samples,
-                n_bins=bins_2d,
-                sigma=sigma_2d)
+        if show_current and var_x in ('t', 'dt'):
+            y2_unit = get_default_unit('i')
+            y2_unit_label, y2_scale = get_unit_label_and_scale(y2_unit)
 
-            cb = ax.scatter(x_sample*x_scale, y_sample*y_scale,
-                            c=density,
-                            s=ms,
-                            alpha=alpha,
-                            cmap='jet')
+            ax2 = ax.twinx()
+            ax2.margins(self._ax_margin)
+            ax2.yaxis.set_major_locator(ticker.MaxNLocator(
+                nbins=self._max_locator))
+            ax2.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
-            if (var_x, var_y) == ('dt', 'p'):
-                y1_unit = get_default_unit('i') if y1_unit is None else y1_unit
-                y1_unit_label, y1_scale = get_unit_label_and_scale(y1_unit)
+            t_centers = self._params.current_dist[0]
+            if var_x == 'dt':
+                # t_centers should not be modified inplace
+                t_centers = t_centers - self._params.Ct
+            ax2.plot(t_centers * x_scale,
+                     self._params.current_dist[1] * y2_scale,
+                     ls='--',
+                     lw=2,
+                     color='indigo')
+            ax2.set_ylabel("$I$ " + y2_unit_label,
+                           fontsize=self._label_fontsize,
+                           labelpad=self._label_pad)
+            ax2.tick_params(labelsize=self._tick_fontsize)
 
-                ax1 = ax.twinx()
-                ax1.margins(self._ax_margin)
-                ax1.yaxis.set_major_locator(ticker.MaxNLocator(
-                    nbins=self._max_locator))
-                ax1.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
-
-                ax1.plot(self._params.current_dist[0] * x_scale,
-                         self._params.current_dist[1] * y1_scale,
-                         ls='--',
-                         lw=2,
-                         color='indigo')
-                ax1.set_ylabel("$I$ " + y1_unit_label,
-                               fontsize=self._label_fontsize,
-                               labelpad=self._label_pad)
-                ax1.tick_params(labelsize=self._tick_fontsize)
-
-                cbaxes = fig.add_axes([0.75, 0.07, 0.2, 0.02])
-                cbar = plt.colorbar(cb, orientation='horizontal', cax=cbaxes)
-            else:
-                cbar = plt.colorbar(cb, shrink=0.5)
-
-            cbar.set_ticks(np.arange(0, 1.01, 0.2))
-            cbar.ax.tick_params(labelsize=14)
-
+        # sample phasespace
+        if samples >= len(self._data):
+            x_sample, y_sample = self._data[var_x], self._data[var_y]
         else:
-            x_sample, y_sample = sample_phasespace(
-                self._data[var_x], self._data[var_y], n=samples)
+            # self._data[var] returns a pandas.Series
+            x_sample = self._data[var_x].sample(samples).values
+            y_sample = self._data[var_y].sample(samples).values
 
-            ax.scatter(x_sample * x_scale, y_sample * y_scale,
-                       alpha=alpha, c=mc, s=ms)
+        ax.scatter(x_sample * x_scale, y_sample * y_scale,
+                   alpha=alpha, c=mc, s=ms)
 
         self._set_labels_and_tick(
             ax, (x_label, y_label), (x_unit_label, y_unit_label))
@@ -212,41 +180,13 @@ class PhasespacePlot(object):
                     % float("%.2g" % (self._params.emity*1e6)),
                     fontsize=self._tick_fontsize, y=1.02)
 
-            elif var_x == 'dt' and (var_y == 'p' or var_y == 'delta'):
+            elif var_x in ('t', 'dt') and var_y in ('p', 'delta'):
                 ax.set_title(
-                    r"$\sigma_t$ = %s " % float("%.2g" % (self._params.St*x_scale))
+                    r"$\sigma_t$ = %s " % float("%.2g" % (self._params.St * x_scale))
                     + x_unit_label.replace('(', '').replace(')', '')
                     + r", $\sigma_\delta$ = %s " % float("%.2g" % self._params.Sdelta)
-                    + r", $Q$ = %s pC" % float("%.2g" % (self._params.charge*1e12)),
+                    + r", $Q$ = %s pC" % float("%.2g" % (self._params.charge * 1e12)),
                     fontsize=self._tick_fontsize, y=1.02)
-
-        return ax
-
-    def current(self, n_bins=128, *,
-                ax=None, x_unit=None, y_unit=None, xlim=None, ylim=None):
-        """Plot the current profile.
-
-        :param int n_bins: number of bins used in histogram.
-        """
-        var_x, var_y = 'dt', 'i'
-        x_label, x_unit_label, x_scale = self._get_label_and_scale(var_x, x_unit)
-        y_label, y_unit_label, y_scale = self._get_label_and_scale(var_y, y_unit)
-
-        t = self._data[var_x]
-        hist, edges = np.histogram(t, bins=n_bins)
-        centers = (edges[1:] + edges[:-1]) / 2.
-
-        if ax is None:
-            fig = plt.figure(figsize=self._figsize, tight_layout=True)
-            ax = fig.add_subplot(111)
-
-        self._set_labels_and_tick(
-            ax, (x_label, y_label), (x_unit_label, y_unit_label))
-
-        ax.plot(centers * x_scale, hist * y_scale)
-
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
 
         return ax
 
@@ -264,17 +204,59 @@ class PhasespacePlot(object):
                       labelpad=self._label_pad)
         ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)
 
-    @classmethod
-    def imshow(cls, x, y, *, ax=None, cmap=None, **kwargs):
+    def imshow(self, var_x, var_y, *,
+               x_bins=64,
+               y_bins=64,
+               x_range=None,
+               y_range=None,
+               x_unit=None,
+               y_unit=None,
+               cmap=None,
+               ax=None,
+               flip_origin=True):
+        """Plot the phasespace as a pseudo image.
+
+        :param string var_x: name of variable at x-axis (case insensitive).
+        :param string var_y: name of variable at y-axis (case insensitive).
+        :param int x_bins: number of bins in x.
+        :param int y_bins: number of bins in y.
+        :param tuple x_range: binning range (x_min, x_max) in x,
+            and (x_max - x_min) / x_bins should be the pixel size in x.
+        :param tuple y_range: binning range (y_min, y_max) in y,
+            and (y_max - y_min) / y_bins should be the pixel size in y.
+        :param string x_unit: unit for x axis.
+        :param string y_unit: unit for y axis.
+        :param matplotlib.axes.Axes/None ax: axis of the plot.
+        :param bool flip_origin: True for flipping the y_axis.
+        """
+        var_x = var_x.lower()
+        var_y = var_y.lower()
+
+        x_label, x_unit_label, x_scale = self._get_label_and_scale(
+            var_x, x_unit)
+        y_label, y_unit_label, y_scale = self._get_label_and_scale(
+            var_y, y_unit)
+
         if ax is None:
             _, ax = plt.subplots()
 
-        i, xc, yc = mesh_phasespace(y, x, **kwargs)
+        intensity, xc, yc = mesh_phasespace(
+            self._data[var_x] * x_scale, self._data[var_y] * y_scale,
+            x_bins=x_bins,
+            y_bins=y_bins,
+            x_range=x_range,
+            y_range=y_range)
 
         if cmap is None:
             cmap = 'viridis'
 
-        ax.imshow(np.flip(i, axis=0),
+        ax.imshow(intensity,
                   aspect='auto',
                   cmap=cmap,
-                  extent=[yc.min(), yc.max(), xc.min(), xc.max()])
+                  extent=[xc.min(), xc.max(), yc.min(), yc.max()],
+                  origin='lower' if flip_origin else 'upper')
+
+        self._set_labels_and_tick(
+            ax, (x_label, y_label), (x_unit_label, y_unit_label))
+
+        return ax
