@@ -86,7 +86,7 @@ class Linac(Mapping):
         for name, bl in self._beamlines.items():
             bl.compile(mapping_grp[name])
             mapping_norm.update({
-                f"{name}.{k}": v for k, v in mapping_grp[name].items()
+                f"{name}/{k}": v for k, v in mapping_grp[name].items()
             })
         return mapping_norm
 
@@ -100,15 +100,18 @@ class Linac(Mapping):
         """
         self.compile(mapping)
 
+        out = None
         for i, bl in enumerate(self._beamlines.values()):
-            bl.run(n_workers, timeout)
+            out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
     async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
         controls = self.compile(mapping)
-        phasespaces = dict()
+
+        out = None
+        phasespaces = OrderedDict()
         for name, bl in self._beamlines.items():
-            ps = await bl.async_run(tmp_dir, timeout=timeout)
-            phasespaces[f"{name}.out"] = ps
+            out = await bl.async_run(out, tmp_dir, timeout=timeout)
+            phasespaces[f"{name}/out"] = out
         return idx, controls, phasespaces
 
     def status(self):

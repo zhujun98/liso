@@ -27,14 +27,10 @@ setup(
     long_description='liso is a Python API for linac simulation and'
                      'optimization using one or a combination of'
                      'different beam dynamics codes.',
-    license='GNU',
-
-    platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
-        'Intended Audience :: Developers',
-        'License :: GNU',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering',

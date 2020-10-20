@@ -11,7 +11,7 @@
 &end
 
 &sdds_beam
-    input               = ../input.sdds,
+    input               = input.sdds,
 &end
 
 &track &end

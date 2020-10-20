@@ -27,7 +27,7 @@ if not osp.isfile(_config_file):
     }
 
     try:
-        os.makedirs(_root_dir)
+        os.mkdir(_root_dir)
     except FileExistsError:
         pass
 

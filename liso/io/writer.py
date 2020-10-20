@@ -5,39 +5,52 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from datetime import datetime
+
 import h5py
 
 
-class SimWriter:
-    """Write simulation parameters in file."""
+class _BaseWriter:
+    """Base class for HDF5 writer."""
+    def __init__(self, path):
+        """Initialization.
 
-    def __init__(self, n_pulses, n_particles, path):
+        :param str path: path of the hdf5 file.
+        """
+        self._path = path
+
+        # not allow to overwrite existing file
+        with h5py.File(self._path, 'a') as fp:
+            fp.create_dataset("METADATA/createDate",
+                              data=datetime.now().isoformat())
+            fp.create_dataset("METADATA/updateDate",
+                              data=datetime.now().isoformat())
+        self._initialized = False
+
+
+class SimWriter(_BaseWriter):
+    """Write simulated data in HDF5 file."""
+
+    def __init__(self, n_pulses, n_particles, path, *, start_id=1):
         """Initialization.
 
         :param int n_pulses: number of macro-pulses.
         :param int n_particles: number of particles per simulation.
         :param str path: path of the hdf5 file.
+        :param int start_id: starting simulation id.
         """
-        # TODO: restrict the number of data points in a single file
+        super().__init__(path)
+
         self._n_pulses = n_pulses
         self._n_particles = n_particles
 
-        self._path = path
-
-        with h5py.File(path, 'w') as fp:
-            fp.create_group('METADATA/SOURCE')
-            fp.create_group('INDEX')
-
-            fp.create_group('CONTROL')
-
-            grp = fp.create_group('PHASESPACE')
-            for axis in ['X', 'PX', 'Y', 'PY', 'Z', 'PZ', 'T']:
-                grp.create_group(axis)
-
-        self._initialized = False
+        if not isinstance(start_id, int) or start_id < 1:
+            raise ValueError(
+                f"start_id must a positive integer. Actual: {start_id}")
+        self._start_id = start_id
 
     def write(self, idx, controls, phasespaces):
-        """Write data into file incrementally.
+        """Write data from one simulation into the file.
 
         :param int idx: scan index.
         :param dict controls: dictionary of the control data.
@@ -46,21 +59,22 @@ class SimWriter:
         with h5py.File(self._path, 'a') as fp:
             if not self._initialized:
                 fp.create_dataset(
-                    "INDEX/simId", (self._n_pulses,), dtype='i8')
+                    "METADATA/controlChannel", (len(controls),),
+                    dtype=h5py.string_dtype())
+                fp.create_dataset(
+                    "METADATA/phasespaceChannel", (len(phasespaces),),
+                    dtype=h5py.string_dtype())
 
                 fp.create_dataset(
-                    "METADATA/SOURCE/control", (len(controls),),
-                    dtype=h5py.string_dtype())
+                    "INDEX/simId", (self._n_pulses,), dtype='u8')
+
                 for i, k in enumerate(controls):
-                    fp["METADATA/SOURCE/control"][i] = k
+                    fp["METADATA/controlChannel"][i] = k
                     fp.create_dataset(
                         f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
 
-                fp.create_dataset("METADATA/SOURCE/phasespace",
-                                  (len(phasespaces),),
-                                  dtype=h5py.string_dtype())
                 for i, (k, v) in enumerate(phasespaces.items()):
-                    fp["METADATA/SOURCE/phasespace"][i] = k
+                    fp["METADATA/phasespaceChannel"][i] = k
                     for col in v.columns:
                         fp.create_dataset(
                             f"PHASESPACE/{col.upper()}/{k}",
@@ -69,13 +83,17 @@ class SimWriter:
 
                 self._initialized = True
 
-            fp["INDEX/simId"][idx] = idx + 1
+            fp["INDEX/simId"][idx] = idx + self._start_id
 
             for k, v in controls.items():
                 fp[f"CONTROL/{k}"][idx] = v
 
             for k, v in phasespaces.items():
-                # TODO: the predefined number of particles must be exactly
-                #       the same as the number in the data.
-                for col in v.columns:
-                    fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
+                if len(v) == self._n_particles:
+                    # The rational behind writing different columns separately
+                    # is to avoid reading out all the columns when only one
+                    # or two columns are needed.
+                    for col in v.columns:
+                        fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
+
+            fp["METADATA/updateDate"][()] = datetime.now().isoformat()

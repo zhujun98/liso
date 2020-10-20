@@ -13,6 +13,7 @@ Linac Optimization and Simulation (LISO)
    :caption: INSTALLATION:
 
    installation
+   configuration
 
 .. toctree::
    :maxdepth: 1

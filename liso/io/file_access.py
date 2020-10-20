@@ -5,6 +5,7 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from abc import abstractmethod
 import os.path as osp
 import resource
 
@@ -72,8 +73,8 @@ def _init_file_open_registry():
 _file_open_registry = _init_file_open_registry()
 
 
-class FileAccess:
-    """Access an HDF5 file.
+class _FileAccessBase:
+    """Base class for accessing an HDF5 file.
 
     This does not necessarily keep the real file open, but opens it on demand.
     It assumes that the file is not changing on disk while this object exists.
@@ -90,10 +91,7 @@ class FileAccess:
         return instance
 
     def __init__(self, filepath):
-        self.control_sources, self.phasespace_sources = \
-            self._read_data_sources()
-
-        self.sim_ids = self.file["INDEX/simId"][()]
+        self._ids = []
 
     @property
     def file(self):
@@ -102,16 +100,9 @@ class FileAccess:
             self._file = h5py.File(self._filepath, 'r')
         return self._file
 
-    def _read_data_sources(self):
-        control_sources, phasespace_sources = set(), set()
-
-        data_sources_path = 'METADATA/SOURCE'
-        for src in self.file[data_sources_path]['control'][()]:
-            control_sources.add(src)
-        for src in self.file[data_sources_path]['phasespace'][()]:
-            phasespace_sources.add(src)
-
-        return frozenset(control_sources), frozenset(phasespace_sources)
+    @abstractmethod
+    def _read_data_channels(self):
+        raise NotImplementedError
 
     def close(self):
         """Close the HDF5 file this refers to.
@@ -126,3 +117,70 @@ class FileAccess:
 
     def __repr__(self):
         return "{}({})".format(type(self).__name__, repr(self._filepath))
+
+
+class SimFileAccess(_FileAccessBase):
+    """Access an HDF5 file which stores simulated data."""
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+        self.control_channels, self.phasespace_channels = \
+            self._read_data_channels()
+
+        self.sim_ids = self.file["INDEX/simId"][()]
+        self._ids = self.sim_ids
+
+    def _read_data_channels(self):
+        """Override."""
+        if 'METADATA/controlChannels' in self.file:
+            # backward compatibility
+            control_channel_path = 'METADATA/controlChannels'
+            phasespace_channel_path = 'METADATA/phasespaceChannels'
+        else:
+            control_channel_path = 'METADATA/controlChannel'
+            phasespace_channel_path = 'METADATA/phasespaceChannel'
+
+        control_channels, phasespace_channels = set(), set()
+        for src in self.file[control_channel_path][()]:
+            control_channels.add(src)
+        for src in self.file[phasespace_channel_path][()]:
+            phasespace_channels.add(src)
+
+        return frozenset(control_channels), frozenset(phasespace_channels)
+
+
+class ExpFileAccess(_FileAccessBase):
+    """Access an HDF5 file which stores experimental data."""
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+        self.control_channels, self.detector_channels = \
+            self._read_data_channels()
+
+        try:
+            self.pulse_ids = self.file["INDEX/pulseId"][()]
+        except KeyError:
+            try:
+                self.pulse_ids = self.file["INDEX/timestamp"][()]
+            except KeyError:
+                raise KeyError("Cannot find both 'pulseId' and 'timestamp' "
+                               "in the data!")
+        self._ids = self.pulse_ids
+
+    def _read_data_channels(self):
+        """Override."""
+        if 'METADATA/controlChannels' in self.file:
+            # backward compatibility
+            control_channel_path = 'METADATA/controlChannels'
+            detector_channel_path = 'METADATA/detectorChannels'
+        else:
+            control_channel_path = 'METADATA/controlChannel'
+            detector_channel_path = 'METADATA/detectorChannel'
+
+        control_channels, detector_channels = set(), set()
+        for src in self.file[control_channel_path][()]:
+            control_channels.add(src)
+        for src in self.file[detector_channel_path][()]:
+            detector_channels.add(src)
+
+        return frozenset(control_channels), frozenset(detector_channels)
