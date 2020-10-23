@@ -1,4 +1,4 @@
-from .pre_proc import Normalizer
+from .scaler import Normalizer
 
 
 __all__ = [
