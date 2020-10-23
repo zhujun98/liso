@@ -25,11 +25,11 @@ https://liso.readthedocs.io/
 
 A BibTeX entry that you can use to cite it in a publication:
 
-@misc{liso,
-  Author = {J. Zhu},
-  Title = {LISO},
-  Year = {2020},
-  publisher = {GitHub},
-  journal = {https://github.com/zhujun98/liso},
-  version = {...}
-}
+    @misc{liso,
+      Author = {J. Zhu},
+      Title = {LISO},
+      Year = {2020},
+      publisher = {GitHub},
+      journal = {https://github.com/zhujun98/liso},
+      version = {...}
+    }

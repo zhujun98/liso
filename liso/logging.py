@@ -7,7 +7,8 @@ def create_logger():
     """General logger."""
     logger = logging.getLogger("LISO")
 
-    fh = logging.FileHandler(config['DEFAULT']['LOG_FILE'], mode='w')
+    fh = logging.FileHandler(config['DEFAULT']['LOG_FILE'],
+                             mode='w', delay=True)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
 
@@ -30,7 +31,8 @@ def create_opt_logger():
     logger = logging.getLogger("LISO-Opt")
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(config['DEFAULT']['OPT_LOG_FILE'], mode="w")
+    fh = logging.FileHandler(config['DEFAULT']['OPT_LOG_FILE'],
+                             mode="w", delay=True)
     formatter = logging.Formatter('%(asctime)s - %(message)s')
     fh.setFormatter(formatter)
 
