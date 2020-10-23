@@ -14,9 +14,12 @@ class Normalizer:
         """Initialization.
 
         :param pandas.DataFrame/dict data: reference data to be normalized.
-            It should support __getitem__ or __setitem__.
-        :param dict minmax: a dictionary of (lower boundary, higher boundary)
-            of the MinMax normalizer.
+            It should support __getitem__ or __setitem__. The items within
+            the data set will be normalized individually.
+        :param dict minmax: a dictionary of (lower boundary, upper boundary)
+            of the MinMax normalizer. Note that the lower and upper boundaries
+            do not have to be the min and max values of the corresponding
+            item in the data if given.
         """
         self._minmax = dict()
         if minmax is not None:
@@ -25,25 +28,16 @@ class Normalizer:
                     raise ValueError(
                         f"MinMax normalize must only have two parameters: "
                         f"{len(item)}!")
-                self._minmax[key] = tuple(item)
+                lb, ub = item
+                if lb >= ub:
+                    raise ValueError(f"Upper boundary must be larger than"
+                                     f"lower boundary: {key: ({lb}, {ub})}")
+                self._minmax[key] = (lb, ub)
 
         for key in data:
             if key not in self._minmax:
                 self._minmax[key] = data[key].min(), data[key].max()
             self._normalize_minmax(data, key)
-
-    def normalize(self, data):
-        """Normalize the data inplace.
-
-        :param pandas.DataFrame/dict data: data to be normalized.
-            It should support __getitem__ or __setitem__.
-        """
-        for key in data:
-            if key not in self._minmax:
-                raise KeyError(f"{key} is not found in the data!")
-
-            if key in self._minmax:
-                self._normalize_minmax(data, key)
 
     def unnormalize(self, data):
         """Unnormalize the data inplace.
@@ -60,7 +54,7 @@ class Normalizer:
 
     def _normalize_minmax(self, data, key):
         lb, ub = self._minmax[key]
-        data[key] = 2 * (data[key] - lb) / (ub - lb) - 1
+        data[key] = 2.0 * (data[key] - lb) / (ub - lb) - 1
 
     def _unnormalize_minmax(self, data, key):
         lb, ub = self._minmax[key]

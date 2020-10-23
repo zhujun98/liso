@@ -25,24 +25,15 @@ class TestNormalizer(unittest.TestCase):
             Normalizer(data, minmax=minmax)
         del minmax['AA']
 
+        minmax['BB'] = [2, 2]
+        with self.assertRaises(ValueError):
+            Normalizer(data, minmax=minmax)
+        del minmax['BB']
+
         norm = Normalizer(data, minmax=minmax)
 
         np.testing.assert_array_almost_equal(0.02 * (a_gt - 50), data['A'])
         np.testing.assert_array_almost_equal(0.01 * (c_gt - 100), data['C'])
-
-        # test normalize
-
-        new_data = {
-            'A': np.array([5, 10]),
-        }
-        norm.normalize(new_data)
-        np.testing.assert_array_almost_equal([-0.9, -0.8], new_data['A'])
-
-        new_data = {
-            'D': np.array([2.2, 1.8]),
-        }
-        with self.assertRaisesRegex(KeyError, "D is not found"):
-            norm.normalize(new_data)
 
         # test unnormalize
 
@@ -56,4 +47,4 @@ class TestNormalizer(unittest.TestCase):
             'D': np.array([0.2, -0.2]),
         }
         with self.assertRaisesRegex(KeyError, "D is not found"):
-            norm.normalize(new_data)
+            norm.unnormalize(new_data)
