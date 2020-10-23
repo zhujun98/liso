@@ -9,17 +9,27 @@
 
 Author: Jun Zhu, zhujun981661@gmail.com
 
-LISO was created during my first period at DESY to facility accelerator beamline optimization.
-Now, it aims to provide an high-level API to:
+LISO was initially created for linac optimization back in 2017. After a more than two years interruption, 
+it is live again but aims to:
 
-1. Run a large numbers of simulations asynchronously; 
-2. Provide a unified format to store the simulation data and the measurable counterparts from 
-experiments;
-3. Provide a toolbox to process and visualize the data for deep learning and deep reinforcement 
-learning studies.
+1. provide a high-level API to run a large numbers of beam dynamics simulations using a combination
+of different codes distributedly; 
+2. provide a united IO for the simulated and experimental data;
+3. provide an interface for deep learning and deep reinforcement learning studies on accelerator physics.
 
 ## Documentation
 
 To get started with `liso`, checkout the full documentation at 
 
 https://liso.readthedocs.io/
+
+A BibTeX entry that you can use to cite it in a publication:
+
+@misc{liso,
+  Author = {J. Zhu},
+  Title = {LISO},
+  Year = {2020},
+  publisher = {GitHub},
+  journal = {https://github.com/zhujun98/liso},
+  version = {...}
+}
