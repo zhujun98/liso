@@ -8,7 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-from ..data_processing import Phasespace, mesh_phasespace
+from ..proc import Phasespace, mesh_phasespace
 from .vis_utils import (
     get_default_unit, get_label, get_unit_label_and_scale
 )

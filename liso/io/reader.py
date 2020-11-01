@@ -14,7 +14,7 @@ import pandas as pd
 
 from .channel_data import ChannelData
 from .file_access import SimFileAccess, ExpFileAccess
-from ..data_processing import Phasespace
+from ..proc import Phasespace
 
 
 class _DataCollectionBase:

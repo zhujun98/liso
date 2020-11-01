@@ -4,10 +4,10 @@ import os.path as osp
 import pandas as pd
 import numpy as np
 
-from liso.data_processing import (
+from liso import (
+    Phasespace,
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
 )
-from liso import Phasespace
 
 SKIP_TEST = False
 try:

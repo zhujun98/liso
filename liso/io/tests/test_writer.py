@@ -8,7 +8,7 @@ import numpy as np
 import h5py
 
 from liso.io import SimWriter
-from liso.data_processing import Phasespace
+from liso.proc import Phasespace
 
 
 class TestWriter(unittest.TestCase):

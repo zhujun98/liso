@@ -8,10 +8,9 @@ import pandas as pd
 import numpy as np
 import h5py
 
-from liso.io import open_sim
-from liso.scan import LinacScan
-from liso.simulation import Linac
-from liso.data_processing import Phasespace
+from liso import (
+    Linac, LinacScan, open_sim, Phasespace
+)
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 _INPUT_DIR = osp.join(_ROOT_DIR, "../../simulation/tests")

@@ -5,9 +5,9 @@ import os.path as osp
 import asyncio
 import tempfile
 
+from liso import Linac
 from liso.config import config
 from liso.io import TempSimulationDirectory
-from liso.simulation import Linac
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))

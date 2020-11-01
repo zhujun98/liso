@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from liso.ml import Normalizer
+from liso import Normalizer
 
 
 class TestNormalizer:
