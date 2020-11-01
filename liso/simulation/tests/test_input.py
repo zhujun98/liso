@@ -4,7 +4,7 @@ import tempfile
 
 import numpy as np
 
-from liso.data_processing import (
+from liso.proc import (
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
 )
 from liso.simulation import ParticleFileGenerator
@@ -55,7 +55,7 @@ class TestParticleFileGenerator(unittest.TestCase):
 
     def testAstraFromPhasespace(self):
         pfile = osp.join(
-            _ROOT_DIR, "../../data_processing/tests/astra_output/astra.out")
+            _ROOT_DIR, "../../proc/tests/astra_output/astra.out")
         ps = parse_astra_phasespace(pfile)
         param_gt = ps.analyze()
 
@@ -71,7 +71,7 @@ class TestParticleFileGenerator(unittest.TestCase):
 
     def testImpacttFromPhasespace(self):
         pfile = osp.join(
-            _ROOT_DIR, "../../data_processing/tests/impactt_output/impactt.out")
+            _ROOT_DIR, "../../proc/tests/impactt_output/impactt.out")
         ps = parse_impactt_phasespace(pfile)
         param_gt = ps.analyze()
 
@@ -87,7 +87,7 @@ class TestParticleFileGenerator(unittest.TestCase):
     @unittest.skipIf(SKIP_TEST is True, "Failed to import library")
     def testElegantFromPhasespace(self):
         pfile = osp.join(
-            _ROOT_DIR, "../../data_processing/tests/elegant_output/elegant.out")
+            _ROOT_DIR, "../../proc/tests/elegant_output/elegant.out")
         ps = parse_elegant_phasespace(pfile)
         param_gt = ps.analyze()
 

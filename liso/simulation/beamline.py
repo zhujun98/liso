@@ -14,7 +14,7 @@ from distutils.spawn import find_executable
 import numpy as np
 
 from ..config import config
-from ..data_processing import (
+from ..proc import (
     analyze_line,
     parse_astra_phasespace, parse_astra_line,
     parse_impactt_phasespace, parse_impactt_line,

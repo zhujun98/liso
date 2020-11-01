@@ -8,7 +8,7 @@ import os.path as osp
 
 import numpy as np
 
-from liso.data_processing import (
+from liso import (
     analyze_line, parse_astra_line, parse_impactt_line,
 )
 

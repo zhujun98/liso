@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from liso.data_processing import (
+from liso import (
     phasespace_density, mesh_phasespace
 )
 
