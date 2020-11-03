@@ -7,11 +7,12 @@ import asyncio
 
 import pandas as pd
 import numpy as np
-import h5py
 
 from liso import (
-    Linac, LinacScan, open_sim, Phasespace
+    EuXFELInterface, Linac, LinacScan, MachineScan,
+    open_run, open_sim, Phasespace
 )
+from liso import doocs_channels as dc
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 _INPUT_DIR = osp.join(_ROOT_DIR, "../../simulation/tests")
@@ -117,19 +118,18 @@ class TestLinacScan(unittest.TestCase):
                 self._sc.scan(n_tasks=2, cycles=2, output=filename, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
-                with h5py.File(filename, 'r') as fp_h5:
-                    sim = open_sim(filename)
-                    self.assertSetEqual(
-                        {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
-                    self.assertSetEqual(
-                        {'gun/out'}, sim.phasespace_channels)
-                    np.testing.assert_array_equal(np.arange(1, 19), sim.sim_ids)
-                    np.testing.assert_array_equal(
-                        [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
-                        sim.get_controls()['gun/gun_gradient'])
-                    np.testing.assert_array_equal(
-                        [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
-                        sim.get_controls()['gun/gun_phase'])
+                sim = open_sim(filename)
+                self.assertSetEqual(
+                    {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
+                self.assertSetEqual(
+                    {'gun/out'}, sim.phasespace_channels)
+                np.testing.assert_array_equal(np.arange(1, 19), sim.sim_ids)
+                np.testing.assert_array_equal(
+                    [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
+                    sim.get_controls()['gun/gun_gradient'])
+                np.testing.assert_array_equal(
+                    [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
+                    sim.get_controls()['gun/gun_phase'])
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 with self.assertRaises(ValueError):
@@ -143,3 +143,35 @@ class TestLinacScan(unittest.TestCase):
                 self._sc.scan(cycles=2, output=filename, n_particles=0, start_id=11)
                 sim = open_sim(filename)
                 np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
+
+
+class TestMachineScan(unittest.TestCase):
+    def run(self, result=None):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self._tmp_dir = tmp_dir
+
+            m = EuXFELInterface()
+
+            m.add_control_channel(dc.FLOAT32, 'A/B/C/D')
+            m.add_control_channel(dc.FLOAT32, 'A/B/C/E')
+            m.add_instrument_channel(dc.IMAGE, 'H/I/J/K', shape=(3, 4), dtype='uint16')
+
+            sc = MachineScan(m)
+            sc.add_param('A/B/C/D', -3, 3)
+            sc.add_param('A/B/C/E', -3, 3)
+            self._sc = sc
+
+            super().run(result)
+
+    @patch("liso.experiment.machine.pydoocs_write")
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testScan(self, patched_read, patched_write):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = osp.join(tmp_dir, "scan.hdf5")
+            self._sc.scan(cycles=40, output=filename)
+
+            patched_read.assert_called()
+            patched_write.assert_called()
+
+            run = open_run(filename)
+            run.info()

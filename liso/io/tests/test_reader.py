@@ -4,93 +4,54 @@ import os
 
 import numpy as np
 import pandas as pd
-import h5py
 
 from liso import Phasespace
-from liso.io import SimWriter, open_run, open_sim
+from liso.experiment import EuXFELInterface
+from liso.experiment import doocs_channels as dc
+from liso.io import ExpWriter, SimWriter, open_run, open_sim
 from liso.io.reader import ExpDataCollection, SimDataCollection
 
 
-def _write_sim_data(n_sims, n_particles, filename, start_id=1):
-    writer = SimWriter(n_sims, n_particles, filename, start_id=start_id)
-
-    for i in range(n_sims):
-        ps1 = Phasespace(
-            pd.DataFrame(np.ones((100, 7)) * (i + start_id),
-                         columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
-
-        ps2 = Phasespace(
-            pd.DataFrame(np.ones((100, 7)) * (i + start_id) * 10,
-                         columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
-
-        writer.write(i,
-                     {'gun/gun_gradient': 10 * (i + start_id),
-                      'gun/gun_phase': 20 * (i + start_id)},
-                     {'gun/out1': ps1, 'gun/out2': ps2})
-
-
-def _write_exp_data(n_pulses, filename):
-    pass
-
-
-class TestReader(unittest.TestCase):
+class TestSimReader(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # prepare a simulation file
         cls._n_sims = 10
         cls._n_particles = 100
-        cls._sim_files = []
-        cls._sim_dir = tempfile.TemporaryDirectory()
-        for i in range(2):
-            tmp_file = os.path.join(cls._sim_dir.name, f"tmp_sim_data{i}.hdf5")
-            _write_sim_data(cls._n_sims, cls._n_particles, tmp_file,
-                            start_id=1 + i * cls._n_sims)
-            cls._sim_files.append(tmp_file)
+        cls._files = []
+        cls._dir = tempfile.TemporaryDirectory()
+        for i_file in range(2):
+            tmp_file = os.path.join(cls._dir.name, f"tmp_sim_data{i_file}.hdf5")
 
-        # prepare an experimental file
-        cls._n_pulses = 10
-        cls._pulse_ids = np.arange(1, 2 * cls._n_pulses, 2)
-        cls._exp_dir = tempfile.TemporaryDirectory()
-        cls._exp_file = os.path.join(cls._exp_dir.name, "tmp_exp_data.hdf5")
-        cls._exp_control_data = {
-            'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE':
-                np.arange(cls._n_pulses).astype(np.float32),
-            'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE':
-                np.arange(cls._n_pulses).astype(np.float32) / 10.
-        }
-        cls._image_shape = (4, 25)
-        cls._exp_instrument_data = {
-            'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ':
-                np.ones(cls._n_pulses * 100).astype(np.uint16).reshape(
-                    (cls._n_pulses, *cls._image_shape))
-        }
-        with h5py.File(cls._exp_file, 'w') as fp_h5:
-            fp_h5.create_dataset("INDEX/pulseId", data=cls._pulse_ids)
+            start_id = 1 + i_file * cls._n_sims
+            writer = SimWriter(cls._n_sims, cls._n_particles, tmp_file,
+                               start_id=start_id)
 
-            fp_h5.create_dataset(
-                "METADATA/controlChannel",
-                dtype=h5py.string_dtype(),
-                data=[ch.encode("utf-8") for ch in cls._exp_control_data])
-            for ch, data_ in cls._exp_control_data.items():
-                fp_h5.create_dataset(f"CONTROL/{ch}", data=data_)
+            for j in range(cls._n_sims):
+                ps1 = Phasespace(
+                    pd.DataFrame(np.ones((100, 7)) * (j + start_id),
+                                 columns=['x', 'px', 'y', 'py', 'z', 'pz',
+                                          't']), 1.0)
 
-            fp_h5.create_dataset(
-                "METADATA/instrumentChannel",
-                dtype=h5py.string_dtype(),
-                data=[ch.encode("utf-8") for ch in cls._exp_instrument_data])
-            for ch, data_ in cls._exp_instrument_data.items():
-                fp_h5.create_dataset(f"INSTRUMENT/{ch}", data=data_)
+                ps2 = Phasespace(
+                    pd.DataFrame(np.ones((100, 7)) * (j + start_id) * 10,
+                                 columns=['x', 'px', 'y', 'py', 'z', 'pz',
+                                          't']), 1.0)
+
+                writer.write(j,
+                             {'gun/gun_gradient': 10 * (j + start_id),
+                              'gun/gun_phase': 20 * (j + start_id)},
+                             {'gun/out1': ps1, 'gun/out2': ps2})
+
+            cls._files.append(tmp_file)
 
     @classmethod
     def tearDownClass(cls):
-        cls._sim_dir.cleanup()
-        cls._exp_dir.cleanup()
+        cls._dir.cleanup()
 
-        assert(not os.path.isdir(cls._sim_dir.name))
-        assert(not os.path.isfile(cls._exp_dir.name))
+        assert(not os.path.isdir(cls._dir.name))
 
     def testOpenSimSingleFile(self):
-        data = open_sim(self._sim_files[0])
+        data = open_sim(self._files[0])
         self.assertIsInstance(data, SimDataCollection)
         data.info()
         self._check_sim_metadata(data, 10)
@@ -99,7 +60,7 @@ class TestReader(unittest.TestCase):
         self._check_sim_access_data_by_index(data, idx=1)
 
     def testOpenSimTwoFiles(self):
-        data = open_sim(self._sim_dir.name)
+        data = open_sim(self._dir.name)
         self._check_sim_metadata(data, 20)
         self._check_sim_get_control(data, 20)
         self._check_sim_iterate_over_data(data)
@@ -151,80 +112,111 @@ class TestReader(unittest.TestCase):
         np.testing.assert_array_equal(np.ones(100) * 10 * id_, sim['gun/out2']['y'])
 
     def testChannelData(self):
-        # simulation
-        sim_file = self._sim_files[0]
+        sim_file = self._files[0]
         data = open_sim(sim_file)
 
-        with self.assertRaisesRegex(KeyError, 'No data was found for channel'):
-            data.channel('gun/random')
+        with self.subTest("Test control data"):
+            with self.assertRaisesRegex(KeyError, 'No data was found for channel'):
+                data.channel('gun/random')
 
-        item = data.channel('gun/gun_phase')
-        with self.assertRaises(KeyError):
-            item[0]
-        with self.assertRaises(KeyError):
-            item[11]
-        self.assertEqual(10 * 20, item[10])
-        self.assertEqual(10 * 20, item.from_index(9))
-        item_array = item.numpy()
-        self.assertEqual(np.float64, item_array.dtype)
-        np.testing.assert_array_equal(20 * np.arange(1, 11), item_array)
+            item = data.channel('gun/gun_phase')
+            with self.assertRaises(KeyError):
+                item[0]
+            with self.assertRaises(KeyError):
+                item[11]
+            self.assertEqual(10 * 20, item[10])
+            self.assertEqual(10 * 20, item.from_index(9))
+            item_array = item.numpy()
+            self.assertEqual(np.float64, item_array.dtype)
+            np.testing.assert_array_equal(20 * np.arange(1, 11), item_array)
 
-        # simulation - phasespace data
-        item = data.channel('gun/out1')
-        self.assertEqual(np.float64, item_array.dtype)
-        np.testing.assert_array_equal(3 * np.ones((7, 100)), item[3])
+        with self.subTest("Test phasespace data"):
+            item = data.channel('gun/out1')
+            self.assertEqual(np.float64, item_array.dtype)
+            np.testing.assert_array_equal(3 * np.ones((7, 100)), item[3])
 
-        item = data.channel('gun/out1', 't')
-        np.testing.assert_array_equal(4 * np.ones((1, 100)), item[4])
+            item = data.channel('gun/out1', 't')
+            np.testing.assert_array_equal(4 * np.ones((1, 100)), item[4])
 
-        item = data.channel('gun/out1', ['x', 'y'])
-        np.testing.assert_array_equal(10 * np.ones((2, 100)), item[10])
+            item = data.channel('gun/out1', ['x', 'y'])
+            np.testing.assert_array_equal(10 * np.ones((2, 100)), item[10])
 
-        with self.assertRaisesRegex(ValueError, "not a valid phasespace column"):
-            data.channel('gun/out1', 'a')
+            with self.assertRaisesRegex(ValueError, "not a valid phasespace column"):
+                data.channel('gun/out1', 'a')
 
-        with self.assertRaisesRegex(ValueError, "not a valid phasespace column"):
-            data.channel('gun/out1', ['x', 'a'])
+            with self.assertRaisesRegex(ValueError, "not a valid phasespace column"):
+                data.channel('gun/out1', ['x', 'a'])
 
-        # experiments
-        data = open_run(self._exp_file)
 
-        item = data.channel('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE')
-        with self.assertRaises(KeyError):
-            item[2]
-        self.assertEqual(1., item[3])
-        self.assertEqual(1., item.from_index(1))
-        item_array = item.numpy()
-        self.assertEqual(np.float32, item_array.dtype)
-        np.testing.assert_array_equal(np.arange(10), item_array)
-
-        item = data.channel('XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ')
-        np.testing.assert_array_equal(np.ones(self._image_shape), item[1])
-        item_array = item.numpy()
-        self.assertEqual(np.uint16, item_array.dtype)
-        np.testing.assert_array_equal(np.ones((10, *self._image_shape)), item_array)
-
+class TestExpReader(unittest.TestCase):
     def testOpenRun(self):
-        data = open_run(self._exp_file)
-        self.assertIsInstance(data, ExpDataCollection)
+        n_pulses = 10
+        pulse_ids = np.arange(1, 2 * n_pulses, 2)
+        s1 = (3, 4)
+        s2 = (6, 5)
 
-        controls = data.get_controls()
-        self.assertListEqual(list(self._exp_control_data.keys()), controls.columns.tolist())
-        np.testing.assert_array_equal(self._pulse_ids, controls.index.to_numpy())
-        for ch, v in self._exp_control_data.items():
-            np.testing.assert_array_equal(controls[ch], v)
+        m = EuXFELInterface()
+        m.add_control_channel(dc.FLOAT32, "A/B/C/D")
+        m.add_control_channel(dc.FLOAT32, "A/B/C/E")
+        m.add_control_channel(dc.BOOL, "A/B/C/F")
+        m.add_instrument_channel(dc.IMAGE, "H/I/J/K", shape=s1, dtype='uint16')
+        m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=s2, dtype='float32')
+        self._schema = m.schema
 
-        for i, (pid, item) in enumerate(data):
-            self.assertSetEqual({
-                'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE',
-                'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE',
-                'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ'
-            }, set(item.keys()))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = os.path.join(tmp_dir, "tmp.hdf5")
+            chunk_size = 10
 
-            self.assertAlmostEqual(
-                i, item['XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE'])
-            self.assertAlmostEqual(
-                i / 10., item['XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE'])
-            np.testing.assert_array_equal(
-                np.ones(100).reshape(4, 25),
-                item['XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ'])
+            with ExpWriter(filename,
+                           schema=self._schema, chunk_size=chunk_size) as writer:
+                for i, pid in enumerate(pulse_ids):
+                    writer.write(
+                        pid,
+                        {"A/B/C/D": 10 * i, "A/B/C/E": 0.1 * i},
+                        {"H/I/J/K": np.ones(s1, dtype=np.uint16),
+                         "H/I/J/L": np.ones(s2, dtype=np.float32)}
+                    )
+
+            data = open_run(filename)
+            self.assertIsInstance(data, ExpDataCollection)
+            data.info()
+
+            with self.subTest("Test control data"):
+                controls = data.get_controls()
+                self.assertListEqual(["A/B/C/D", "A/B/C/E", "A/B/C/F"],
+                                     controls.columns.tolist())
+
+                np.testing.assert_array_equal(pulse_ids, controls.index.to_numpy())
+                np.testing.assert_array_equal(10. * np.arange(10), controls["A/B/C/D"])
+                np.testing.assert_array_almost_equal(.1 * np.arange(10), controls["A/B/C/E"])
+                np.testing.assert_array_equal(np.zeros(10).astype(bool), controls["A/B/C/F"])
+
+                for i, (pid, item) in enumerate(data):
+                    self.assertSetEqual({
+                        "A/B/C/D", "A/B/C/E", "A/B/C/F", "H/I/J/K", "H/I/J/L"
+                    }, set(item.keys()))
+
+                    self.assertAlmostEqual(10. * i, item["A/B/C/D"])
+                    self.assertAlmostEqual(0.1 * i, item["A/B/C/E"])
+
+            with self.subTest("Test instrument data"):
+                for i, (pid, item) in enumerate(data):
+                    np.testing.assert_array_equal(np.ones(s1), item["H/I/J/K"])
+                    np.testing.assert_array_equal(np.ones(s2), item["H/I/J/L"])
+
+            with self.subTest("Test reading a single control data channel"):
+                item = data.channel('A/B/C/D')
+                with self.assertRaises(KeyError):
+                    item[2]
+                self.assertEqual(10., item[3])
+                self.assertEqual(10., item.from_index(1))
+                item_array = item.numpy()
+                self.assertEqual(np.float32, item_array.dtype)
+                np.testing.assert_array_equal(10. * np.arange(10), item_array)
+
+            with self.subTest("Test reading a single instrument data channel"):
+                item = data.channel('H/I/J/L')
+                np.testing.assert_array_equal(np.ones(s2), item[1])
+                item_array = item.numpy()
+                self.assertEqual(np.float32, item_array.dtype)
+                np.testing.assert_array_equal(np.ones((10, *s2)), item_array)

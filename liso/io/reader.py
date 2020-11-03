@@ -81,11 +81,13 @@ class _DataCollectionBase:
                 control_channel_path = 'METADATA/controlChannels'
             else:
                 control_channel_path = 'METADATA/controlChannel'
+
+            ids = fa._ids
             df = pd.DataFrame.from_dict({
-                ch: fa.file[f"CONTROL/{ch}"][()]
+                ch: fa.file[f"CONTROL/{ch}"][:len(ids)]
                 for ch in fa.file[control_channel_path]
             })
-            df.set_index(fa._ids, inplace=True)
+            df.set_index(ids, inplace=True)
             data.append(df)
         # set "inplace=True" is even slower
         return pd.concat(data).sort_index()

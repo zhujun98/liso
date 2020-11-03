@@ -33,6 +33,7 @@ setup(
         'scipy>=1.4.1',
         'h5py==2.10',
         'matplotlib',
+        'pydantic>=1.7.2',
     ],
     entry_points={
     },

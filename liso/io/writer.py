@@ -12,10 +12,13 @@ import h5py
 
 class _BaseWriter:
     """Base class for HDF5 writer."""
-    def __init__(self, path):
+    def __init__(self, path, *, chunk_size=50, max_size_per_file=5000):
         """Initialization.
 
         :param str path: path of the hdf5 file.
+        :param int chunk_size: size of the first dimention of a chunk in
+            a dataset.
+        :param int max_size_per_file: maximum size of a dataset.
 
         :raise OSError is the file already exists.
         """
@@ -25,7 +28,11 @@ class _BaseWriter:
                           data=datetime.now().isoformat())
         fp.create_dataset("METADATA/updateDate",
                           data=datetime.now().isoformat())
+
         self._fp = fp
+
+        self._chunk_size = chunk_size
+        self._max_size_per_file = max_size_per_file
 
         self._initialized = False
 
@@ -33,7 +40,11 @@ class _BaseWriter:
         return self
 
     def __exit__(self, *exc):
+        self._finalize()
         self.close()
+
+    def _finalize(self):
+        ...
 
     def close(self):
         self._fp.close()
@@ -42,15 +53,17 @@ class _BaseWriter:
 class SimWriter(_BaseWriter):
     """Write simulated data in HDF5 file."""
 
-    def __init__(self, n_pulses, n_particles, path, *, start_id=1):
+    def __init__(self, n_pulses, n_particles, path, *,
+                 start_id=1, schema=None, **kwargs):
         """Initialization.
 
         :param int n_pulses: number of macro-pulses.
         :param int n_particles: number of particles per simulation.
         :param str path: path of the hdf5 file.
         :param int start_id: starting simulation id.
+        :param tuple schema: (control, phasespace) data schema
         """
-        super().__init__(path)
+        super().__init__(path, **kwargs)
 
         self._n_pulses = n_pulses
         self._n_particles = n_particles
@@ -107,4 +120,71 @@ class SimWriter(_BaseWriter):
                 for col in v.columns:
                     fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
 
+        fp["METADATA/updateDate"][()] = datetime.now().isoformat()
+
+
+class ExpWriter(_BaseWriter):
+
+    def __init__(self, path, *, schema, **kwargs):
+        """Initialization.
+
+        :param str path: path of the hdf5 file.
+        :param tuple schema: (control, instrument) data schema.
+        """
+        super().__init__(path, **kwargs)
+
+        self._control_schema, self._instrument_schema = schema
+
+        self._init_channel_data("control", self._control_schema)
+        self._init_channel_data("instrument", self._instrument_schema)
+
+        self._pulse_ids = []
+
+    def _init_channel_data(self, channel_category, schema):
+        fp = self._fp
+
+        meta_ch = f"METADATA/{channel_category}Channel"
+        fp.create_dataset(meta_ch,
+                          dtype=h5py.string_dtype(),
+                          shape=(len(schema),))
+
+        for i, (k, v) in enumerate(schema.items()):
+            fp[meta_ch][i] = k
+            dtype = v['type']
+            if dtype == 'NDArray':
+                fp.create_dataset(
+                    f"{channel_category.upper()}/{k}",
+                    shape=(self._chunk_size, *v['shape']),
+                    dtype=v['dtype'],
+                    chunks=(self._chunk_size, *v['shape']),
+                    maxshape=(self._max_size_per_file, *v['shape']))
+            else:
+                fp.create_dataset(
+                    f"{channel_category.upper()}/{k}",
+                    shape=(self._chunk_size,),
+                    dtype=v['type'],
+                    chunks=(self._chunk_size,),
+                    maxshape=(self._max_size_per_file,))
+
+    def write(self, pulse_id, controls, instruments):
+        """Write matched data from one train into the file.
+
+        :param int pulse_id: macro-pulse ID.
+        :param dict controls: dictionary of the control data.
+        :param dict instruments: dictionary of the phasespace data.
+        """
+        fp = self._fp
+        idx = len(self._pulse_ids) % self._max_size_per_file
+
+        for k, v in controls.items():
+            fp[f"CONTROL/{k}"][idx] = v
+        for k, v in instruments.items():
+            fp[f"INSTRUMENT/{k}"][idx] = v
+
+        self._pulse_ids.append(pulse_id)
+
+    def _finalize(self):
+        """Override."""
+        fp = self._fp
+        fp.create_dataset("INDEX/pulseId", data=self._pulse_ids, dtype='u8')
         fp["METADATA/updateDate"][()] = datetime.now().isoformat()
