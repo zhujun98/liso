@@ -1,6 +1,6 @@
 import unittest
 
-from liso.experiments import Channel
+from liso.experiment import Channel
 
 
 class TestDoocs(unittest.TestCase):
