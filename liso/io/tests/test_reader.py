@@ -42,16 +42,16 @@ class TestReader(unittest.TestCase):
         cls._sim_files = []
         cls._sim_dir = tempfile.TemporaryDirectory()
         for i in range(2):
-            tmp_file = tempfile.NamedTemporaryFile(
-                suffix=".hdf5", dir=cls._sim_dir.name)
-            _write_sim_data(cls._n_sims, cls._n_particles, tmp_file.name,
+            tmp_file = os.path.join(cls._sim_dir.name, f"tmp_sim_data{i}.hdf5")
+            _write_sim_data(cls._n_sims, cls._n_particles, tmp_file,
                             start_id=1 + i * cls._n_sims)
             cls._sim_files.append(tmp_file)
 
         # prepare an experimental file
         cls._n_pulses = 10
         cls._pulse_ids = np.arange(1, 2 * cls._n_pulses, 2)
-        cls._exp_file = tempfile.NamedTemporaryFile(suffix=".hdf5")
+        cls._exp_dir = tempfile.TemporaryDirectory()
+        cls._exp_file = os.path.join(cls._exp_dir.name, "tmp_exp_data.hdf5")
         cls._exp_control_data = {
             'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE':
                 np.arange(cls._n_pulses).astype(np.float32),
@@ -64,7 +64,7 @@ class TestReader(unittest.TestCase):
                 np.ones(cls._n_pulses * 100).astype(np.uint16).reshape(
                     (cls._n_pulses, *cls._image_shape))
         }
-        with h5py.File(cls._exp_file.name, 'w') as fp_h5:
+        with h5py.File(cls._exp_file, 'w') as fp_h5:
             fp_h5.create_dataset("INDEX/pulseId", data=cls._pulse_ids)
 
             fp_h5.create_dataset(
@@ -84,13 +84,13 @@ class TestReader(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls._sim_dir.cleanup()
-        cls._exp_file.close()
+        cls._exp_dir.cleanup()
 
         assert(not os.path.isdir(cls._sim_dir.name))
-        assert(not os.path.isfile(cls._exp_file.name))
+        assert(not os.path.isfile(cls._exp_dir.name))
 
     def testOpenSimSingleFile(self):
-        data = open_sim(self._sim_files[0].name)
+        data = open_sim(self._sim_files[0])
         self.assertIsInstance(data, SimDataCollection)
         data.info()
         self._check_sim_metadata(data, 10)
@@ -153,7 +153,7 @@ class TestReader(unittest.TestCase):
     def testChannelData(self):
         # simulation
         sim_file = self._sim_files[0]
-        data = open_sim(sim_file.name)
+        data = open_sim(sim_file)
 
         with self.assertRaisesRegex(KeyError, 'No data was found for channel'):
             data.channel('gun/random')
@@ -187,7 +187,7 @@ class TestReader(unittest.TestCase):
             data.channel('gun/out1', ['x', 'a'])
 
         # experiments
-        data = open_run(self._exp_file.name)
+        data = open_run(self._exp_file)
 
         item = data.channel('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE')
         with self.assertRaises(KeyError):
@@ -205,7 +205,7 @@ class TestReader(unittest.TestCase):
         np.testing.assert_array_equal(np.ones((10, *self._image_shape)), item_array)
 
     def testOpenRun(self):
-        data = open_run(self._exp_file.name)
+        data = open_run(self._exp_file)
         self.assertIsInstance(data, ExpDataCollection)
 
         controls = data.get_controls()

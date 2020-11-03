@@ -104,13 +104,14 @@ class TestLinacScan(unittest.TestCase):
             future.set_result(Phasespace(pd.DataFrame(
                 columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1))
             patched_run.return_value = future
-            with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                filename = osp.join(tmp_dir, "scan.hdf5")
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(n_tasks=2, cycles=2, output=fp.name, n_particles=0)
+                self._sc.scan(n_tasks=2, cycles=2, output=filename, n_particles=0)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
-                with h5py.File(fp.name, 'r') as fp_h5:
-                    sim = open_sim(fp.name)
+                with h5py.File(filename, 'r') as fp_h5:
+                    sim = open_sim(filename)
                     self.assertSetEqual(
                         {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
                     self.assertSetEqual(
@@ -123,13 +124,15 @@ class TestLinacScan(unittest.TestCase):
                         [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
                         sim.get_controls()['gun/gun_phase'])
 
-            with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+            with tempfile.TemporaryDirectory() as tmp_dir:
                 with self.assertRaises(ValueError):
-                    self._sc.scan(n_tasks=2, cycles=2, output=fp.name,
-                                  n_particles=0, start_id=0)
+                    self._sc.scan(
+                        n_tasks=2, cycles=2, output=osp.join(tmp_dir, "scan.hdf5"),
+                        n_particles=0, start_id=0)
 
-            with tempfile.NamedTemporaryFile(suffix=".hdf5") as fp:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                filename = osp.join(tmp_dir, "scan.hdf5")
                 # test the default value: n_tasks == None
-                self._sc.scan(cycles=2, output=fp.name, n_particles=0, start_id=11)
-                sim = open_sim(fp.name)
+                self._sc.scan(cycles=2, output=filename, n_particles=0, start_id=11)
+                sim = open_sim(filename)
                 np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
