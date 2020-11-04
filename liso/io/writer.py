@@ -16,16 +16,27 @@ class _BaseWriter:
         """Initialization.
 
         :param str path: path of the hdf5 file.
-        """
-        self._path = path
 
+        :raise OSError is the file already exists.
+        """
         # not allow to overwrite existing file
-        with h5py.File(self._path, 'a') as fp:
-            fp.create_dataset("METADATA/createDate",
-                              data=datetime.now().isoformat())
-            fp.create_dataset("METADATA/updateDate",
-                              data=datetime.now().isoformat())
+        fp = h5py.File(path, 'w-')
+        fp.create_dataset("METADATA/createDate",
+                          data=datetime.now().isoformat())
+        fp.create_dataset("METADATA/updateDate",
+                          data=datetime.now().isoformat())
+        self._fp = fp
+
         self._initialized = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def close(self):
+        self._fp.close()
 
 
 class SimWriter(_BaseWriter):
@@ -56,44 +67,44 @@ class SimWriter(_BaseWriter):
         :param dict controls: dictionary of the control data.
         :param dict phasespaces: dictionary of the phasespace data.
         """
-        with h5py.File(self._path, 'a') as fp:
-            if not self._initialized:
-                fp.create_dataset(
-                    "METADATA/controlChannel", (len(controls),),
-                    dtype=h5py.string_dtype())
-                fp.create_dataset(
-                    "METADATA/phasespaceChannel", (len(phasespaces),),
-                    dtype=h5py.string_dtype())
+        fp = self._fp
+        if not self._initialized:
+            fp.create_dataset(
+                "METADATA/controlChannel", (len(controls),),
+                dtype=h5py.string_dtype())
+            fp.create_dataset(
+                "METADATA/phasespaceChannel", (len(phasespaces),),
+                dtype=h5py.string_dtype())
 
-                fp.create_dataset(
-                    "INDEX/simId", (self._n_pulses,), dtype='u8')
+            fp.create_dataset(
+                "INDEX/simId", (self._n_pulses,), dtype='u8')
 
-                for i, k in enumerate(controls):
-                    fp["METADATA/controlChannel"][i] = k
+            for i, k in enumerate(controls):
+                fp["METADATA/controlChannel"][i] = k
+                fp.create_dataset(
+                    f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
+
+            for i, (k, v) in enumerate(phasespaces.items()):
+                fp["METADATA/phasespaceChannel"][i] = k
+                for col in v.columns:
                     fp.create_dataset(
-                        f"CONTROL/{k}", (self._n_pulses,), dtype='f8')
+                        f"PHASESPACE/{col.upper()}/{k}",
+                        (self._n_pulses, self._n_particles),
+                        dtype='f8')
 
-                for i, (k, v) in enumerate(phasespaces.items()):
-                    fp["METADATA/phasespaceChannel"][i] = k
-                    for col in v.columns:
-                        fp.create_dataset(
-                            f"PHASESPACE/{col.upper()}/{k}",
-                            (self._n_pulses, self._n_particles),
-                            dtype='f8')
+            self._initialized = True
 
-                self._initialized = True
+        fp["INDEX/simId"][idx] = idx + self._start_id
 
-            fp["INDEX/simId"][idx] = idx + self._start_id
+        for k, v in controls.items():
+            fp[f"CONTROL/{k}"][idx] = v
 
-            for k, v in controls.items():
-                fp[f"CONTROL/{k}"][idx] = v
+        for k, v in phasespaces.items():
+            if len(v) == self._n_particles:
+                # The rational behind writing different columns separately
+                # is to avoid reading out all the columns when only one
+                # or two columns are needed.
+                for col in v.columns:
+                    fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
 
-            for k, v in phasespaces.items():
-                if len(v) == self._n_particles:
-                    # The rational behind writing different columns separately
-                    # is to avoid reading out all the columns when only one
-                    # or two columns are needed.
-                    for col in v.columns:
-                        fp[f"PHASESPACE/{col.upper()}/{k}"][idx] = v[col]
-
-            fp["METADATA/updateDate"][()] = datetime.now().isoformat()
+        fp["METADATA/updateDate"][()] = datetime.now().isoformat()

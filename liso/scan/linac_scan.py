@@ -79,50 +79,52 @@ class LinacScan(object):
         tasks = set()
         sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence)
-        writer = SimWriter(n_pulses, n_particles, output, start_id=start_id)
-        count = 0
-        while True:
-            if count < n_pulses:
-                x_map = dict()
-                for i, k in enumerate(self._params):
-                    x_map[k] = sequence[count][i]
 
-                sim_id = count + start_id
-                task = asyncio.ensure_future(
-                    self._linac.async_run(
-                        count, x_map, f'tmp{sim_id:06d}', **kwargs))
-                tasks.add(task)
+        with SimWriter(n_pulses, n_particles, output, start_id=start_id) \
+                as writer:
+            count = 0
+            while True:
+                if count < n_pulses:
+                    x_map = dict()
+                    for i, k in enumerate(self._params):
+                        x_map[k] = sequence[count][i]
 
-                logger.info(f"Scan {sim_id:06d}: "
-                            + str(x_map)[1:-1].replace(': ', ' = '))
+                    sim_id = count + start_id
+                    task = asyncio.ensure_future(
+                        self._linac.async_run(
+                            count, x_map, f'tmp{sim_id:06d}', **kwargs))
+                    tasks.add(task)
 
-                count += 1
+                    logger.info(f"Scan {sim_id:06d}: "
+                                + str(x_map)[1:-1].replace(': ', ' = '))
 
-            if len(tasks) == 0:
-                break
+                    count += 1
 
-            if len(tasks) >= n_tasks or count == n_pulses:
-                done, _ = await asyncio.wait(
-                    tasks, return_when=asyncio.FIRST_COMPLETED)
+                if len(tasks) == 0:
+                    break
 
-                for task in done:
-                    try:
-                        idx, controls, phasespaces = task.result()
-                        writer.write(idx, controls, phasespaces)
-                    except RuntimeError as e:
-                        exc_type, exc_value, exc_traceback = sys.exc_info()
-                        logger.debug(repr(traceback.format_tb(exc_traceback))
-                                     + str(e))
-                        logger.warning(str(e))
-                    except Exception as e:
-                        exc_type, exc_value, exc_traceback = sys.exc_info()
-                        logger.error(
-                            f"(Unexpected exceptions): "
-                            + repr(traceback.format_tb(exc_traceback))
-                            + str(e))
-                        raise
+                if len(tasks) >= n_tasks or count == n_pulses:
+                    done, _ = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_COMPLETED)
 
-                    tasks.remove(task)
+                    for task in done:
+                        try:
+                            idx, controls, phasespaces = task.result()
+                            writer.write(idx, controls, phasespaces)
+                        except RuntimeError as e:
+                            exc_type, exc_value, exc_traceback = sys.exc_info()
+                            logger.debug(repr(traceback.format_tb(exc_traceback))
+                                         + str(e))
+                            logger.warning(str(e))
+                        except Exception as e:
+                            exc_type, exc_value, exc_traceback = sys.exc_info()
+                            logger.error(
+                                f"(Unexpected exceptions): "
+                                + repr(traceback.format_tb(exc_traceback))
+                                + str(e))
+                            raise
+
+                        tasks.remove(task)
 
     def scan(self,
              n_tasks=None, *,
