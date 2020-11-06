@@ -207,15 +207,15 @@ class ExpDataCollection(_DataCollectionBase):
         super().__init__(files)
 
         self.control_channels = set()
-        self.detector_channels = set()
+        self.instrument_channels = set()
         for fa in self._files:
             self.control_channels.update(fa.control_channels)
-            self.detector_channels.update(fa.detector_channels)
-            for ch in (fa.control_channels | fa.detector_channels):
+            self.instrument_channels.update(fa.instrument_channels)
+            for ch in (fa.control_channels | fa.instrument_channels):
                 self._channel_files[ch].append(fa)
 
         self.control_channels = frozenset(self.control_channels)
-        self.detector_channels = frozenset(self.detector_channels)
+        self.instrument_channels = frozenset(self.instrument_channels)
 
         # this returns a list!
         self.pulse_ids = sorted(set().union(*(f.pulse_ids for f in files)))
@@ -229,8 +229,8 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.control_channels):
             print('  - ', ch)
 
-        print(f"\ndetector channels ({len(self.detector_channels)}):")
-        for ch in sorted(self.detector_channels):
+        print(f"\nInstrument channels ({len(self.instrument_channels)}):")
+        for ch in sorted(self.instrument_channels):
             print('  - ', ch)
 
     def __getitem__(self, pulse_id):
@@ -238,13 +238,13 @@ class ExpDataCollection(_DataCollectionBase):
         ret = dict()
         for ch in self.control_channels:
             ret[ch] = fa.file[f"CONTROL/{ch}"][idx]
-        for ch in self.detector_channels:
-            ret[ch] = fa.file[f"DETECTOR/{ch}"][idx]
+        for ch in self.instrument_channels:
+            ret[ch] = fa.file[f"INSTRUMENT/{ch}"][idx]
 
         return pulse_id, ret
 
     def _get_channel_category(self, ch):
-        return 'CONTROL' if ch in self.control_channels else 'DETECTOR'
+        return 'CONTROL' if ch in self.control_channels else 'INSTRUMENT'
 
 
 def open_run(filepath):

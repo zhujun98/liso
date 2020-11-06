@@ -59,7 +59,7 @@ class TestReader(unittest.TestCase):
                 np.arange(cls._n_pulses).astype(np.float32) / 10.
         }
         cls._image_shape = (4, 25)
-        cls._exp_detector_data = {
+        cls._exp_instrument_data = {
             'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ':
                 np.ones(cls._n_pulses * 100).astype(np.uint16).reshape(
                     (cls._n_pulses, *cls._image_shape))
@@ -75,11 +75,11 @@ class TestReader(unittest.TestCase):
                 fp_h5.create_dataset(f"CONTROL/{ch}", data=data_)
 
             fp_h5.create_dataset(
-                "METADATA/detectorChannel",
+                "METADATA/instrumentChannel",
                 dtype=h5py.string_dtype(),
-                data=[ch.encode("utf-8") for ch in cls._exp_detector_data])
-            for ch, data_ in cls._exp_detector_data.items():
-                fp_h5.create_dataset(f"DETECTOR/{ch}", data=data_)
+                data=[ch.encode("utf-8") for ch in cls._exp_instrument_data])
+            for ch, data_ in cls._exp_instrument_data.items():
+                fp_h5.create_dataset(f"INSTRUMENT/{ch}", data=data_)
 
     @classmethod
     def tearDownClass(cls):
