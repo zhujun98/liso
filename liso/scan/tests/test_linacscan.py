@@ -1,3 +1,4 @@
+import platform
 import unittest
 from unittest.mock import patch
 import os.path as osp
@@ -100,10 +101,16 @@ class TestLinacScan(unittest.TestCase):
         self._sc.add_param('gun_phase', 10., 30., num=3)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
-            future = asyncio.Future()
-            future.set_result(Phasespace(pd.DataFrame(
-                columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1))
-            patched_run.return_value = future
+            ps = Phasespace(pd.DataFrame(
+                columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1)
+            if int(platform.python_version_tuple()[1]) > 7:
+                # Since Python 3.8, patched run is an AsyncMock object
+                patched_run.return_value = ps
+            else:
+                future = asyncio.Future()
+                future.set_result(ps)
+                patched_run.return_value = future
+
             with tempfile.TemporaryDirectory() as tmp_dir:
                 filename = osp.join(tmp_dir, "scan.hdf5")
                 # Note: use n_tasks > 1 here to track bugs
