@@ -7,49 +7,30 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
 from collections import OrderedDict
-import functools
+from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import sys
 import traceback
-from threading import Thread
 
 import numpy as np
 
 from .scan_param import JitterParam, SampleParam, ScanParam
-from ..io import SimWriter
+from ..io import ExpWriter, SimWriter
 from ..logging import logger
 
 
-def run_in_thread(daemon=False):
-    """Run a function/method in a thread."""
-    def wrap(f):
-        @functools.wraps(f)
-        def threaded_f(*args, **kwargs):
-            t = Thread(target=f, daemon=daemon, args=args, kwargs=kwargs)
-            t.start()
-            return t
-        return threaded_f
-    return wrap
-
-
-class LinacScan(object):
-    def __init__(self, linac, *, name=''):
-        """Initialization.
-
-        :param Linac linac: Linac instance.
-        :param str name: Name of the parameter_scan problem.
-        """
-        self.name = name
-
-        self._linac = linac
-
+class _BaseScan:
+    def __init__(self):
         self._params = OrderedDict()
 
     def add_param(self, name, *args, **kwargs):
         """Add a parameter for scan.
 
-        :param str name: parameter name.
+        :param str name: parameter name for simulations and a valid
+            DOOCS address for experiments.
         """
+        # TODO: check format of address
+
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
 
@@ -73,6 +54,48 @@ class LinacScan(object):
             cycles *= len(param)
 
         return list(zip(*ret))
+
+    def summarize(self):
+        text = '\n' + '=' * 80 + '\n'
+        text += 'Scanned parameters:\n'
+        text += self._summarize_parameters()
+        text += '=' * 80 + '\n'
+        return text
+
+    def _summarize_parameters(self):
+        scan_params = []
+        sample_params = []
+        jitter_params = []
+        for param in self._params.values():
+            if isinstance(param, ScanParam):
+                scan_params.append(param)
+            elif isinstance(param, SampleParam):
+                sample_params.append(param)
+            elif isinstance(param, JitterParam):
+                jitter_params.append(param)
+
+        text = ''
+        for params in (scan_params, sample_params, jitter_params):
+            if params:
+                text += "\n"
+            for i, ele in enumerate(params):
+                if i == 0:
+                    text += ele.__str__()
+                else:
+                    text += ele.list_item()
+        return text
+
+
+class LinacScan(_BaseScan):
+    """Class for performing scans in simulations."""
+    def __init__(self, linac):
+        """Initialization.
+
+        :param Linac linac: Linac instance.
+        """
+        super().__init__()
+
+        self._linac = linac
 
     async def _async_scan(self, n_tasks, output, *,
                           cycles, n_particles, start_id, seed, **kwargs):
@@ -164,37 +187,71 @@ class LinacScan(object):
 
         logger.info(f"Scan finished!")
 
-    def summarize(self):
-        text = '\n' + '=' * 80 + '\n'
-        text += 'Scanned parameters: %s\n' % self.name
-        text += self.__str__()
-        text += self._summarize_parameters()
-        text += '=' * 80 + '\n'
-        return text
 
-    def _summarize_parameters(self):
-        scan_params = []
-        sample_params = []
-        jitter_params = []
-        for param in self._params.values():
-            if isinstance(param, ScanParam):
-                scan_params.append(param)
-            elif isinstance(param, SampleParam):
-                sample_params.append(param)
-            elif isinstance(param, JitterParam):
-                jitter_params.append(param)
+class MachineScan(_BaseScan):
+    """Class for performing scans with a real machine."""
+    def __init__(self, machine):
+        """Initialization.
 
-        text = ''
-        for params in (scan_params, sample_params, jitter_params):
-            if params:
-                text += "\n"
-            for i, ele in enumerate(params):
-                if i == 0:
-                    text += ele.__str__()
-                else:
-                    text += ele.list_item()
-        return text
+        :param _BaseMachine machine: Machine instance.
+        """
+        super().__init__()
 
-    def __str__(self):
-        text = ''
-        return text
+        self._machine = machine
+
+    def scan(self, *,
+             n_tasks=None,
+             cycles=1,
+             output='scan.hdf5',
+             seed=None):
+        """Start a parameter scan.
+
+        :param int/None n_tasks: maximum number of concurrent tasks for
+            read and write.
+        :param int cycles: number of cycles of the parameter space. For
+            pure jitter study, it is the number of runs since the size
+            of variable space is 1.
+        :param str output: output file.
+        :param int/None seed: seed for the legacy MT19937 BitGenerator
+            in numpy.
+        """
+        if n_tasks is None:
+            n_tasks = multiprocessing.cpu_count()
+
+        logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
+        logger.info(self.summarize())
+
+        executor = ThreadPoolExecutor(max_workers=n_tasks)
+
+        sequence = self._generate_param_sequence(cycles, seed)
+        n_pulses = len(sequence) if sequence else cycles
+        with ExpWriter(output, schema=self._machine.schema) as writer:
+            count = 0
+            while count < n_pulses:
+                mapping = dict()
+                if sequence:
+                    for i, k in enumerate(self._params):
+                        mapping[k] = sequence[count][i]
+
+                count += 1
+                logger.info(f"Scan {count:06d}: "
+                            + str(mapping)[1:-1].replace(': ', ' = '))
+
+                try:
+                    idx, controls, instruments = self._machine.run(
+                        executor=executor, mapping=mapping)
+                    writer.write(idx, controls, instruments)
+                except RuntimeError as e:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    logger.debug(repr(traceback.format_tb(exc_traceback))
+                                 + str(e))
+                    logger.warning(str(e))
+                except Exception as e:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    logger.error(
+                        f"(Unexpected exceptions): "
+                        + repr(traceback.format_tb(exc_traceback))
+                        + str(e))
+                    raise
+
+        logger.info(f"Scan finished!")
