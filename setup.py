@@ -23,10 +23,9 @@ setup(
     author_email='zhujun981661@gmail.com',
     url='https://github.com/zhujun98/liso',
     download_url='https://github.com/zhujun98/liso',
-    description='Python API for Linac Simulation and Optimization',
-    long_description='liso is a Python API for linac simulation and'
-                     'optimization using one or a combination of'
-                     'different beam dynamics codes.',
+    description='Python API for LInac Simulation and Optimization',
+    long_description='LISO is a Python API for optimization of accelerators'
+                     'in both simulations and experiments.',
     install_requires=[
         'numpy>=1.18',
         'pandas>=1.1',
