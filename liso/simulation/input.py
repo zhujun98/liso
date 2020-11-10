@@ -12,6 +12,8 @@ import re
 import numpy as np
 from scipy import constants
 
+from ..exceptions import LisoRuntimeError
+
 MC2_E = constants.m_e * constants.c**2 / constants.e
 
 
@@ -310,7 +312,7 @@ class InputGenerator(object):
         :param str filepath: path of the output file.
         """
         if self._input is None:
-            raise RuntimeError("Input is not initialized!")
+            raise LisoRuntimeError("Input is not initialized!")
 
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as fp:

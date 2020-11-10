@@ -9,15 +9,17 @@ import os
 
 from scipy import constants
 
+from ..exceptions import LisoRuntimeError
+
 MC_E = constants.m_e * constants.c / constants.e
 
 
 def check_data_file(filepath):
     """Check the status of a data file."""
     if not os.path.isfile(filepath):
-        raise RuntimeError(filepath + " does not exist!")
+        raise LisoRuntimeError(filepath + " does not exist!")
     if not os.path.getsize(filepath):
-        raise RuntimeError(filepath + " is empty!")
+        raise LisoRuntimeError(filepath + " is empty!")
 
 
 def quad_k2g(k, p):

@@ -135,8 +135,7 @@ class LinacScan(_BaseScan):
                         try:
                             idx, controls, phasespaces = task.result()
                             writer.write(idx, controls, phasespaces)
-                        # TODO: change to LisoRuntimeError
-                        except RuntimeError as e:
+                        except LisoRuntimeError as e:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             logger.debug(repr(traceback.format_tb(exc_traceback))
                                          + str(e))

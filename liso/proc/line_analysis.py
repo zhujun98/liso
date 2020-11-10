@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from .line_parameters import LineParameters
+from ..exceptions import LisoRuntimeError
 
 
 def analyze_line(data, func, *, min_particles=5):
@@ -19,7 +20,7 @@ def analyze_line(data, func, *, min_particles=5):
     :return: A LineParameters instance.
     """
     if len(data) < min_particles:
-        raise RuntimeError(f"Too few points {len(data)} in the line")
+        raise LisoRuntimeError(f"Too few points {len(data)} in the line")
 
     params = LineParameters()
 

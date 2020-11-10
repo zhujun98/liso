@@ -8,6 +8,7 @@ from liso import (
     Phasespace,
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
 )
+from liso.exceptions import LisoRuntimeError
 
 SKIP_TEST = False
 try:
@@ -69,7 +70,7 @@ class TestPhasespaceAstra(unittest.TestCase):
         self.assertEqual(200, len(self.data))
 
     def testAnalysis(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(LisoRuntimeError):
             self.data.analyze(min_particles=int(2e5))
 
         # with self.assertRaisesRegex(RuntimeError, "slice"):
