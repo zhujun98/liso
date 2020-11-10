@@ -15,6 +15,7 @@ import traceback
 import numpy as np
 
 from .scan_param import JitterParam, SampleParam, ScanParam
+from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter, SimWriter
 from ..logging import logger
 
@@ -134,6 +135,7 @@ class LinacScan(_BaseScan):
                         try:
                             idx, controls, phasespaces = task.result()
                             writer.write(idx, controls, phasespaces)
+                        # TODO: change to LisoRuntimeError
                         except RuntimeError as e:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             logger.debug(repr(traceback.format_tb(exc_traceback))
@@ -241,7 +243,7 @@ class MachineScan(_BaseScan):
                     idx, controls, instruments = self._machine.run(
                         executor=executor, mapping=mapping)
                     writer.write(idx, controls, instruments)
-                except RuntimeError as e:
+                except LisoRuntimeError as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     logger.debug(repr(traceback.format_tb(exc_traceback))
                                  + str(e))

@@ -7,7 +7,10 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections import OrderedDict
 from concurrent.futures import as_completed, ThreadPoolExecutor
+from itertools import chain
 import time
+
+from pydantic import ValidationError
 
 try:
     from pydoocs import read as pydoocs_read
@@ -25,6 +28,7 @@ except ModuleNotFoundError:
     class PyDoocsException(Exception):
         pass
 
+from ..exceptions import LisoRuntimeError
 from ..logging import logger
 from ..utils import profiler
 
@@ -62,12 +66,11 @@ class _DoocsReader:
         self._channels = set()
 
     def update(self, executor):
-        future_result = {executor.submit(pydoocs_read, ch): ch
-                         for ch in self._channels}
+        tasks = {executor.submit(pydoocs_read, ch): ch for ch in self._channels}
 
         ret = dict()
-        for future in as_completed(future_result):
-            channel = future_result[future]
+        for future in as_completed(tasks):
+            channel = tasks[future]
             try:
                 ret[channel] = future.result()
             except ModuleNotFoundError as e:
@@ -80,8 +83,7 @@ class _DoocsReader:
                              f"{channel}: {repr(e)}")
                 # TODO: here should raise
 
-        pulse_id = 0
-        return pulse_id, ret
+        return ret
 
     def add_channel(self, ch):
         self._channels.add(ch)
@@ -167,8 +169,50 @@ class _DoocsMachine:
         self._instruments[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
+    def _compile(self, executor, mapping):
+        self._writer.update(executor, mapping=mapping)
+
+    def _correlate(self, executor, max_attempts):
+        n_channels = len(self._controls) + len(self._instruments)
+        cached = OrderedDict()
+
+        for _ in range(max_attempts):
+            readout = self._reader.update(executor)
+
+            for address, ch in chain(self._controls.items(),
+                                     self._instruments.items()):
+                ch_data = readout[address]
+                pid = ch_data['macropulse']
+                if pid > 0:
+                    if pid not in cached:
+                        cached[pid] = dict()
+                    cached[pid][address] = ch_data['data']
+                else:
+                    logger.warning(f"Received data from channel {address} "
+                                   f"with invalid macropulse ID: {pid}")
+
+                if len(cached[pid]) == n_channels:
+                    logger.info(
+                        f"Correlated all data with macropulse ID: {pid}")
+                    return pid, cached[pid]
+
+        raise LisoRuntimeError("Unable to match all data!")
+
+    def _update(self, correlated):
+        control_data = dict()
+        for address, ch in self._controls.items():
+            ch.value = correlated[address]  # validate
+            control_data[address] = ch.value
+
+        instrument_data = dict()
+        for address, ch in self._instruments.items():
+            ch.value = correlated[address]  # validate
+            instrument_data[address] = ch.value
+
+        return control_data, instrument_data
+
     @profiler("run machine once")
-    def run(self, *, executor=None, threads=2, mapping=None):
+    def run(self, *, executor=None, threads=2, mapping=None, max_attempts=5):
         """Run the machine once.
 
         :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
@@ -177,21 +221,29 @@ class _DoocsMachine:
         :param dict mapping: a dictionary with keys being the DOOCS channel
             addresses and values being the numbers to be written into the
             corresponding address.
+        :param int max_attempts: maximum attempts when correlating data.
+
+        :raises:
+            LisoRuntimeError: if validation fails or it is unable to
+                correlate data.
         """
         if executor is None:
             executor = ThreadPoolExecutor(max_workers=threads)
 
-        self._writer.update(executor, mapping=mapping)
+        # TODO: handle exceptions raised by reader and writer
+
+        self._compile(executor, mapping)
 
         time.sleep(self._delay)
 
-        pulse_id, updated = self._reader.update(executor)
+        pid, correlated = self._correlate(executor, max_attempts)
 
-        # TODO: update and validate self._controls and self._instruments
+        try:
+            control_data, instrument_data = self._update(correlated)
+        except ValidationError as e:
+            raise LisoRuntimeError(repr(e))
 
-        return (pulse_id,
-                {k: self._controls[k].value for k in self._controls},
-                {k: self._instruments[k].value for k in self._instruments})
+        return pid, control_data, instrument_data
 
 
 class EuXFELInterface(_DoocsMachine):

@@ -13,6 +13,11 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
+from liso.logging import logger
+logger.setLevel('CRITICAL')
+
+from ...experiment.tests import DoocsDataGenerator as ddgen
+
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 _INPUT_DIR = osp.join(_ROOT_DIR, "../../simulation/tests")
@@ -151,10 +156,10 @@ class TestMachineScan(unittest.TestCase):
             self._tmp_dir = tmp_dir
 
             m = EuXFELInterface()
-
             m.add_control_channel(dc.FLOAT32, 'A/B/C/D')
             m.add_control_channel(dc.FLOAT32, 'A/B/C/E')
             m.add_instrument_channel(dc.IMAGE, 'H/I/J/K', shape=(3, 4), dtype='uint16')
+            self._machine = m
 
             sc = MachineScan(m)
             sc.add_param('A/B/C/D', -3, 3)
@@ -166,12 +171,38 @@ class TestMachineScan(unittest.TestCase):
     @patch("liso.experiment.machine.pydoocs_write")
     @patch("liso.experiment.machine.pydoocs_read")
     def testScan(self, patched_read, patched_write):
+        m = self._machine
+        dataset = {
+            "A/B/C/D": ddgen.scalar(
+                1., m._controls["A/B/C/D"].value_schema(), pid=1000),
+            "A/B/C/E": ddgen.scalar(
+                100., m._controls["A/B/C/E"].value_schema(), pid=1000),
+            "H/I/J/K": ddgen.image(
+                m._instruments["H/I/J/K"].value_schema(), pid=1000),
+        }
+        def side_effect(address):
+            dataset[address]['data'] += 1
+            dataset[address]['macropulse'] += 1
+            return dataset[address]
+        patched_read.side_effect = side_effect
+
         with tempfile.TemporaryDirectory() as tmp_dir:
+            n_pulses = 40
             filename = osp.join(tmp_dir, "scan.hdf5")
-            self._sc.scan(cycles=40, output=filename)
+            self._sc.scan(cycles=n_pulses, output=filename)
 
             patched_read.assert_called()
             patched_write.assert_called()
 
             run = open_run(filename)
             run.info()
+
+            control_data = run.get_controls()
+            np.testing.assert_array_equal(control_data.index, 1001 + np.arange(n_pulses))
+            np.testing.assert_array_equal(control_data['A/B/C/D'], 2 + np.arange(n_pulses))
+            np.testing.assert_array_equal(control_data['A/B/C/E'], 101 + np.arange(n_pulses))
+
+            img_data = run.channel("H/I/J/K").numpy()
+            self.assertTupleEqual((n_pulses, 3, 4), img_data.shape)
+            self.assertTrue(np.all(img_data[1] == 3))
+            self.assertTrue(np.all(img_data[11] == 13))
