@@ -202,18 +202,18 @@ class MachineScan(_BaseScan):
         self._machine = machine
 
     def scan(self, *,
-             n_tasks=None,
              cycles=1,
              output='scan.hdf5',
+             n_tasks=None,
              seed=None):
         """Start a parameter scan.
 
-        :param int/None n_tasks: maximum number of concurrent tasks for
-            read and write.
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
         :param str output: output file.
+        :param int/None n_tasks: maximum number of concurrent tasks for
+            read and write.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
