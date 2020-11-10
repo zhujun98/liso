@@ -7,10 +7,11 @@ from pydantic import ValidationError
 from liso.experiment.doocs import (
     doocs_channels, DoocsChannel,
     BoolDoocsChannel,
-    IntDoocsChannel, Int64DoocsChannel,
-    UIntDoocsChannel, UInt64DoocsChannel,
+    Int64DoocsChannel, UInt64DoocsChannel,
+    Int32DoocsChannel, UInt32DoocsChannel,
     Int16DoocsChannel, UInt16DoocsChannel,
-    FloatDoocsChannel, Float64DoocsChannel, Float32DoocsChannel,
+    Float32DoocsChannel,
+    Float64DoocsChannel,
     ImageDoocsChannel,
 )
 
@@ -19,19 +20,18 @@ class TestDoocs(unittest.TestCase):
     def testDoocsChannel(self):
         ch = DoocsChannel(address="A/B/C/D")
 
-    def testIntDoocsChannel(self):
-        self.assertEqual(doocs_channels.INT, IntDoocsChannel)
+    def testInt64DoocsChannel(self):
+        self.assertEqual(doocs_channels.LONG, Int64DoocsChannel)
         self.assertEqual(doocs_channels.INT64, Int64DoocsChannel)
-        self.assertIs(IntDoocsChannel, Int64DoocsChannel)
 
         with self.assertRaises(ValidationError):
-            IntDoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL/L2/SUMVOLTAGE.CHIRP.SP.1/")
+            Int64DoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL/L2/SUMVOLTAGE.CHIRP.SP.1/")
         with self.assertRaises(ValidationError):
-            IntDoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL/L2/")
+            Int64DoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL/L2/")
         with self.assertRaises(ValidationError):
-            IntDoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL//SUMVOLTAGE.CHIRP.SP.1")
+            Int64DoocsChannel(address="XFEL.RF/LLRF.SUMVOLTAGE_CTRL//SUMVOLTAGE.CHIRP.SP.1")
 
-        ch = IntDoocsChannel(address="A/B/C/D", value=1)
+        ch = Int64DoocsChannel(address="A/B/C/D", value=1)
         self.assertEqual("A/B/C/D", ch.address)
         self.assertEqual(1, ch.value)
         with self.subTest("Test validation is on for assignment"):
@@ -50,6 +50,55 @@ class TestDoocs(unittest.TestCase):
         with self.subTest("Test value schema"):
             self.assertDictEqual({'default': 0, 'type': '<i8'}, ch.value_schema())
 
+    def testUInt64DoocsChannel(self):
+        self.assertEqual(doocs_channels.ULONG, UInt64DoocsChannel)
+        self.assertEqual(doocs_channels.UINT64, UInt64DoocsChannel)
+
+        ch = UInt64DoocsChannel(address="A/B/C/D", value=0)
+        self.assertEqual(False, ch.value)
+        with self.subTest("Test validation is on for assignment"):
+            with self.assertRaises(ValidationError):
+                ch.value = -1
+
+        with self.subTest("Test schema"):
+            schema = ch.schema()['properties']
+            self.assertDictEqual(
+                {'title': 'Value', 'default': 0, 'minimum': 0, 'type': '<u8'}, schema['value'])
+
+    def testInt32DoocsChannel(self):
+        self.assertEqual(doocs_channels.INT, Int32DoocsChannel)
+        self.assertEqual(doocs_channels.INT32, Int32DoocsChannel)
+
+        ch = Int32DoocsChannel(address="A/B/C/D", value=0)
+        self.assertEqual(False, ch.value)
+        with self.subTest("Test validation is on for assignment"):
+            with self.assertRaises(ValidationError):
+                ch.value = 1.1
+
+        with self.subTest("Test schema"):
+            schema = ch.schema()['properties']
+            self.assertDictEqual(
+                {'title': 'Value', 'default': 0, 'type': '<i4',
+                 'minimum': -2 ** 31, 'maximum': 2 ** 31 - 1},
+                schema['value'])
+
+    def testUInt32DoocsChannel(self):
+        self.assertEqual(doocs_channels.UINT, UInt32DoocsChannel)
+        self.assertEqual(doocs_channels.UINT32, UInt32DoocsChannel)
+
+        ch = UInt32DoocsChannel(address="A/B/C/D", value=0)
+        self.assertEqual(False, ch.value)
+        with self.subTest("Test validation is on for assignment"):
+            with self.assertRaises(ValidationError):
+                ch.value = -1
+
+        with self.subTest("Test schema"):
+            schema = ch.schema()['properties']
+            self.assertDictEqual(
+                {'title': 'Value', 'default': 0, 'type': '<u4',
+                 'minimum': 0, 'maximum': 2 ** 32 - 1},
+                schema['value'])
+
     def testInt16DoocsChannel(self):
         self.assertEqual(doocs_channels.INT16, Int16DoocsChannel)
 
@@ -65,22 +114,6 @@ class TestDoocs(unittest.TestCase):
                 {'title': 'Value', 'default': 0, 'type': '<i2',
                  'minimum': -32768, 'maximum': 32767},
                 schema['value'])
-
-    def testUInt64DoocsChannel(self):
-        self.assertEqual(doocs_channels.UINT, UIntDoocsChannel)
-        self.assertEqual(doocs_channels.UINT64, UInt64DoocsChannel)
-        self.assertIs(UIntDoocsChannel, UInt64DoocsChannel)
-
-        ch = UInt64DoocsChannel(address="A/B/C/D", value=0)
-        self.assertEqual(False, ch.value)
-        with self.subTest("Test validation is on for assignment"):
-            with self.assertRaises(ValidationError):
-                ch.value = -1
-
-        with self.subTest("Test schema"):
-            schema = ch.schema()['properties']
-            self.assertDictEqual(
-                {'title': 'Value', 'default': 0, 'minimum': 0, 'type': '<u8'}, schema['value'])
 
     def testUInt16DoocsChannel(self):
         self.assertEqual(doocs_channels.UINT16, UInt16DoocsChannel)
@@ -111,12 +144,11 @@ class TestDoocs(unittest.TestCase):
             self.assertDictEqual(
                 {'title': 'Value', 'default': 0, 'type': '|b1'}, schema['value'])
 
-    def testFloatDoocsChannel(self):
-        self.assertEqual(doocs_channels.FLOAT, FloatDoocsChannel)
+    def testFloat64DoocsChannel(self):
+        self.assertEqual(doocs_channels.DOUBLE, Float64DoocsChannel)
         self.assertEqual(doocs_channels.FLOAT64, Float64DoocsChannel)
-        self.assertIs(FloatDoocsChannel, Float64DoocsChannel)
 
-        ch = FloatDoocsChannel(address="A/B/C/D", value=1.)
+        ch = Float64DoocsChannel(address="A/B/C/D", value=1.)
         with self.subTest("Test validation is on for assignment"):
             with self.assertRaises(ValidationError):
                 ch.value = 1
@@ -127,6 +159,7 @@ class TestDoocs(unittest.TestCase):
                 {'title': 'Value', 'default': 0, 'type': '<f8'}, schema['value'])
 
     def testFloat32DoocsChannel(self):
+        self.assertEqual(doocs_channels.FLOAT, Float32DoocsChannel)
         self.assertEqual(doocs_channels.FLOAT32, Float32DoocsChannel)
 
         ch = Float32DoocsChannel(address="A/B/C/D", value=1.)

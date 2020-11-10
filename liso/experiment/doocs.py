@@ -73,7 +73,7 @@ class BoolDoocsChannel(DoocsChannel):
             schema['properties']['value']['type'] = '|b1'
 
 
-class IntDoocsChannel(DoocsChannel):
+class Int64DoocsChannel(DoocsChannel):
     value: StrictInt = 0
 
     class Config:
@@ -82,10 +82,7 @@ class IntDoocsChannel(DoocsChannel):
             schema['properties']['value']['type'] = '<i8'
 
 
-Int64DoocsChannel = IntDoocsChannel
-
-
-class UIntDoocsChannel(DoocsChannel):
+class UInt64DoocsChannel(DoocsChannel):
     value: conint(strict=True, ge=0) = 0
 
     class Config:
@@ -94,7 +91,25 @@ class UIntDoocsChannel(DoocsChannel):
             schema['properties']['value']['type'] = '<u8'
 
 
-UInt64DoocsChannel = UIntDoocsChannel
+class Int32DoocsChannel(DoocsChannel):
+    value: conint(strict=True,
+                  ge=np.iinfo(np.int32).min,
+                  le=np.iinfo(np.int32).max) = 0
+
+    class Config:
+        @staticmethod
+        def schema_extra(schema, model):
+            schema['properties']['value']['type'] = '<i4'
+
+
+class UInt32DoocsChannel(DoocsChannel):
+    value: conint(strict=True,
+                  ge=0,
+                  le=np.iinfo(np.uint32).max) = 0
+    class Config:
+        @staticmethod
+        def schema_extra(schema, model):
+            schema['properties']['value']['type'] = '<u4'
 
 
 class Int16DoocsChannel(DoocsChannel):
@@ -110,7 +125,7 @@ class Int16DoocsChannel(DoocsChannel):
 
 class UInt16DoocsChannel(DoocsChannel):
     value: conint(strict=True,
-                  ge=np.iinfo(np.uint16).min,
+                  ge=0,
                   le=np.iinfo(np.uint16).max) = 0
 
     class Config:
@@ -119,16 +134,13 @@ class UInt16DoocsChannel(DoocsChannel):
             schema['properties']['value']['type'] = '<u2'
 
 
-class FloatDoocsChannel(DoocsChannel):
+class Float64DoocsChannel(DoocsChannel):
     value: StrictFloat = 0.0
 
     class Config:
         @staticmethod
         def schema_extra(schema, model):
             schema['properties']['value']['type'] = '<f8'
-
-
-Float64DoocsChannel = FloatDoocsChannel
 
 
 class Float32DoocsChannel(DoocsChannel):
@@ -193,21 +205,29 @@ class ImageDoocsChannel(DoocsChannel):
 
 _DoocsChannelFactory = namedtuple(
     "DoocsChannelFactory",
-    ["BOOL", "UINT", "INT", "UINT64", "INT64", "INT16", "UINT16",
-     "FLOAT", "FLOAT64", "FLOAT32",
+    ["BOOL",
+     "INT64", "LONG", "UINT64", "ULONG",
+     "INT32", "INT", "UINT32", "UINT",
+     "INT16", "UINT16",
+     "FLOAT64", "DOUBLE", "FLOAT32", "FLOAT",
      "IMAGE"]
 )
 
 doocs_channels = _DoocsChannelFactory(
     BOOL=BoolDoocsChannel,
-    INT=IntDoocsChannel,
     INT64=Int64DoocsChannel,
-    UINT=UIntDoocsChannel,
+    LONG=Int64DoocsChannel,
     UINT64=UInt64DoocsChannel,
+    ULONG=UInt64DoocsChannel,
+    INT32=Int32DoocsChannel,
+    INT=Int32DoocsChannel,
+    UINT32=UInt32DoocsChannel,
+    UINT=UInt32DoocsChannel,
     INT16=Int16DoocsChannel,
     UINT16=UInt16DoocsChannel,
-    FLOAT=FloatDoocsChannel,
     FLOAT64=Float64DoocsChannel,
+    DOUBLE=Float64DoocsChannel,
     FLOAT32=Float32DoocsChannel,
+    FLOAT=Float32DoocsChannel,
     IMAGE=ImageDoocsChannel,
 )

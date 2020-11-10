@@ -92,7 +92,7 @@ class TestSimWriter(unittest.TestCase):
 class TestExpWriter(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface()
-        m.add_control_channel(dc.FLOAT, "A/B/C/D")
+        m.add_control_channel(dc.FLOAT64, "A/B/C/D")
         m.add_control_channel(dc.FLOAT32, "A/B/C/E")
         m.add_instrument_channel(dc.IMAGE, "H/I/J/K", shape=(4, 4), dtype='uint16')
         m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=(5, 6), dtype='float32')
