@@ -8,6 +8,7 @@ import tempfile
 from liso import Linac
 from liso.config import config
 from liso.io import TempSimulationDirectory
+from liso.exceptions import LisoRuntimeError
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
@@ -27,7 +28,7 @@ class TestAstraBeamline(unittest.TestCase):
         self._bl = next(iter(linac._beamlines.values()))
 
     def testUpdateOutput(self):
-        with self.assertRaisesRegex(RuntimeError, "Output file"):
+        with self.assertRaisesRegex(LisoRuntimeError, "Output file"):
             self._bl._update_output(_ROOT_DIR)
 
         with patch.object(self._bl, '_check_file'):

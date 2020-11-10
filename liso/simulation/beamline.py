@@ -13,7 +13,11 @@ from distutils.spawn import find_executable
 
 import numpy as np
 
+from .input import (
+    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
+)
 from ..config import config
+from ..exceptions import LisoRuntimeError
 from ..proc import (
     analyze_line,
     parse_astra_phasespace, parse_astra_line,
@@ -22,9 +26,7 @@ from ..proc import (
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
-from .input import (
-    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
-)
+
 
 
 class Beamline(ABC):
@@ -184,9 +186,9 @@ class Beamline(ABC):
 
     def _check_file(self, filepath, title=''):
         if not osp.isfile(filepath):
-            raise RuntimeError(f"{title} file {filepath} does not exist!")
+            raise LisoRuntimeError(f"{title} file {filepath} does not exist!")
         if not osp.getsize(filepath):
-            raise RuntimeError(f"{title} file {filepath} is empty!")
+            raise LisoRuntimeError(f"{title} file {filepath} is empty!")
 
     def _check_executable(self, parallel=False):
         filepath = self._get_executable(parallel)
@@ -246,7 +248,7 @@ class Beamline(ABC):
                                shell=True,
                                cwd=self._swd)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(repr(e))
+            raise LisoRuntimeError(repr(e))
 
     def run(self, phasespace, *, timeout, n_workers):
         """Run simulation for the beamline."""

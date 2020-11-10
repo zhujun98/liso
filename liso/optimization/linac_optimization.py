@@ -40,6 +40,7 @@ from ..covariable import Covariable
 from .constraint import EConstraint
 from .constraint import IConstraint
 from .objective import Objective
+from ..exceptions import LisoRuntimeError
 from ..logging import logger, opt_logger
 
 
@@ -341,7 +342,7 @@ class LinacOptimization(Optimization):
             self._linac.run(self._x_map, *args, **kwargs)
             is_update_failed = False
             self._nf = 0
-        except RuntimeError as e:
+        except LisoRuntimeError as e:
             self._nf += 1
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logger.debug(f"{self._nfeval:05d}: " +
