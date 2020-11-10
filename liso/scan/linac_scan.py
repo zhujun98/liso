@@ -150,23 +150,22 @@ class LinacScan(_BaseScan):
 
                         tasks.remove(task)
 
-    def scan(self,
-             n_tasks=None, *,
-             cycles=1,
+    def scan(self, cycles=1, *,
              n_particles=2000,
              output='scan.hdf5',
              start_id=1,
+             n_tasks=None,
              seed=None,
              **kwargs):
         """Start a parameter scan.
 
-        :param int/None n_tasks: maximum number of concurrent tasks.
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
         :param int n_particles: number of particles to be stored.
         :param str output: output file.
         :param int start_id: starting simulation id. Default = 1.
+        :param int/None n_tasks: maximum number of concurrent tasks.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
@@ -200,8 +199,7 @@ class MachineScan(_BaseScan):
 
         self._machine = machine
 
-    def scan(self, *,
-             cycles=1,
+    def scan(self, cycles=1, *,
              output='scan.hdf5',
              n_tasks=None,
              seed=None):
