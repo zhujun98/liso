@@ -153,6 +153,13 @@ class TestSimReader(unittest.TestCase):
 
 
 class TestExpReader(unittest.TestCase):
+    def setUp(self):
+        self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+        ExpWriter._IMAGE_CHUNK = (3, 2)
+
+    def tearDown(self):
+        ExpWriter._IMAGE_CHUNK = self._orig_image_chunk
+
     def testOpenRun(self):
         n_pulses = 10
         pulse_ids = np.arange(1, 2 * n_pulses, 2)

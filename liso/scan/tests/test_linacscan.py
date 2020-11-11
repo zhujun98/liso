@@ -13,6 +13,7 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
+from liso.io import ExpWriter
 from liso.logging import logger
 logger.setLevel('CRITICAL')
 
@@ -151,6 +152,13 @@ class TestLinacScan(unittest.TestCase):
 
 
 class TestMachineScan(unittest.TestCase):
+    def setUp(self):
+        self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+        ExpWriter._IMAGE_CHUNK = (3, 2)
+
+    def tearDown(self):
+        ExpWriter._IMAGE_CHUNK = self._orig_image_chunk
+
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir

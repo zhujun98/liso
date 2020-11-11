@@ -19,6 +19,8 @@ class _BaseWriter(abc.ABC):
     # cap the number of sequence files
     _MAX_SEQUENCE = 99
 
+    _IMAGE_CHUNK = (16, 512)
+
     def __init__(self, path, *,
                  chunk_size=50,
                  max_events_per_file=100000):
@@ -187,11 +189,18 @@ class ExpWriter(_BaseWriter):
             fp[meta_ch][i] = k
             dtype = v['type']
             if dtype == 'NDArray':
+                shape = v['shape']
+                if len(shape) == 2:
+                    # image data
+                    chunk_size = (1, *self._IMAGE_CHUNK)
+                else:
+                    # TODO: finish it
+                    chunk_size = (self._chunk_size, *v['shape'])
                 fp.create_dataset(
                     f"{channel_category.upper()}/{k}",
                     shape=(self._chunk_size, *v['shape']),
                     dtype=v['dtype'],
-                    chunks=(self._chunk_size, *v['shape']),
+                    chunks=chunk_size,
                     maxshape=(self._max_events_per_file, *v['shape']))
             else:
                 fp.create_dataset(

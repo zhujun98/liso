@@ -124,6 +124,11 @@ class TestExpWriter(unittest.TestCase):
         m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=(5, 6), dtype='float32')
         self._schema = m.schema
 
+        self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+
+    def tearDown(self):
+        ExpWriter._IMAGE_CHUNK = self._orig_image_chunk
+
     def testWrite(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = osp.join(tmp_dir, "tmp.hdf5")
@@ -131,6 +136,7 @@ class TestExpWriter(unittest.TestCase):
             s1 = (4, 4)
             s2 = (5, 6)
 
+            ExpWriter._IMAGE_CHUNK = (2, 3)
             with ExpWriter(filename,
                            schema=self._schema,
                            chunk_size=chunk_size,
