@@ -209,7 +209,15 @@ class ExpWriter(_BaseWriter):
         :param dict instruments: dictionary of the phasespace data.
         """
         fp = self._fp
-        idx = len(self._pulse_ids) % self._max_events_per_file
+        chunk_size = self._chunk_size
+        idx = len(self._pulse_ids)
+
+        if idx > 0 and idx % chunk_size == 0:
+            n_chunks = idx // chunk_size + 1
+            for k in controls:
+                fp[f"CONTROL/{k}"].resize(n_chunks * chunk_size, axis=0)
+            for k in instruments:
+                fp[f"INSTRUMENT/{k}"].resize(n_chunks * chunk_size, axis=0)
 
         for k, v in controls.items():
             fp[f"CONTROL/{k}"][idx] = v

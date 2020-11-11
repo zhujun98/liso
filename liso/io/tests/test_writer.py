@@ -127,12 +127,14 @@ class TestExpWriter(unittest.TestCase):
     def testWrite(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = osp.join(tmp_dir, "tmp.hdf5")
-            chunk_size = 10
+            chunk_size = 5
             s1 = (4, 4)
             s2 = (5, 6)
 
-            with ExpWriter(filename, schema=self._schema,
-                           chunk_size=chunk_size) as writer:
+            with ExpWriter(filename,
+                           schema=self._schema,
+                           chunk_size=chunk_size,
+                           max_events_per_file=500) as writer:
                 # test failure when hdf5 file is already initialized
                 with self.assertRaises(OSError):
                     ExpWriter(filename, schema=self._schema)
@@ -167,13 +169,13 @@ class TestExpWriter(unittest.TestCase):
                         [0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.],
                         fp['CONTROL/A/B/C/E'][()])
 
-                    self.assertEqual((chunk_size, *s1), fp['INSTRUMENT/H/I/J/K'].shape)
-                    self.assertEqual((chunk_size, *s2), fp['INSTRUMENT/H/I/J/L'].shape)
+                    self.assertEqual((2 * chunk_size, *s1), fp['INSTRUMENT/H/I/J/K'].shape)
+                    self.assertEqual((2 * chunk_size, *s2), fp['INSTRUMENT/H/I/J/L'].shape)
                     self.assertEqual(np.uint16, fp['INSTRUMENT/H/I/J/K'].dtype)
                     self.assertEqual(np.float32, fp['INSTRUMENT/H/I/J/L'].dtype)
                     np.testing.assert_array_equal(
-                        np.concatenate((np.ones((chunk_size - 1, *s1)), np.zeros((1, *s1)))),
+                        np.concatenate((np.ones((2 * chunk_size - 1, *s1)), np.zeros((1, *s1)))),
                         fp['INSTRUMENT/H/I/J/K'][()])
                     np.testing.assert_array_equal(
-                        np.concatenate((np.ones((chunk_size - 1, *s2)), np.zeros((1, *s2)))),
+                        np.concatenate((np.ones((2 * chunk_size - 1, *s2)), np.zeros((1, *s2)))),
                         fp['INSTRUMENT/H/I/J/L'][()])
