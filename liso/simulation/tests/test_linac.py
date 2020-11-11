@@ -114,10 +114,10 @@ class TestLinacTwoBeamLine(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
             self._mapping = {
-                'gun.gun_gradient': 1.,
-                'gun.gun_phase': 1.,
-                'chicane.MQZM1_G': 1.,
-                'chicane.MQZM2_G': 1.,
+                'gun/gun_gradient': 1.,
+                'gun/gun_phase': 1.,
+                'chicane/MQZM1_G': 1.,
+                'chicane/MQZM2_G': 1.,
             }
             self._linac = Linac()
 
@@ -147,17 +147,17 @@ class TestLinacTwoBeamLine(unittest.TestCase):
         mapping = self._mapping.copy()
 
         # test when not all patterns are found in mapping
-        del mapping['gun.gun_phase']
+        del mapping['gun/gun_phase']
         with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
             self._linac.compile(mapping)
 
         # test when keys in mapping are not found in the templates
-        mapping['gun.gun_phase'] = 1.0
-        mapping['gun.charge'] = 1.0
+        mapping['gun/gun_phase'] = 1.0
+        mapping['gun/charge'] = 1.0
         with self.assertRaisesRegex(KeyError, "{'charge'} not found in the templates"):
             self._linac.compile(mapping)
 
-        del mapping['gun.charge']
+        del mapping['gun/charge']
         self.assertDictEqual({
             'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
             'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0,

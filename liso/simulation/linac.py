@@ -72,7 +72,7 @@ class Linac(Mapping):
         mapping_grp = defaultdict(dict)
         default = next(iter(self._beamlines))
         for key, value in mapping.items():
-            splitted = key.split('.', 1)
+            splitted = key.split('/', 1)
             if len(splitted) == 1:
                 mapping_grp[default][splitted[0]] = value
             else:
