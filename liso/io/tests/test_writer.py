@@ -30,23 +30,46 @@ class TestSimWriter(unittest.TestCase):
     def testWrite(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = osp.join(tmp_dir, "tmp.hdf5")
+            schema = (
+                {
+                    "gun/gun_gradient": {"type": "<f4"},
+                    "gun/gun_phase": {"type": "<f4"}
+                },
+                {
+                    "gun/out": {
+                        "macroparticles": 100,
+                        "type": "phasespace"
+                    }
+                }
+            )
 
-            with SimWriter(10, 100, filename, start_id=100,
-                           chunk_size=5, max_size_per_file=100) as writer:
+            with self.subTest("Test invalid input in writer"):
+                with self.assertRaisesRegex(ValueError, "cannot be smaller than chunk_size"):
+                    SimWriter(filename, schema=schema,
+                              chunk_size=501, max_events_per_file=500)
+                with self.assertRaisesRegex(ValueError, "must be at least 500"):
+                    SimWriter(filename, schema=schema,
+                              chunk_size=5, max_events_per_file=499)
+
+            with SimWriter(filename,
+                           start_id=100,
+                           schema=schema,
+                           chunk_size=5,
+                           max_events_per_file=500) as writer:
 
                 for i, idx in enumerate(range(9)):
                     writer.write(idx,
                                  {'gun/gun_gradient': 10 * i, 'gun/gun_phase': 0.1 * i},
-                                 {'out': self._ps})
+                                 {'gun/out': self._ps})
 
-                with self.assertRaisesRegex(ValueError, 'out of range'):
-                    writer.write(10,
+                with self.assertRaisesRegex(ValueError, 'Unable to set extend dataset'):
+                    writer.write(writer._max_events_per_file,
                                  {'gun/gun_gradient': 1, 'gun/gun_phase': 2},
-                                 {'out': self._ps})
+                                 {'gun/out': self._ps})
 
             with self.subTest("Initialize writer when hdf5 file already exits"):
                 with self.assertRaises(OSError):
-                    SimWriter(10, 100, filename)
+                    SimWriter(filename, schema=schema)
 
             with self.subTest("Test data in the file"):
                 with h5py.File(filename, 'r') as fp:
@@ -54,11 +77,11 @@ class TestSimWriter(unittest.TestCase):
 
                     self.assertSetEqual({'gun/gun_gradient', 'gun/gun_phase'},
                                         set(fp['METADATA/controlChannel']))
-                    self.assertSetEqual({'out'},
+                    self.assertSetEqual({'gun/out'},
                                         set(fp['METADATA/phasespaceChannel']))
 
                     np.testing.assert_array_equal(
-                        [100, 101, 102, 103, 104, 105, 106, 107, 108,   0],
+                        [100, 101, 102, 103, 104, 105, 106, 107, 108],
                         fp['INDEX/simId'][()])
 
                     np.testing.assert_array_equal(
@@ -72,21 +95,24 @@ class TestSimWriter(unittest.TestCase):
                         for col in ['x', 'y', 'z', 'px', 'py', 'pz', 't']:
                             if i == 9:
                                 self.assertTrue(
-                                    np.all(fp[f'PHASESPACE/{col.upper()}/out'][i, ...] == 0))
+                                    np.all(fp[f'PHASESPACE/{col.upper()}/gun/out'][i, ...] == 0))
                             else:
                                 np.testing.assert_array_equal(
-                                    self._ps[col], fp[f'PHASESPACE/{col.upper()}/out'][i, ...])
+                                    self._ps[col], fp[f'PHASESPACE/{col.upper()}/gun/out'][i, ...])
 
             with self.subTest("Writer with particle loss"):
                 filename2 = osp.join(tmp_dir, "tmp2.hdf5")
-                with SimWriter(10, 101, filename2) as writer2:
+                with SimWriter(filename2, schema=schema) as writer2:
+                    ps = Phasespace(pd.DataFrame(
+                        np.ones((101, 7)),
+                        columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
                     writer2.write(0,
                                  {'gun/gun_gradient': 1, 'gun/gun_phase': 2},
-                                 {'out': self._ps})
+                                 {'gun/out': ps})
 
                     for col in ['x', 'y', 'z', 'px', 'py', 'pz', 't']:
                         self.assertFalse(
-                            np.any(writer2._fp[f'PHASESPACE/{col.upper()}/out'][0, ...]))
+                            np.any(writer2._fp[f'PHASESPACE/{col.upper()}/gun/out'][0, ...]))
 
 
 class TestExpWriter(unittest.TestCase):

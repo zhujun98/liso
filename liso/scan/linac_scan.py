@@ -30,7 +30,7 @@ class _BaseScan:
         :param str name: parameter name for simulations and a valid
             DOOCS address for experiments.
         """
-        # TODO: check format of address
+        name = self._check_param_name(name)
 
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
@@ -44,6 +44,9 @@ class _BaseScan:
                 param = JitterParam(name, *args, **kwargs)
 
         self._params[name] = param
+
+    def _check_param_name(self, name):
+        return name
 
     def _generate_param_sequence(self, cycles, seed):
         np.random.seed(seed)  # set the random state!
@@ -98,14 +101,29 @@ class LinacScan(_BaseScan):
 
         self._linac = linac
 
-    async def _async_scan(self, n_tasks, output, *,
-                          cycles, n_particles, start_id, seed, **kwargs):
+    def _check_param_name(self, name):
+        """Override."""
+        splitted = name.split('/', 1)
+        first_bl = next(iter(self._linac))
+        if len(splitted) == 1:
+            return f"{first_bl}/{name}"
+        return name
+
+    async def _async_scan(self, cycles, output, *,
+                          start_id, n_tasks, seed, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence)
 
-        with SimWriter(n_pulses, n_particles, output, start_id=start_id) \
-                as writer:
+        phasespace_schema = self._linac.schema
+        control_schema = self._linac.compile(self._params)
+        for param in control_schema:
+            control_schema[param] = {'type': '<f4'}
+        schema = (control_schema, phasespace_schema)
+
+        with SimWriter(output,
+                       start_id=start_id,
+                       schema=schema) as writer:
             count = 0
             while True:
                 if count < n_pulses:
@@ -150,9 +168,7 @@ class LinacScan(_BaseScan):
 
                         tasks.remove(task)
 
-    def scan(self, cycles=1, *,
-             n_particles=2000,
-             output='scan.hdf5',
+    def scan(self, cycles=1, output='scan.hdf5', *,
              start_id=1,
              n_tasks=None,
              seed=None,
@@ -162,7 +178,6 @@ class LinacScan(_BaseScan):
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param int n_particles: number of particles to be stored.
         :param str output: output file.
         :param int start_id: starting simulation id. Default = 1.
         :param int/None n_tasks: maximum number of concurrent tasks.
@@ -178,10 +193,9 @@ class LinacScan(_BaseScan):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
-            n_tasks, output,
-            cycles=cycles,
-            n_particles=n_particles,
+            cycles, output,
             start_id=start_id,
+            n_tasks=n_tasks,
             seed=seed,
             **kwargs))
 
@@ -199,10 +213,7 @@ class MachineScan(_BaseScan):
 
         self._machine = machine
 
-    def scan(self, cycles=1, *,
-             output='scan.hdf5',
-             n_tasks=None,
-             seed=None):
+    def scan(self, cycles=1, output='scan.hdf5', *, n_tasks=None, seed=None):
         """Start a parameter scan.
 
         :param int cycles: number of cycles of the parameter space. For

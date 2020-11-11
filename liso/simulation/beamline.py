@@ -28,7 +28,6 @@ from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
 
 
-
 class Beamline(ABC):
     """Beamline abstraction class."""
 
@@ -47,7 +46,7 @@ class Beamline(ABC):
         :param str swd: path of the simulation working directory. This where
             the Python subprocess runs.
         :param str fin: input file name.
-        :param str pin: input particle file name.
+        :param str/None pin: initial particle file name.
         :param str pout: final particle file name. It must be located in the
             same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
@@ -200,7 +199,7 @@ class Beamline(ABC):
     def _update_output(self, swd):
         """Analyse output particle file.
 
-        Also prepare the input particle file for the downstream simulation.
+        Also prepare the initial particle file for the downstream simulation.
 
         :param str swd: simulation working directory.
         """
