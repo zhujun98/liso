@@ -5,10 +5,13 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import abc
 import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
+import pathlib
+import re
 import sys
 import traceback
 
@@ -20,7 +23,7 @@ from ..io import ExpWriter, SimWriter
 from ..logging import logger
 
 
-class _BaseScan:
+class _BaseScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
 
@@ -89,6 +92,10 @@ class _BaseScan:
                     text += ele.list_item()
         return text
 
+    @abc.abstractmethod
+    def _create_run_folder(self, parent):
+        pass
+
 
 class LinacScan(_BaseScan):
     """Class for performing scans in simulations."""
@@ -109,7 +116,13 @@ class LinacScan(_BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    async def _async_scan(self, cycles, output, *,
+    def _create_run_folder(self, parent):
+        parent_path = pathlib.Path(parent)
+        # It is allowed to use an existing folder, but not an existing file.
+        parent_path.mkdir(exist_ok=True)
+        return parent_path
+
+    async def _async_scan(self, cycles, run_folder, *,
                           start_id, n_tasks, seed, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(cycles, seed)
@@ -121,9 +134,7 @@ class LinacScan(_BaseScan):
             control_schema[param] = {'type': '<f4'}
         schema = (control_schema, phasespace_schema)
 
-        with SimWriter(output,
-                       start_id=start_id,
-                       schema=schema) as writer:
+        with SimWriter(run_folder, schema=schema) as writer:
             count = 0
             while True:
                 if count < n_pulses:
@@ -133,8 +144,7 @@ class LinacScan(_BaseScan):
 
                     sim_id = count + start_id
                     task = asyncio.ensure_future(
-                        self._linac.async_run(
-                            count, x_map, f'tmp{sim_id:06d}', **kwargs))
+                        self._linac.async_run(sim_id, x_map, **kwargs))
                     tasks.add(task)
 
                     logger.info(f"Scan {sim_id:06d}: "
@@ -151,8 +161,8 @@ class LinacScan(_BaseScan):
 
                     for task in done:
                         try:
-                            idx, controls, phasespaces = task.result()
-                            writer.write(idx, controls, phasespaces)
+                            sim_id, controls, phasespaces = task.result()
+                            writer.write(sim_id, controls, phasespaces)
                         except LisoRuntimeError as e:
                             exc_type, exc_value, exc_traceback = sys.exc_info()
                             logger.debug(repr(traceback.format_tb(exc_traceback))
@@ -168,7 +178,7 @@ class LinacScan(_BaseScan):
 
                         tasks.remove(task)
 
-    def scan(self, cycles=1, output='scan.hdf5', *,
+    def scan(self, cycles=1, folder='scan_data', *,
              start_id=1,
              n_tasks=None,
              seed=None,
@@ -178,14 +188,20 @@ class LinacScan(_BaseScan):
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str output: output file.
+        :param str folder: folder where the simulation data will be saved.
         :param int start_id: starting simulation id. Default = 1.
         :param int/None n_tasks: maximum number of concurrent tasks.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
+        if not isinstance(start_id, int) or start_id < 1:
+            raise ValueError(
+                f"start_id must a positive integer. Actual: {start_id}")
+
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
+
+        run_folder = self._create_run_folder(folder)
 
         logger.info(str(self._linac))
         logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
@@ -193,7 +209,7 @@ class LinacScan(_BaseScan):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
-            cycles, output,
+            cycles, run_folder,
             start_id=start_id,
             n_tasks=n_tasks,
             seed=seed,
@@ -204,6 +220,7 @@ class LinacScan(_BaseScan):
 
 class MachineScan(_BaseScan):
     """Class for performing scans with a real machine."""
+
     def __init__(self, machine):
         """Initialization.
 
@@ -213,13 +230,31 @@ class MachineScan(_BaseScan):
 
         self._machine = machine
 
-    def scan(self, cycles=1, output='scan.hdf5', *, n_tasks=None, seed=None):
+    def _create_run_folder(self, parent):
+        parent_path = pathlib.Path(parent)
+        # It is allowed to use an existing parent folder, but not a run folder.
+        parent_path.mkdir(exist_ok=True)
+
+        next_run = 1  # starting from 1
+        for d in parent_path.iterdir():
+            # Here d could also be a file
+            if re.search(r'r\d{4}', d.name):
+                seq = int(d.name[1:])
+                if seq >= next_run:
+                    next_run = seq + 1
+
+        next_run_folder = parent_path.joinpath(f'r{next_run:04d}')
+        next_run_folder.mkdir(parents=True, exist_ok=False)
+        return next_run_folder
+
+    def scan(self, cycles=1, folder='scan_data', *, n_tasks=None, seed=None):
         """Start a parameter scan.
 
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str output: output file.
+        :param str folder: folder in which data for each run will be stored in
+            in its own sub-folder.
         :param int/None n_tasks: maximum number of concurrent tasks for
             read and write.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
@@ -233,9 +268,11 @@ class MachineScan(_BaseScan):
 
         executor = ThreadPoolExecutor(max_workers=n_tasks)
 
+        run_folder = self._create_run_folder(folder)
+
         sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence) if sequence else cycles
-        with ExpWriter(output, schema=self._machine.schema) as writer:
+        with ExpWriter(run_folder, schema=self._machine.schema) as writer:
             count = 0
             while count < n_pulses:
                 mapping = dict()

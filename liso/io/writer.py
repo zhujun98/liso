@@ -7,6 +7,8 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from datetime import datetime
+import pathlib
+from string import Template
 
 import h5py
 
@@ -23,10 +25,10 @@ class _BaseWriter(abc.ABC):
 
     def __init__(self, path, *,
                  chunk_size=50,
-                 max_events_per_file=100000):
+                 max_events_per_file=10000):
         """Initialization.
 
-        :param str path: path of the hdf5 file.
+        :param pathlib.Path path: path of the simulation/run folder.
         :param int chunk_size: size of the first dimention of a chunk in
             a dataset.
         :param int max_events_per_file: maximum events stored in a single file.
@@ -36,25 +38,35 @@ class _BaseWriter(abc.ABC):
         if max_events_per_file < chunk_size:
             raise ValueError(
                 "max_events_per_file cannot be smaller than chunk_size")
-        if max_events_per_file < 500:
-            raise ValueError("max_events_per_file must be at least 500!")
+        mfs = 50
+        if max_events_per_file < mfs:
+            raise ValueError(f"max_events_per_file must be at least {mfs}!")
         self._chunk_size = chunk_size
         self._max_events_per_file = max_events_per_file
 
-        # not allow to overwrite existing file
-        fp = h5py.File(path, 'w-')
+        self._path = path if isinstance(path, pathlib.Path) \
+            else pathlib.Path(path)
+        self._fp = None
+
+        self._index = 0
+        self._file_count = 0
+
+    @abc.abstractmethod
+    def _create_new_file(self):
+        """Create a new file in the run folder."""
+        pass
+
+    def _init_meta_data(self):
+        fp = self._fp
         fp.create_dataset("METADATA/createDate",
                           data=datetime.now().isoformat())
         fp.create_dataset("METADATA/updateDate",
                           data=datetime.now().isoformat())
 
-        self._fp = fp
-
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
-        self._finalize()
         self.close()
 
     @abc.abstractmethod
@@ -62,31 +74,43 @@ class _BaseWriter(abc.ABC):
         pass
 
     def close(self):
-        self._fp.close()
+        if self._fp is not None:
+            self._finalize()
+            self._fp.close()
+            self._fp = None
 
 
 class SimWriter(_BaseWriter):
     """Write simulated data in HDF5 file."""
 
-    def __init__(self, path, *, start_id=1, schema, **kwargs):
+    _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
+
+    def __init__(self, path, *, schema, **kwargs):
         """Initialization.
 
-        :param str path: path of the hdf5 file.
-        :param int start_id: starting simulation id.
+        :param str/pathlib.Path path: path of the simulation folder.
         :param tuple schema: (control, phasespace) data schema
         """
         super().__init__(path, **kwargs)
 
-        if not isinstance(start_id, int) or start_id < 1:
-            raise ValueError(
-                f"start_id must a positive integer. Actual: {start_id}")
-        self._start_id = start_id
         self._sim_ids = []
 
         self._control_schema, self._phasespace_schema = schema
 
+    def _create_new_file(self):
+        """Override."""
+        next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
+            group="01", seq=f"{self._file_count:06d}"))
+        self._file_count += 1
+        self._sim_ids.clear()
+
+        self._fp = h5py.File(next_file, 'w-')
+
+        self._init_meta_data()
         self._init_channel_data("control", self._control_schema)
         self._init_channel_data("phasespace", self._phasespace_schema)
+
+        return self._fp
 
     def _init_channel_data(self, channel_category, schema):
         fp = self._fp
@@ -115,25 +139,31 @@ class SimWriter(_BaseWriter):
                     chunks=(self._chunk_size,),
                     maxshape=(self._max_events_per_file,))
 
-    def write(self, idx, controls, phasespaces):
+    def write(self, sim_id, controls, phasespaces):
         """Write data from one simulation into the file.
 
-        :param int idx: scan index, starting from 0.
+        :param int sim_id: simulation ID.
         :param dict controls: dictionary of the control data.
         :param dict phasespaces: dictionary of the phasespace data.
         """
         fp = self._fp
         chunk_size = self._chunk_size
+        idx = self._index
 
-        if idx > 0 and idx % chunk_size == 0:
+        if idx % self._max_events_per_file == 0:
+            # close the current file
+            self.close()
+            # create a new one
+            fp = self._create_new_file()
+            self._index = idx = 0
+        elif idx % chunk_size == 0:
             n_chunks = idx // chunk_size + 1
-            for k in controls:
-                fp[f"CONTROL/{k}"].resize(n_chunks * chunk_size, axis=0)
-
-            for k in phasespaces:
+            new_size = min(n_chunks * chunk_size, self._max_events_per_file)
+            for k in self._control_schema:
+                fp[f"CONTROL/{k}"].resize(new_size, axis=0)
+            for k in self._phasespace_schema:
                 for col in Phasespace.columns:
-                    fp[f"PHASESPACE/{col.upper()}/{k}"].resize(
-                        n_chunks * chunk_size, axis=0)
+                    fp[f"PHASESPACE/{col.upper()}/{k}"].resize(new_size, axis=0)
 
         for k, v in controls.items():
             fp[f"CONTROL/{k}"][idx] = v
@@ -149,33 +179,49 @@ class SimWriter(_BaseWriter):
                 # particle loss
                 pass
 
-        self._sim_ids.append(idx + self._start_id)
+        # Caveat: sim ID does not arrive in sequence
+        self._sim_ids.append(sim_id)
+        self._index += 1
 
     def _finalize(self):
         """Override."""
         fp = self._fp
-        # Caveat: simulation results do not arrive in order
-        fp.create_dataset("INDEX/simId",
-                          data=sorted(self._sim_ids), dtype='u8')
+        fp.create_dataset("INDEX/simId", data=self._sim_ids, dtype='u8')
         fp["METADATA/updateDate"][()] = datetime.now().isoformat()
 
 
 class ExpWriter(_BaseWriter):
 
+    _FILE_ROOT_NAME = Template("RAW-$run-G$group-S$seq.hdf5")
+
     def __init__(self, path, *, schema, **kwargs):
         """Initialization.
 
-        :param str path: path of the hdf5 file.
+        :param pathlib.Path path: path of the run folder.
         :param tuple schema: (control, instrument) data schema.
         """
         super().__init__(path, **kwargs)
 
         self._control_schema, self._instrument_schema = schema
 
+        self._pulse_ids = []
+
+    def _create_new_file(self):
+        """Override."""
+        next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
+            run=self._path.name.upper(),
+            group="01",
+            seq=f"{self._file_count:06d}"))
+        self._file_count += 1
+        self._pulse_ids.clear()
+
+        self._fp = h5py.File(next_file, 'w-')
+
+        self._init_meta_data()
         self._init_channel_data("control", self._control_schema)
         self._init_channel_data("instrument", self._instrument_schema)
 
-        self._pulse_ids = []
+        return self._fp
 
     def _init_channel_data(self, channel_category, schema):
         fp = self._fp
@@ -219,14 +265,21 @@ class ExpWriter(_BaseWriter):
         """
         fp = self._fp
         chunk_size = self._chunk_size
-        idx = len(self._pulse_ids)
+        idx = self._index
 
-        if idx > 0 and idx % chunk_size == 0:
+        if idx % self._max_events_per_file == 0:
+            # close the current file
+            self.close()
+            # create a new one
+            fp = self._create_new_file()
+            self._index = idx = 0
+        elif idx % chunk_size == 0:
             n_chunks = idx // chunk_size + 1
-            for k in controls:
-                fp[f"CONTROL/{k}"].resize(n_chunks * chunk_size, axis=0)
-            for k in instruments:
-                fp[f"INSTRUMENT/{k}"].resize(n_chunks * chunk_size, axis=0)
+            new_size = min(n_chunks * chunk_size, self._max_events_per_file)
+            for k in self._control_schema:
+                fp[f"CONTROL/{k}"].resize(new_size, axis=0)
+            for k in self._instrument_schema:
+                fp[f"INSTRUMENT/{k}"].resize(new_size, axis=0)
 
         for k, v in controls.items():
             fp[f"CONTROL/{k}"][idx] = v
@@ -234,6 +287,7 @@ class ExpWriter(_BaseWriter):
             fp[f"INSTRUMENT/{k}"][idx] = v
 
         self._pulse_ids.append(pulse_id)
+        self._index += 1
 
     def _finalize(self):
         """Override."""

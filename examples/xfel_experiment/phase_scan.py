@@ -21,4 +21,4 @@ sc = MachineScan(m)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.GUN.I1/SP.PHASE', -3, 3)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE', 182, 186)
 
-sc.scan(40, output='scan.hdf5', n_tasks=8)
+sc.scan(40, folder='my_exp_data', n_tasks=8)

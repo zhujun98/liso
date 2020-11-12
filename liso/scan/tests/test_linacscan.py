@@ -4,6 +4,7 @@ from unittest.mock import patch
 import os.path as osp
 import tempfile
 import asyncio
+import pathlib
 
 import pandas as pd
 import numpy as np
@@ -119,36 +120,37 @@ class TestLinacScan(unittest.TestCase):
                 patched_run.return_value = future
 
             with tempfile.TemporaryDirectory() as tmp_dir:
-                filename = osp.join(tmp_dir, "scan.hdf5")
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(2, output=filename, n_tasks=2)
+                self._sc.scan(2, folder=tmp_dir, n_tasks=2)
+
                 # Testing with a real file is necessary to check the
                 # expected results were written.
-                sim = open_sim(filename)
+                sim = open_sim(tmp_dir)
                 self.assertSetEqual(
                     {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
                 self.assertSetEqual(
                     {'gun/out'}, sim.phasespace_channels)
-                np.testing.assert_array_equal(np.arange(1, 19), sim.sim_ids)
+                np.testing.assert_array_equal(np.arange(1, 19), sorted(sim.sim_ids))
                 np.testing.assert_array_equal(
                     [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
-                    sim.get_controls()['gun/gun_gradient'])
+                    sim.get_controls(sorted=True)['gun/gun_gradient'])
                 np.testing.assert_array_equal(
                     [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
-                    sim.get_controls()['gun/gun_phase'])
+                    sim.get_controls(sorted=True)['gun/gun_phase'])
+
+                # test when folder does not exist
+                self._sc.scan(2, folder=f"{tmp_dir}/tmp", n_tasks=2)
 
             with self.subTest("Test start_id"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     with self.assertRaisesRegex(
                             ValueError, "start_id must a positive integer"):
-                        self._sc.scan(2, output=osp.join(tmp_dir, "scan.hdf5"),
-                                      start_id=0, n_tasks=2)
+                        self._sc.scan(2, folder=tmp_dir, start_id=0, n_tasks=2)
 
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    filename = osp.join(tmp_dir, "scan.hdf5")
-                    self._sc.scan(2, output=filename, start_id=11)
-                    sim = open_sim(filename)
-                    np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
+                    self._sc.scan(2, folder=tmp_dir, start_id=11)
+                    sim = open_sim(tmp_dir)
+                    np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
 
 
 class TestMachineScan(unittest.TestCase):
@@ -196,13 +198,15 @@ class TestMachineScan(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             n_pulses = 40
-            filename = osp.join(tmp_dir, "scan.hdf5")
-            self._sc.scan(n_pulses, output=filename)
+
+            path = pathlib.Path(tmp_dir)
+            self._sc.scan(n_pulses, folder=tmp_dir)
 
             patched_read.assert_called()
             patched_write.assert_called()
 
-            run = open_run(filename)
+            self.assertListEqual([path.joinpath('r0001')], list(path.iterdir()))
+            run = open_run(path.joinpath('r0001'))
             run.info()
 
             control_data = run.get_controls()
@@ -214,3 +218,14 @@ class TestMachineScan(unittest.TestCase):
             self.assertTupleEqual((n_pulses, 3, 4), img_data.shape)
             self.assertTrue(np.all(img_data[1] == 3))
             self.assertTrue(np.all(img_data[11] == 13))
+
+            with self.subTest("Test creating run folder in sequence"):
+                self._sc.scan(n_pulses, folder=tmp_dir)
+                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
+                                     sorted((path.iterdir())))
+
+                path.joinpath("r0006").mkdir()
+                self._sc.scan(n_pulses, folder=tmp_dir)
+                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
+                                     sorted((path.iterdir())))
+

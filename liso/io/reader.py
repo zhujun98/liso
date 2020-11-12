@@ -10,6 +10,7 @@ from collections import defaultdict
 import os
 import os.path as osp
 
+import numpy as np
 import pandas as pd
 
 from .channel_data import ChannelData
@@ -72,8 +73,14 @@ class _DataCollectionBase:
 
         return cls(files)
 
-    def get_controls(self):
-        """Return control data in a Pandas.DataFrame."""
+    def get_controls(self, *, sorted=False):
+        """Return control data in a Pandas.DataFrame.
+
+        :param bool sorted: sort the index, which is indeed the ID, of the
+            returned dataframe. This is sometime needed because the simulation
+            data are not stored with the simulation IDs monotonically
+            increasing.
+        """
         data = []
         for fa in self._files:
             if 'METADATA/controlChannels' in fa.file:
@@ -89,8 +96,10 @@ class _DataCollectionBase:
             })
             df.set_index(ids, inplace=True)
             data.append(df)
-        # set "inplace=True" is even slower
-        return pd.concat(data).sort_index()
+
+        if sorted:
+            return pd.concat(data).sort_index()
+        return pd.concat(data)
 
     @abc.abstractmethod
     def __getitem__(self, item):
@@ -154,8 +163,7 @@ class SimDataCollection(_DataCollectionBase):
         self.control_channels = frozenset(self.control_channels)
         self.phasespace_channels = frozenset(self.phasespace_channels)
 
-        # this returns a list!
-        self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
+        self.sim_ids = np.concatenate([f.sim_ids for f in files])
         self._ids = self.sim_ids
 
     def info(self):
@@ -198,7 +206,7 @@ def open_sim(path):
     paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
     if not paths:
         raise Exception(f"No HDF5 files found in {path}!")
-    return SimDataCollection.from_paths(paths)
+    return SimDataCollection.from_paths(sorted(paths))
 
 
 class ExpDataCollection(_DataCollectionBase):
@@ -219,8 +227,7 @@ class ExpDataCollection(_DataCollectionBase):
         self.control_channels = frozenset(self.control_channels)
         self.instrument_channels = frozenset(self.instrument_channels)
 
-        # this returns a list!
-        self.pulse_ids = sorted(set().union(*(f.pulse_ids for f in files)))
+        self.pulse_ids = np.concatenate([f.pulse_ids for f in files])
         self._ids = self.pulse_ids
 
     def info(self):
@@ -249,9 +256,15 @@ class ExpDataCollection(_DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'INSTRUMENT'
 
 
-def open_run(filepath):
+def open_run(path):
     """Open experimental data from a single file or a directory.
 
     :param str path: file or directory path.
     """
-    return ExpDataCollection.from_path(filepath)
+    if osp.isfile(path):
+        return ExpDataCollection.from_path(path)
+
+    paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
+    if not paths:
+        raise Exception(f"No HDF5 files found in {path}!")
+    return ExpDataCollection.from_paths(sorted(paths))
