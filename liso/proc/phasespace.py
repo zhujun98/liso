@@ -18,6 +18,8 @@ from ..exceptions import LisoRuntimeError
 
 class Phasespace:
 
+    columns = ('x', 'px', 'y', 'py', 'z', 'pz', 't')
+
     def __init__(self, data, charge):
         """Initialization.
 
@@ -29,17 +31,12 @@ class Phasespace:
         if not isinstance(data, pd.DataFrame):
             raise TypeError("data must be a pandas.DataFrame")
 
-        columns = {'x', 'px', 'y', 'py', 'z', 'pz', 't'}
-        if set(data.columns) != columns:
-            raise ValueError(f"Data can only have columns: {columns}: "
+        if set(data.columns) != set(self.columns):
+            raise ValueError(f"Data can only have columns: {self.columns}: "
                              f"actual {data.columns}")
 
         self._data = data
         self.charge = charge
-
-    @property
-    def columns(self):
-        return self._data.columns
 
     def __getitem__(self, item):
         try:

@@ -187,14 +187,14 @@ class _DoocsMachine:
                     if pid not in cached:
                         cached[pid] = dict()
                     cached[pid][address] = ch_data['data']
+
+                    if len(cached[pid]) == n_channels:
+                        logger.info(
+                            f"Correlated all data with macropulse ID: {pid}")
+                        return pid, cached[pid]
                 else:
                     logger.warning(f"Received data from channel {address} "
                                    f"with invalid macropulse ID: {pid}")
-
-                if len(cached[pid]) == n_channels:
-                    logger.info(
-                        f"Correlated all data with macropulse ID: {pid}")
-                    return pid, cached[pid]
 
         raise LisoRuntimeError("Unable to match all data!")
 
@@ -212,7 +212,7 @@ class _DoocsMachine:
         return control_data, instrument_data
 
     @profiler("run machine once")
-    def run(self, *, executor=None, threads=2, mapping=None, max_attempts=5):
+    def run(self, *, executor=None, threads=2, mapping=None, max_attempts=20):
         """Run the machine once.
 
         :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.

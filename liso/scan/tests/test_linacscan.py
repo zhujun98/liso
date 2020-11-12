@@ -13,6 +13,7 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
+from liso.io import ExpWriter
 from liso.logging import logger
 logger.setLevel('CRITICAL')
 
@@ -27,7 +28,7 @@ class TestLinacScan(unittest.TestCase):
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
-            linac = Linac()
+            linac = Linac(2000)
             linac.add_beamline(
                 'astra',
                 name='gun',
@@ -120,7 +121,7 @@ class TestLinacScan(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp_dir:
                 filename = osp.join(tmp_dir, "scan.hdf5")
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(2, output=filename, n_tasks=2, n_particles=0)
+                self._sc.scan(2, output=filename, n_tasks=2)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
                 sim = open_sim(filename)
@@ -136,20 +137,28 @@ class TestLinacScan(unittest.TestCase):
                     [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
                     sim.get_controls()['gun/gun_phase'])
 
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                with self.assertRaises(ValueError):
-                    self._sc.scan(2, output=osp.join(tmp_dir, "scan.hdf5"),
-                                  n_particles=0, start_id=0, n_tasks=2)
+            with self.subTest("Test start_id"):
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    with self.assertRaisesRegex(
+                            ValueError, "start_id must a positive integer"):
+                        self._sc.scan(2, output=osp.join(tmp_dir, "scan.hdf5"),
+                                      start_id=0, n_tasks=2)
 
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                filename = osp.join(tmp_dir, "scan.hdf5")
-                # test the default value: n_tasks == None
-                self._sc.scan(2, output=filename, n_particles=0, start_id=11)
-                sim = open_sim(filename)
-                np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    filename = osp.join(tmp_dir, "scan.hdf5")
+                    self._sc.scan(2, output=filename, start_id=11)
+                    sim = open_sim(filename)
+                    np.testing.assert_array_equal(np.arange(1, 19) + 10, sim.sim_ids)
 
 
 class TestMachineScan(unittest.TestCase):
+    def setUp(self):
+        self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+        ExpWriter._IMAGE_CHUNK = (3, 2)
+
+    def tearDown(self):
+        ExpWriter._IMAGE_CHUNK = self._orig_image_chunk
+
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir

@@ -47,8 +47,8 @@ class TestPhasespaceAstra(unittest.TestCase):
         self.assertEqual(self.data.charge, ps.charge)
 
     def testAccessItem(self):
-        self.assertListEqual(['x', 'y', 'z', 'px', 'py', 'pz', 't'],
-                             list(self.data.columns))
+        self.assertTupleEqual(('x', 'px', 'y', 'py', 'z', 'pz', 't'),
+                              self.data.columns)
 
         for item in ['x', 'y', 'z', 'px', 'py', 'pz', 't', 'dt',
                      'p', 'xp', 'yp', 'dz', 'delta']:
