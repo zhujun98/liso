@@ -105,6 +105,8 @@ class _DoocsMachine:
         self._reader = _DoocsReader()
         self._writer = _DoocsWriter()
 
+        self._last_correlated = 0
+
     @property
     def channels(self):
         """Return a list of all DOOCS channels."""
@@ -183,7 +185,7 @@ class _DoocsMachine:
                                      self._instruments.items()):
                 ch_data = readout[address]
                 pid = ch_data['macropulse']
-                if pid > 0:
+                if pid > self._last_correlated:
                     if pid not in cached:
                         cached[pid] = dict()
                     cached[pid][address] = ch_data['data']
@@ -191,10 +193,15 @@ class _DoocsMachine:
                     if len(cached[pid]) == n_channels:
                         logger.info(
                             f"Correlated all data with macropulse ID: {pid}")
+                        self._last_correlated = pid
                         return pid, cached[pid]
                 else:
-                    logger.warning(f"Received data from channel {address} "
-                                   f"with invalid macropulse ID: {pid}")
+                    if pid < 0:
+                        logger.warning(f"Received data from channel {address} "
+                                       f"with invalid macropulse ID: {pid}")
+                    else:
+                        # wait for 10 ms if we are receiving the old data
+                        time.sleep(0.01)
 
         raise LisoRuntimeError("Unable to match all data!")
 
@@ -211,7 +218,7 @@ class _DoocsMachine:
 
         return control_data, instrument_data
 
-    @profiler("run machine once")
+    @profiler("machine run")
     def run(self, *, executor=None, threads=2, mapping=None, max_attempts=20):
         """Run the machine once.
 
