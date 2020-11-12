@@ -12,6 +12,12 @@ logger.setLevel("CRITICAL")
 from . import DoocsDataGenerator as ddgen
 
 
+def _side_effect(dataset, address):
+    dataset[address]['macropulse'] += 1
+    dataset[address]['data'] += 1
+    return dataset[address]
+
+
 class TestDoocsMachine(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface(delay=0.01)
@@ -69,9 +75,7 @@ class TestDoocsMachine(unittest.TestCase):
     @patch("liso.experiment.machine.pydoocs_read")
     def testRun(self, patched_read, patched_write):
         dataset = self._dataset
-        def side_effect(address):
-            return dataset[address]
-        patched_read.side_effect = side_effect
+        patched_read.side_effect = lambda x: _side_effect(dataset, x)
 
         self._machine.run()
         self.assertEqual(len(self._machine.channels), patched_read.call_count)
@@ -96,11 +100,7 @@ class TestDoocsMachine(unittest.TestCase):
     @patch("liso.experiment.machine.pydoocs_read")
     def testCorrelation(self, patched_read, patched_write):
         dataset = self._dataset
-        def side_effect(address):
-            dataset[address]['macropulse'] += 1
-            dataset[address]['data'] += 1
-            return dataset[address]
-        patched_read.side_effect = side_effect
+        patched_read.side_effect = lambda x: _side_effect(dataset, x)
 
         dataset["A/B/C/D"] = ddgen.scalar(
                 1., self._machine._controls["A/B/C/D"].value_schema(), pid=1001)
@@ -112,3 +112,13 @@ class TestDoocsMachine(unittest.TestCase):
                 1., self._machine._controls["A/B/C/D"].value_schema(), pid=-1)
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=10)
+
+        with self.subTest("Test receiving data with pulse ID smaller than the correlated one"):
+            self.assertEqual(1002, self._machine._last_correlated)
+            for address in dataset:
+                dataset[address]['macropulse'] = 1001
+            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+                self._machine.run(max_attempts=1)
+            self.assertEqual(1002, self._machine._last_correlated)
+            self._machine.run(max_attempts=1)
+            self.assertEqual(1003, self._machine._last_correlated)
