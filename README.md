@@ -19,9 +19,75 @@ of different codes distributedly;
 
 ## Documentation
 
-To get started with `liso`, checkout the full documentation at 
+The full documentation can be found at 
 
 https://liso.readthedocs.io/
+
+## Getting started
+
+### Installation
+
+```sh
+$ pip install liso
+```
+
+### Use LISO in your experiments
+
+#### Acquiring data
+
+```py
+from liso import EuXFELInterface, MachineScan
+from liso import doocs_channels as dc
+
+
+m = EuXFELInterface()
+
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE')
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/AMPL.SAMPLE')
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE')
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE')
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE')
+m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
+
+m.add_instrument_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
+                         shape=(1750, 2330), dtype='uint16')
+
+sc = MachineScan(m)
+
+sc.scan(4000, output='scan.hdf5', n_tasks=8)
+```
+
+#### Reading data
+
+```py
+from liso import open_run
+
+run = open_run('scan.hdf5')
+```
+
+### Use LISO to run simulations
+
+#### Building a linac
+
+TBD
+
+#### Running a parameter scan, jitter study, etc.
+
+TBD
+
+#### Running an optimization
+
+TBD
+
+#### Reading data
+
+```py
+from liso import open_sim
+
+sim = open_sim('scan.hdf5')
+```
+
+### Cite LISO
 
 A BibTeX entry that you can use to cite it in a publication:
 
