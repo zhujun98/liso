@@ -107,3 +107,8 @@ class TestDoocsMachine(unittest.TestCase):
         self._machine.run(max_attempts=2)
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=1)
+
+        dataset["A/B/C/D"] = ddgen.scalar(
+                1., self._machine._controls["A/B/C/D"].value_schema(), pid=-1)
+        with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+            self._machine.run(max_attempts=10)
