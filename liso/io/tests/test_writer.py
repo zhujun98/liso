@@ -160,13 +160,13 @@ class TestSimWriter(unittest.TestCase):
 class TestExpWriter(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface()
-        m.add_control_channel(dc.FLOAT64, "A/B/C/D")
-        m.add_control_channel(dc.FLOAT32, "A/B/C/E")
+        m.add_control_channel(dc.FLOAT64, "XFEL.A/B/C/D")
+        m.add_control_channel(dc.FLOAT32, "XFEL.A/B/C/E")
 
         self._s1 = (4, 4)
         self._s2 = (5, 6)
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
@@ -196,9 +196,9 @@ class TestExpWriter(unittest.TestCase):
                 for i, pid in enumerate(pulse_ids_gt):
                     writer.write(
                         pid,
-                        {"A/B/C/D": 10 * i, "A/B/C/E": 0.1 * i},
-                        {"H/I/J/K": np.ones(s1, dtype=np.uint16),
-                         "H/I/J/L": np.ones(s2, dtype=np.float32)}
+                        {"XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i},
+                        {"XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
+                         "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)}
                     )
 
             path = pathlib.Path(tmp_dir)
@@ -220,9 +220,9 @@ class TestExpWriter(unittest.TestCase):
                 _check_create_update_date(fp)
 
                 self.assertSetEqual(
-                    {"A/B/C/D", "A/B/C/E"}, set(fp['METADATA/controlChannel']))
+                    {"XFEL.A/B/C/D", "XFEL.A/B/C/E"}, set(fp['METADATA/controlChannel']))
                 self.assertSetEqual(
-                    {"H/I/J/K", "H/I/J/L"}, set(fp['METADATA/diagnosticChannel']))
+                    {"XFEL.H/I/J/K", "XFEL.H/I/J/L"}, set(fp['METADATA/diagnosticChannel']))
 
                 if i == 2:
                     np.testing.assert_array_equal(
@@ -232,45 +232,45 @@ class TestExpWriter(unittest.TestCase):
                         pulse_ids_gt[i * file_size:(i + 1) * file_size],
                         fp['INDEX/pulseId'][()])
 
-                self.assertEqual(np.float64, fp['CONTROL/A/B/C/D'].dtype)
-                self.assertEqual(np.float32, fp['CONTROL/A/B/C/E'].dtype)
+                self.assertEqual(np.float64, fp['CONTROL/XFEL.A/B/C/D'].dtype)
+                self.assertEqual(np.float32, fp['CONTROL/XFEL.A/B/C/E'].dtype)
                 if i == 2:
                     np.testing.assert_array_equal(
                         np.concatenate((
                             10 * (np.arange(chunk_size + 9) + i * file_size),
                             np.zeros((file_size - chunk_size - 9)))),
-                        fp['CONTROL/A/B/C/D'][()])
+                        fp['CONTROL/XFEL.A/B/C/D'][()])
                     np.testing.assert_array_almost_equal(
                         np.concatenate((
                             0.1 * (np.arange(chunk_size + 9) + i * file_size),
                             np.zeros((file_size - chunk_size - 9)))),
-                        fp['CONTROL/A/B/C/E'][()])
+                        fp['CONTROL/XFEL.A/B/C/E'][()])
                 else:
                     np.testing.assert_array_equal(
                         10 * (np.arange(file_size) + i * file_size),
-                        fp['CONTROL/A/B/C/D'][()])
+                        fp['CONTROL/XFEL.A/B/C/D'][()])
                     np.testing.assert_array_almost_equal(
                         0.1 * (np.arange(file_size) + i * file_size),
-                        fp['CONTROL/A/B/C/E'][()])
+                        fp['CONTROL/XFEL.A/B/C/E'][()])
 
-                self.assertEqual((file_size, *s1), fp['DIAGNOSTIC/H/I/J/K'].shape)
-                self.assertEqual((file_size, *s2), fp['DIAGNOSTIC/H/I/J/L'].shape)
-                self.assertEqual(np.uint16, fp['DIAGNOSTIC/H/I/J/K'].dtype)
-                self.assertEqual(np.float32, fp['DIAGNOSTIC/H/I/J/L'].dtype)
+                self.assertEqual((file_size, *s1), fp['DIAGNOSTIC/XFEL.H/I/J/K'].shape)
+                self.assertEqual((file_size, *s2), fp['DIAGNOSTIC/XFEL.H/I/J/L'].shape)
+                self.assertEqual(np.uint16, fp['DIAGNOSTIC/XFEL.H/I/J/K'].dtype)
+                self.assertEqual(np.float32, fp['DIAGNOSTIC/XFEL.H/I/J/L'].dtype)
 
                 if i == 2:
                     np.testing.assert_array_equal(
                         np.concatenate((
                             np.ones((chunk_size + 9, *s1)),
                             np.zeros((file_size - chunk_size - 9, *s1)))),
-                        fp['DIAGNOSTIC/H/I/J/K'][()])
+                        fp['DIAGNOSTIC/XFEL.H/I/J/K'][()])
                     np.testing.assert_array_equal(
                         np.concatenate((
                             np.ones((chunk_size + 9, *s2)),
                             np.zeros((file_size - chunk_size - 9, *s2)))),
-                        fp['DIAGNOSTIC/H/I/J/L'][()])
+                        fp['DIAGNOSTIC/XFEL.H/I/J/L'][()])
                 else:
                     np.testing.assert_array_equal(
-                        np.ones((file_size, *s1)), fp['DIAGNOSTIC/H/I/J/K'][()])
+                        np.ones((file_size, *s1)), fp['DIAGNOSTIC/XFEL.H/I/J/K'][()])
                     np.testing.assert_array_equal(
-                        np.ones((file_size, *s2)), fp['DIAGNOSTIC/H/I/J/L'][()])
+                        np.ones((file_size, *s2)), fp['DIAGNOSTIC/XFEL.H/I/J/L'][()])

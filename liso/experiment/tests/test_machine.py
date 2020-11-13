@@ -21,53 +21,57 @@ def _side_effect(dataset, address):
 class TestDoocsMachine(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface(delay=0.01)
-        m.add_control_channel(dc.FLOAT, "A/B/C/D")
-        m.add_control_channel(dc.DOUBLE, "A/B/C/E")
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=(4, 4), dtype="uint16")
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=(5, 6), dtype="float32")
+        m.add_control_channel(dc.FLOAT, "XFEL.A/B/C/D")
+        m.add_control_channel(dc.DOUBLE, "XFEL.A/B/C/E")
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(4, 4), dtype="uint16")
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=(5, 6), dtype="float32")
         self._machine = m
 
         self._dataset = {
-            "A/B/C/D": ddgen.scalar(
-                10., m._controls["A/B/C/D"].value_schema(), pid=1000),
-            "A/B/C/E": ddgen.scalar(
-                100., m._controls["A/B/C/E"].value_schema(), pid=1000),
-            "H/I/J/K": ddgen.image(
-                m._diagnostics["H/I/J/K"].value_schema(), pid=1000),
-            "H/I/J/L": ddgen.image(
-                m._diagnostics["H/I/J/L"].value_schema(), pid=1000)
+            "XFEL.A/B/C/D": ddgen.scalar(
+                10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=1000),
+            "XFEL.A/B/C/E": ddgen.scalar(
+                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=1000),
+            "XFEL.H/I/J/K": ddgen.image(
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1000),
+            "XFEL.H/I/J/L": ddgen.image(
+                m._diagnostics["XFEL.H/I/J/L"].value_schema(), pid=1000)
         }
 
     def testChannelManipulation(self):
         m = self._machine
 
-        self.assertListEqual(["A/B/C/D", 'A/B/C/E'], m.controls)
-        self.assertListEqual(["H/I/J/K", 'H/I/J/L'], m.diagnostics)
+        self.assertListEqual(["XFEL.A/B/C/D", 'XFEL.A/B/C/E'], m.controls)
+        self.assertListEqual(["XFEL.H/I/J/K", 'XFEL.H/I/J/L'], m.diagnostics)
         self.assertListEqual(m.controls + m.diagnostics, m.channels)
 
         with self.subTest("Add an existing channel"):
             with self.assertRaises(ValueError):
-                m.add_control_channel(dc.IMAGE, "A/B/C/D", shape=(2, 2), dtype="uint16")
+                m.add_control_channel(dc.IMAGE, "XFEL.A/B/C/D", shape=(2, 2), dtype="uint16")
             with self.assertRaises(ValueError):
-                m.add_control_channel(dc.IMAGE, "H/I/J/K", shape=(2, 2), dtype="uint16")
+                m.add_control_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(2, 2), dtype="uint16")
             with self.assertRaises(ValueError):
-                m.add_diagnostic_channel(dc.FLOAT, "A/B/C/D")
+                m.add_diagnostic_channel(dc.FLOAT, "XFEL.A/B/C/D")
             with self.assertRaises(ValueError):
-                m.add_diagnostic_channel(dc.FLOAT, "H/I/J/K")
+                m.add_diagnostic_channel(dc.FLOAT, "XFEL.H/I/J/K")
+
+        with self.subTest("Invalid address"):
+            with self.assertRaisesRegex(ValueError, "must start with XFEL"):
+                m.add_control_channel(dc.FLOAT, "A/B/C/D")
 
         with self.subTest("Test schema"):
             m = self._machine
             control_schema, diagnostic_schema = m.schema
             self.assertDictEqual(
-                {'A/B/C/D': {'default': 0.0, 'type': '<f4',
-                             'maximum': np.finfo(np.float32).max,
-                             'minimum': np.finfo(np.float32).min},
-                 'A/B/C/E': {'default': 0.0, 'type': '<f8'}},
+                {'XFEL.A/B/C/D': {'default': 0.0, 'type': '<f4',
+                                  'maximum': np.finfo(np.float32).max,
+                                  'minimum': np.finfo(np.float32).min},
+                 'XFEL.A/B/C/E': {'default': 0.0, 'type': '<f8'}},
                 control_schema
             )
             self.assertDictEqual(
-                {'H/I/J/K': {'dtype': '<u2', 'shape': (4, 4), 'type': 'NDArray'},
-                 'H/I/J/L': {'dtype': '<f4', 'shape': (5, 6), 'type': 'NDArray'}},
+                {'XFEL.H/I/J/K': {'dtype': '<u2', 'shape': (4, 4), 'type': 'NDArray'},
+                 'XFEL.H/I/J/L': {'dtype': '<f4', 'shape': (5, 6), 'type': 'NDArray'}},
                 diagnostic_schema
             )
 
@@ -80,21 +84,21 @@ class TestDoocsMachine(unittest.TestCase):
         self._machine.run()
         self.assertEqual(len(self._machine.channels), patched_read.call_count)
 
-        self._machine.run(mapping={'A/B/C/D': 5})
-        patched_write.assert_called_once_with('A/B/C/D', 5)
+        self._machine.run(mapping={'XFEL.A/B/C/D': 5})
+        patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
 
         with self.subTest("Test validation"):
-            orig_v = dataset["A/B/C/D"]['data']
+            orig_v = dataset["XFEL.A/B/C/D"]['data']
             with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
-                dataset["A/B/C/D"]['data'] = 1
+                dataset["XFEL.A/B/C/D"]['data'] = 1
                 self._machine.run()
-            dataset["A/B/C/D"]['data'] = orig_v
+            dataset["XFEL.A/B/C/D"]['data'] = orig_v
 
-            orig_v = dataset["H/I/J/K"]['data']
+            orig_v = dataset["XFEL.H/I/J/K"]['data']
             with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
-                dataset["H/I/J/K"]['data'] = np.ones((2, 2))
+                dataset["XFEL.H/I/J/K"]['data'] = np.ones((2, 2))
                 self._machine.run()
-            dataset["H/I/J/K"]['data'] = orig_v
+            dataset["XFEL.H/I/J/K"]['data'] = orig_v
 
     @patch("liso.experiment.machine.pydoocs_write")
     @patch("liso.experiment.machine.pydoocs_read")
@@ -102,14 +106,14 @@ class TestDoocsMachine(unittest.TestCase):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect(dataset, x)
 
-        dataset["A/B/C/D"] = ddgen.scalar(
-                1., self._machine._controls["A/B/C/D"].value_schema(), pid=1001)
+        dataset["XFEL.A/B/C/D"] = ddgen.scalar(
+                1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=1001)
         self._machine.run(max_attempts=2)
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=1)
 
-        dataset["A/B/C/D"] = ddgen.scalar(
-                1., self._machine._controls["A/B/C/D"].value_schema(), pid=-1)
+        dataset["XFEL.A/B/C/D"] = ddgen.scalar(
+                1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=-1)
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=10)
 

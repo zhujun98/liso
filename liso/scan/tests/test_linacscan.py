@@ -166,14 +166,14 @@ class TestMachineScan(unittest.TestCase):
             self._tmp_dir = tmp_dir
 
             m = EuXFELInterface()
-            m.add_control_channel(dc.FLOAT32, 'A/B/C/D')
-            m.add_control_channel(dc.FLOAT32, 'A/B/C/E')
-            m.add_diagnostic_channel(dc.IMAGE, 'H/I/J/K', shape=(3, 4), dtype='uint16')
+            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/D')
+            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/E')
+            m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
             sc = MachineScan(m)
-            sc.add_param('A/B/C/D', -3, 3)
-            sc.add_param('A/B/C/E', -3, 3)
+            sc.add_param('XFEL.A/B/C/D', -3, 3)
+            sc.add_param('XFEL.A/B/C/E', -3, 3)
             self._sc = sc
 
             super().run(result)
@@ -183,12 +183,12 @@ class TestMachineScan(unittest.TestCase):
     def testScan(self, patched_read, patched_write):
         m = self._machine
         dataset = {
-            "A/B/C/D": ddgen.scalar(
-                1., m._controls["A/B/C/D"].value_schema(), pid=1000),
-            "A/B/C/E": ddgen.scalar(
-                100., m._controls["A/B/C/E"].value_schema(), pid=1000),
-            "H/I/J/K": ddgen.image(
-                m._diagnostics["H/I/J/K"].value_schema(), pid=1000),
+            "XFEL.A/B/C/D": ddgen.scalar(
+                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=1000),
+            "XFEL.A/B/C/E": ddgen.scalar(
+                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=1000),
+            "XFEL.H/I/J/K": ddgen.image(
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1000),
         }
         def side_effect(address):
             dataset[address]['data'] += 1
@@ -211,10 +211,10 @@ class TestMachineScan(unittest.TestCase):
 
             control_data = run.get_controls()
             np.testing.assert_array_equal(control_data.index, 1001 + np.arange(n_pulses))
-            np.testing.assert_array_equal(control_data['A/B/C/D'], 2 + np.arange(n_pulses))
-            np.testing.assert_array_equal(control_data['A/B/C/E'], 101 + np.arange(n_pulses))
+            np.testing.assert_array_equal(control_data['XFEL.A/B/C/D'], 2 + np.arange(n_pulses))
+            np.testing.assert_array_equal(control_data['XFEL.A/B/C/E'], 101 + np.arange(n_pulses))
 
-            img_data = run.channel("H/I/J/K").numpy()
+            img_data = run.channel("XFEL.H/I/J/K").numpy()
             self.assertTupleEqual((n_pulses, 3, 4), img_data.shape)
             self.assertTrue(np.all(img_data[1] == 3))
             self.assertTrue(np.all(img_data[11] == 13))
