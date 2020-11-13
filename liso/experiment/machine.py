@@ -100,7 +100,7 @@ class _DoocsMachine:
         self._delay = delay
 
         self._controls = OrderedDict()
-        self._instruments = OrderedDict()
+        self._diagnostics = OrderedDict()
 
         self._reader = _DoocsReader()
         self._writer = _DoocsWriter()
@@ -110,7 +110,7 @@ class _DoocsMachine:
     @property
     def channels(self):
         """Return a list of all DOOCS channels."""
-        return list(self._controls) + list(self._instruments)
+        return list(self._controls) + list(self._diagnostics)
 
     @property
     def controls(self):
@@ -118,15 +118,15 @@ class _DoocsMachine:
         return list(self._controls)
 
     @property
-    def instruments(self):
-        """Return a list of DOOCS channels for instrument data."""
-        return list(self._instruments)
+    def diagnostics(self):
+        """Return a list of DOOCS channels for diagnostic data."""
+        return list(self._diagnostics)
 
     @property
     def schema(self):
         """Return the schema of all DOOCS channels."""
         return ({k: v.value_schema() for k, v in self._controls.items()},
-                {k: v.value_schema() for k, v in self._instruments.items()})
+                {k: v.value_schema() for k, v in self._diagnostics.items()})
 
     def add_control_channel(self, kls, address, **kwargs):
         """Add a DOOCS channel for control data.
@@ -144,13 +144,13 @@ class _DoocsMachine:
             m.add_control_channel(
                 dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
         """
-        if address in self._controls or address in self._instruments:
+        if address in self._controls or address in self._diagnostics:
             raise ValueError(f"{address} already exists!")
         self._controls[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
-    def add_instrument_channel(self, kls, address, **kwargs):
-        """Add a DOOCS channel to instrument data.
+    def add_diagnostic_channel(self, kls, address, **kwargs):
+        """Add a DOOCS channel to diagnostic data.
 
         :param DoocsChannel kls: a concrete DoocsChannel class.
         :param str address: DOOCS address.
@@ -162,27 +162,27 @@ class _DoocsMachine:
             from liso import EuXFELInterface
 
             m = EuXFELInterface()
-            m.add_instrument_channel(
+            m.add_diagnostic_channel(
                 dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
                 shape=(1750, 2330), dtype='uint16')
         """
-        if address in self._controls or address in self._instruments:
+        if address in self._controls or address in self._diagnostics:
             raise ValueError(f"{address} already exists!")
-        self._instruments[address] = kls(address=address, **kwargs)
+        self._diagnostics[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
     def _compile(self, executor, mapping):
         self._writer.update(executor, mapping=mapping)
 
     def _correlate(self, executor, max_attempts):
-        n_channels = len(self._controls) + len(self._instruments)
+        n_channels = len(self._controls) + len(self._diagnostics)
         cached = OrderedDict()
 
         for _ in range(max_attempts):
             readout = self._reader.update(executor)
 
             for address, ch in chain(self._controls.items(),
-                                     self._instruments.items()):
+                                     self._diagnostics.items()):
                 ch_data = readout[address]
                 pid = ch_data['macropulse']
                 if pid > self._last_correlated:
@@ -211,12 +211,12 @@ class _DoocsMachine:
             ch.value = correlated[address]  # validate
             control_data[address] = ch.value
 
-        instrument_data = dict()
-        for address, ch in self._instruments.items():
+        diagnostic_data = dict()
+        for address, ch in self._diagnostics.items():
             ch.value = correlated[address]  # validate
-            instrument_data[address] = ch.value
+            diagnostic_data[address] = ch.value
 
-        return control_data, instrument_data
+        return control_data, diagnostic_data
 
     @profiler("machine run")
     def run(self, *, executor=None, threads=2, mapping=None, max_attempts=20):
@@ -246,11 +246,11 @@ class _DoocsMachine:
         pid, correlated = self._correlate(executor, max_attempts)
 
         try:
-            control_data, instrument_data = self._update(correlated)
+            control_data, diagnostic_data = self._update(correlated)
         except ValidationError as e:
             raise LisoRuntimeError(repr(e))
 
-        return pid, control_data, instrument_data
+        return pid, control_data, diagnostic_data
 
 
 class EuXFELInterface(_DoocsMachine):

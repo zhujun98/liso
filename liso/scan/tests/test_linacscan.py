@@ -168,7 +168,7 @@ class TestMachineScan(unittest.TestCase):
             m = EuXFELInterface()
             m.add_control_channel(dc.FLOAT32, 'A/B/C/D')
             m.add_control_channel(dc.FLOAT32, 'A/B/C/E')
-            m.add_instrument_channel(dc.IMAGE, 'H/I/J/K', shape=(3, 4), dtype='uint16')
+            m.add_diagnostic_channel(dc.IMAGE, 'H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
             sc = MachineScan(m)
@@ -188,7 +188,7 @@ class TestMachineScan(unittest.TestCase):
             "A/B/C/E": ddgen.scalar(
                 100., m._controls["A/B/C/E"].value_schema(), pid=1000),
             "H/I/J/K": ddgen.image(
-                m._instruments["H/I/J/K"].value_schema(), pid=1000),
+                m._diagnostics["H/I/J/K"].value_schema(), pid=1000),
         }
         def side_effect(address):
             dataset[address]['data'] += 1

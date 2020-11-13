@@ -23,8 +23,8 @@ class TestDoocsMachine(unittest.TestCase):
         m = EuXFELInterface(delay=0.01)
         m.add_control_channel(dc.FLOAT, "A/B/C/D")
         m.add_control_channel(dc.DOUBLE, "A/B/C/E")
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/K", shape=(4, 4), dtype="uint16")
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=(5, 6), dtype="float32")
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=(4, 4), dtype="uint16")
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=(5, 6), dtype="float32")
         self._machine = m
 
         self._dataset = {
@@ -33,17 +33,17 @@ class TestDoocsMachine(unittest.TestCase):
             "A/B/C/E": ddgen.scalar(
                 100., m._controls["A/B/C/E"].value_schema(), pid=1000),
             "H/I/J/K": ddgen.image(
-                m._instruments["H/I/J/K"].value_schema(), pid=1000),
+                m._diagnostics["H/I/J/K"].value_schema(), pid=1000),
             "H/I/J/L": ddgen.image(
-                m._instruments["H/I/J/L"].value_schema(), pid=1000)
+                m._diagnostics["H/I/J/L"].value_schema(), pid=1000)
         }
 
     def testChannelManipulation(self):
         m = self._machine
 
         self.assertListEqual(["A/B/C/D", 'A/B/C/E'], m.controls)
-        self.assertListEqual(["H/I/J/K", 'H/I/J/L'], m.instruments)
-        self.assertListEqual(m.controls + m.instruments, m.channels)
+        self.assertListEqual(["H/I/J/K", 'H/I/J/L'], m.diagnostics)
+        self.assertListEqual(m.controls + m.diagnostics, m.channels)
 
         with self.subTest("Add an existing channel"):
             with self.assertRaises(ValueError):
@@ -51,13 +51,13 @@ class TestDoocsMachine(unittest.TestCase):
             with self.assertRaises(ValueError):
                 m.add_control_channel(dc.IMAGE, "H/I/J/K", shape=(2, 2), dtype="uint16")
             with self.assertRaises(ValueError):
-                m.add_instrument_channel(dc.FLOAT, "A/B/C/D")
+                m.add_diagnostic_channel(dc.FLOAT, "A/B/C/D")
             with self.assertRaises(ValueError):
-                m.add_instrument_channel(dc.FLOAT, "H/I/J/K")
+                m.add_diagnostic_channel(dc.FLOAT, "H/I/J/K")
 
         with self.subTest("Test schema"):
             m = self._machine
-            control_schema, instrument_schema = m.schema
+            control_schema, diagnostic_schema = m.schema
             self.assertDictEqual(
                 {'A/B/C/D': {'default': 0.0, 'type': '<f4',
                              'maximum': np.finfo(np.float32).max,
@@ -68,7 +68,7 @@ class TestDoocsMachine(unittest.TestCase):
             self.assertDictEqual(
                 {'H/I/J/K': {'dtype': '<u2', 'shape': (4, 4), 'type': 'NDArray'},
                  'H/I/J/L': {'dtype': '<f4', 'shape': (5, 6), 'type': 'NDArray'}},
-                instrument_schema
+                diagnostic_schema
             )
 
     @patch("liso.experiment.machine.pydoocs_write")

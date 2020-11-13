@@ -217,15 +217,15 @@ class ExpDataCollection(_DataCollectionBase):
         super().__init__(files)
 
         self.control_channels = set()
-        self.instrument_channels = set()
+        self.diagnostic_channels = set()
         for fa in self._files:
             self.control_channels.update(fa.control_channels)
-            self.instrument_channels.update(fa.instrument_channels)
-            for ch in (fa.control_channels | fa.instrument_channels):
+            self.diagnostic_channels.update(fa.diagnostic_channels)
+            for ch in (fa.control_channels | fa.diagnostic_channels):
                 self._channel_files[ch].append(fa)
 
         self.control_channels = frozenset(self.control_channels)
-        self.instrument_channels = frozenset(self.instrument_channels)
+        self.diagnostic_channels = frozenset(self.diagnostic_channels)
 
         self.pulse_ids = np.concatenate([f.pulse_ids for f in files])
         self._ids = self.pulse_ids
@@ -238,8 +238,8 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.control_channels):
             print('  - ', ch)
 
-        print(f"\nInstrument channels ({len(self.instrument_channels)}):")
-        for ch in sorted(self.instrument_channels):
+        print(f"\nInstrument channels ({len(self.diagnostic_channels)}):")
+        for ch in sorted(self.diagnostic_channels):
             print('  - ', ch)
 
     def __getitem__(self, pulse_id):
@@ -247,13 +247,13 @@ class ExpDataCollection(_DataCollectionBase):
         ret = dict()
         for ch in self.control_channels:
             ret[ch] = fa.file[f"CONTROL/{ch}"][idx]
-        for ch in self.instrument_channels:
-            ret[ch] = fa.file[f"INSTRUMENT/{ch}"][idx]
+        for ch in self.diagnostic_channels:
+            ret[ch] = fa.file[f"DIAGNOSTIC/{ch}"][idx]
 
         return pulse_id, ret
 
     def _get_channel_category(self, ch):
-        return 'CONTROL' if ch in self.control_channels else 'INSTRUMENT'
+        return 'CONTROL' if ch in self.control_channels else 'DIAGNOSTIC'
 
 
 def open_run(path):

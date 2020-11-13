@@ -206,12 +206,12 @@ class ExpWriter(_BaseWriter):
         """Initialization.
 
         :param pathlib.Path path: path of the run folder.
-        :param tuple schema: (control, instrument) data schema.
+        :param tuple schema: (control, diagnostic) data schema.
         """
         super().__init__(path,
                          max_events_per_file=max_events_per_file, **kwargs)
 
-        self._control_schema, self._instrument_schema = schema
+        self._control_schema, self._diagnostic_schema = schema
 
         self._pulse_ids = []
 
@@ -228,7 +228,7 @@ class ExpWriter(_BaseWriter):
 
         self._init_meta_data()
         self._init_channel_data("control", self._control_schema)
-        self._init_channel_data("instrument", self._instrument_schema)
+        self._init_channel_data("diagnostic", self._diagnostic_schema)
 
         return self._fp
 
@@ -265,12 +265,12 @@ class ExpWriter(_BaseWriter):
                     chunks=(self._chunk_size,),
                     maxshape=(self._max_events_per_file,))
 
-    def write(self, pulse_id, controls, instruments):
+    def write(self, pulse_id, controls, diagnostics):
         """Write matched data from one train into the file.
 
         :param int pulse_id: macro-pulse ID.
         :param dict controls: dictionary of the control data.
-        :param dict instruments: dictionary of the phasespace data.
+        :param dict diagnostics: dictionary of the phasespace data.
         """
         fp = self._fp
         chunk_size = self._chunk_size
@@ -287,13 +287,13 @@ class ExpWriter(_BaseWriter):
             new_size = min(n_chunks * chunk_size, self._max_events_per_file)
             for k in self._control_schema:
                 fp[f"CONTROL/{k}"].resize(new_size, axis=0)
-            for k in self._instrument_schema:
-                fp[f"INSTRUMENT/{k}"].resize(new_size, axis=0)
+            for k in self._diagnostic_schema:
+                fp[f"DIAGNOSTIC/{k}"].resize(new_size, axis=0)
 
         for k, v in controls.items():
             fp[f"CONTROL/{k}"][idx] = v
-        for k, v in instruments.items():
-            fp[f"INSTRUMENT/{k}"][idx] = v
+        for k, v in diagnostics.items():
+            fp[f"DIAGNOSTIC/{k}"][idx] = v
 
         self._pulse_ids.append(pulse_id)
         self._index += 1

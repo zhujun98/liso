@@ -230,8 +230,8 @@ class TestExpReader(unittest.TestCase):
         m.add_control_channel(dc.BOOL, "A/B/C/F")
         self._s1 = (3, 4)
         self._s2 = (6, 5)
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
@@ -291,7 +291,7 @@ class TestExpReader(unittest.TestCase):
                     self.assertAlmostEqual(10. * i, item["A/B/C/D"])
                     self.assertAlmostEqual(0.1 * i, item["A/B/C/E"], places=4)
 
-            with self.subTest("Test instrument data"):
+            with self.subTest("Test diagnostic data"):
                 for i, (pid, item) in enumerate(data):
                     np.testing.assert_array_equal(np.ones(s1), item["H/I/J/K"])
                     np.testing.assert_array_equal(np.ones(s2), item["H/I/J/L"])
@@ -307,7 +307,7 @@ class TestExpReader(unittest.TestCase):
                 np.testing.assert_array_equal(
                     10. * np.arange(len(pulse_ids_gt)), item_array)
 
-            with self.subTest("Test reading a single instrument data channel"):
+            with self.subTest("Test reading a single diagnostic data channel"):
                 item = data.channel('H/I/J/L')
                 np.testing.assert_array_equal(np.ones(s2), item[pulse_ids_gt[1]])
                 item_array = item.numpy()

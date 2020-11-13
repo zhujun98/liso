@@ -49,12 +49,12 @@ m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
-m.add_instrument_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
+m.add_diagnostic_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
                          shape=(1750, 2330), dtype='uint16')
 
 sc = MachineScan(m)
 
-sc.scan(4000, output='scan.hdf5', n_tasks=8)
+sc.scan(4000, folder='my_exp', n_tasks=8)
 ```
 
 #### Reading data
@@ -62,7 +62,7 @@ sc.scan(4000, output='scan.hdf5', n_tasks=8)
 ```py
 from liso import open_run
 
-run = open_run('scan.hdf5')
+run = open_run('my_exp/r0001')
 ```
 
 ### Use LISO to run simulations
