@@ -7,6 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from datetime import datetime
+import os
 import pathlib
 from string import Template
 
@@ -76,7 +77,9 @@ class _BaseWriter(abc.ABC):
     def close(self):
         if self._fp is not None:
             self._finalize()
+            filename = self._fp.filename
             self._fp.close()
+            os.chmod(filename, 0o400)
             self._fp = None
 
 
