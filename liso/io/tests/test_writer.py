@@ -165,8 +165,8 @@ class TestExpWriter(unittest.TestCase):
 
         self._s1 = (4, 4)
         self._s2 = (5, 6)
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
-        m.add_instrument_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
@@ -222,7 +222,7 @@ class TestExpWriter(unittest.TestCase):
                 self.assertSetEqual(
                     {"A/B/C/D", "A/B/C/E"}, set(fp['METADATA/controlChannel']))
                 self.assertSetEqual(
-                    {"H/I/J/K", "H/I/J/L"}, set(fp['METADATA/instrumentChannel']))
+                    {"H/I/J/K", "H/I/J/L"}, set(fp['METADATA/diagnosticChannel']))
 
                 if i == 2:
                     np.testing.assert_array_equal(
@@ -253,24 +253,24 @@ class TestExpWriter(unittest.TestCase):
                         0.1 * (np.arange(file_size) + i * file_size),
                         fp['CONTROL/A/B/C/E'][()])
 
-                self.assertEqual((file_size, *s1), fp['INSTRUMENT/H/I/J/K'].shape)
-                self.assertEqual((file_size, *s2), fp['INSTRUMENT/H/I/J/L'].shape)
-                self.assertEqual(np.uint16, fp['INSTRUMENT/H/I/J/K'].dtype)
-                self.assertEqual(np.float32, fp['INSTRUMENT/H/I/J/L'].dtype)
+                self.assertEqual((file_size, *s1), fp['DIAGNOSTIC/H/I/J/K'].shape)
+                self.assertEqual((file_size, *s2), fp['DIAGNOSTIC/H/I/J/L'].shape)
+                self.assertEqual(np.uint16, fp['DIAGNOSTIC/H/I/J/K'].dtype)
+                self.assertEqual(np.float32, fp['DIAGNOSTIC/H/I/J/L'].dtype)
 
                 if i == 2:
                     np.testing.assert_array_equal(
                         np.concatenate((
                             np.ones((chunk_size + 9, *s1)),
                             np.zeros((file_size - chunk_size - 9, *s1)))),
-                        fp['INSTRUMENT/H/I/J/K'][()])
+                        fp['DIAGNOSTIC/H/I/J/K'][()])
                     np.testing.assert_array_equal(
                         np.concatenate((
                             np.ones((chunk_size + 9, *s2)),
                             np.zeros((file_size - chunk_size - 9, *s2)))),
-                        fp['INSTRUMENT/H/I/J/L'][()])
+                        fp['DIAGNOSTIC/H/I/J/L'][()])
                 else:
                     np.testing.assert_array_equal(
-                        np.ones((file_size, *s1)), fp['INSTRUMENT/H/I/J/K'][()])
+                        np.ones((file_size, *s1)), fp['DIAGNOSTIC/H/I/J/K'][()])
                     np.testing.assert_array_equal(
-                        np.ones((file_size, *s2)), fp['INSTRUMENT/H/I/J/L'][()])
+                        np.ones((file_size, *s2)), fp['DIAGNOSTIC/H/I/J/L'][()])

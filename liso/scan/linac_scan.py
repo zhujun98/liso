@@ -294,9 +294,9 @@ class MachineScan(_BaseScan):
                             + str(mapping)[1:-1].replace(': ', ' = '))
 
                 try:
-                    idx, controls, instruments = self._machine.run(
+                    idx, controls, diagnostics = self._machine.run(
                         executor=executor, mapping=mapping)
-                    writer.write(idx, controls, instruments)
+                    writer.write(idx, controls, diagnostics)
                 except LisoRuntimeError as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     logger.debug(repr(traceback.format_tb(exc_traceback))

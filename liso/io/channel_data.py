@@ -20,7 +20,7 @@ class ChannelData:
             data, this is the DOOCS channel name.
         :param list files: a list of _FileAccessBase objects.
         :param str category: category of the data, which can be CONTROL,
-            PHASESPACE (simulation) or INSTRUMENT (experiment).
+            PHASESPACE (simulation) or DIAGNOSTIC (experiment).
         :param list ids: simulation/pulse IDs of the data.
         :param None/str/array-like columns: columns for the phasespace data.
             If None, all the columns are taken.
