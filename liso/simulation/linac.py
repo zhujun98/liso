@@ -125,15 +125,15 @@ class Linac(Mapping):
         for i, bl in enumerate(self._beamlines.values()):
             out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
-    async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
+    async def async_run(self, sim_id, mapping, *, timeout=None):
         controls = self.compile(mapping)
 
         out = None
         phasespaces = OrderedDict()
         for name, bl in self._beamlines.items():
-            out = await bl.async_run(out, tmp_dir, timeout=timeout)
+            out = await bl.async_run(out, f'tmp{sim_id:06d}', timeout=timeout)
             phasespaces[f"{name}/out"] = out
-        return idx, controls, phasespaces
+        return sim_id, controls, phasespaces
 
     def status(self):
         """Return the status of the linac."""

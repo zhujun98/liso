@@ -11,8 +11,8 @@ m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
-m.add_instrument_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
-                         shape=(1750, 2330), dtype='uint16')
+# m.add_instrument_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
+#                          shape=(1750, 2330), dtype='uint16')
 
 sc = MachineScan(m)
 
@@ -21,4 +21,4 @@ sc = MachineScan(m)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.GUN.I1/SP.PHASE', -3, 3)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE', 182, 186)
 
-sc.scan(40, output='scan.hdf5', n_tasks=8)
+sc.scan(1230, folder='my_exp_data', n_tasks=8)
