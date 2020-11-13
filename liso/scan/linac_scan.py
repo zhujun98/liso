@@ -123,7 +123,7 @@ class LinacScan(_BaseScan):
         return parent_path
 
     async def _async_scan(self, cycles, run_folder, *,
-                          start_id, n_tasks, seed, **kwargs):
+                          start_id, group, n_tasks, seed, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence)
@@ -134,7 +134,7 @@ class LinacScan(_BaseScan):
             control_schema[param] = {'type': '<f4'}
         schema = (control_schema, phasespace_schema)
 
-        with SimWriter(run_folder, schema=schema) as writer:
+        with SimWriter(run_folder, schema=schema, group=group) as writer:
             count = 0
             while True:
                 if count < n_pulses:
@@ -180,6 +180,7 @@ class LinacScan(_BaseScan):
 
     def scan(self, cycles=1, folder='scan_data', *,
              start_id=1,
+             group=1,
              n_tasks=None,
              seed=None,
              **kwargs):
@@ -190,6 +191,7 @@ class LinacScan(_BaseScan):
             of variable space is 1.
         :param str folder: folder where the simulation data will be saved.
         :param int start_id: starting simulation id. Default = 1.
+        :param int group: writer group.
         :param int/None n_tasks: maximum number of concurrent tasks.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
@@ -211,6 +213,7 @@ class LinacScan(_BaseScan):
         loop.run_until_complete(self._async_scan(
             cycles, run_folder,
             start_id=start_id,
+            group=group,
             n_tasks=n_tasks,
             seed=seed,
             **kwargs))
@@ -247,7 +250,10 @@ class MachineScan(_BaseScan):
         next_run_folder.mkdir(parents=True, exist_ok=False)
         return next_run_folder
 
-    def scan(self, cycles=1, folder='scan_data', *, n_tasks=None, seed=None):
+    def scan(self, cycles=1, folder='scan_data', *,
+             n_tasks=None,
+             seed=None,
+             group=1):
         """Start a parameter scan.
 
         :param int cycles: number of cycles of the parameter space. For
@@ -259,6 +265,7 @@ class MachineScan(_BaseScan):
             read and write.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
+        :param int group: writer group.
         """
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
@@ -272,7 +279,9 @@ class MachineScan(_BaseScan):
 
         sequence = self._generate_param_sequence(cycles, seed)
         n_pulses = len(sequence) if sequence else cycles
-        with ExpWriter(run_folder, schema=self._machine.schema) as writer:
+        with ExpWriter(run_folder,
+                       schema=self._machine.schema,
+                       group=group) as writer:
             count = 0
             while count < n_pulses:
                 mapping = dict()

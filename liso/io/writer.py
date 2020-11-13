@@ -25,11 +25,13 @@ class _BaseWriter(abc.ABC):
     _IMAGE_CHUNK = (16, 512)
 
     def __init__(self, path, *,
+                 group=1,
                  chunk_size=50,
                  max_events_per_file=10000):
         """Initialization.
 
         :param pathlib.Path path: path of the simulation/run folder.
+        :param int group: writer group (1-99).
         :param int chunk_size: size of the first dimention of a chunk in
             a dataset.
         :param int max_events_per_file: maximum events stored in a single file.
@@ -48,6 +50,10 @@ class _BaseWriter(abc.ABC):
         self._path = path if isinstance(path, pathlib.Path) \
             else pathlib.Path(path)
         self._fp = None
+
+        self._group = group
+        if not isinstance(group, int) or group < 1 or group > 99:
+            raise ValueError("group must be an integer within [1, 99]")
 
         self._index = 0
         self._file_count = 0
@@ -103,7 +109,7 @@ class SimWriter(_BaseWriter):
     def _create_new_file(self):
         """Override."""
         next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
-            group="01", seq=f"{self._file_count:06d}"))
+            group=f"{self._group:02d}", seq=f"{self._file_count:06d}"))
         self._file_count += 1
         self._sim_ids.clear()
 
@@ -213,7 +219,7 @@ class ExpWriter(_BaseWriter):
         """Override."""
         next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
             run=self._path.name.upper(),
-            group="01",
+            group=f"{self._group:02d}",
             seq=f"{self._file_count:06d}"))
         self._file_count += 1
         self._pulse_ids.clear()

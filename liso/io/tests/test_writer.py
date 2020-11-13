@@ -58,6 +58,8 @@ class TestSimWriter(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "must be at least 50"):
                     SimWriter(tmp_dir, schema=schema,
                               chunk_size=5, max_events_per_file=49)
+                with self.assertRaisesRegex(ValueError, "group must be an integer"):
+                    SimWriter(tmp_dir, schema=schema, group=0)
 
             with SimWriter(tmp_dir,
                            schema=schema,
@@ -190,6 +192,7 @@ class TestExpWriter(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             with ExpWriter(tmp_dir,
                            schema=self._schema,
+                           group=11,
                            chunk_size=chunk_size,
                            max_events_per_file=file_size) as writer:
 
@@ -204,7 +207,7 @@ class TestExpWriter(unittest.TestCase):
             path = pathlib.Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
             self.assertListEqual(
-                [f"RAW-{path.name.upper()}-G01-S00000{i}.hdf5" for i in range(3)], files
+                [f"RAW-{path.name.upper()}-G11-S00000{i}.hdf5" for i in range(3)], files
             )
             with self.subTest("Test data in the file"):
                 self._check_data_files(path, files)
