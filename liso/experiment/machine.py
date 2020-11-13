@@ -91,6 +91,9 @@ class _DoocsReader:
 
 class _DoocsMachine:
     """Base class for machine interface using DOOCS control system."""
+
+    _facility_name = None
+
     def __init__(self, *, delay=0.001):
         """Initialization.
 
@@ -128,6 +131,13 @@ class _DoocsMachine:
         return ({k: v.value_schema() for k, v in self._controls.items()},
                 {k: v.value_schema() for k, v in self._diagnostics.items()})
 
+    def _check_address(self, address):
+        if address in self._controls or address in self._diagnostics:
+            raise ValueError(f"{address} already exists!")
+
+        if not address.startswith(self._facility_name):
+            raise ValueError(f"{address} must start with {self._facility_name}")
+
     def add_control_channel(self, kls, address, **kwargs):
         """Add a DOOCS channel for control data.
 
@@ -144,8 +154,7 @@ class _DoocsMachine:
             m.add_control_channel(
                 dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
         """
-        if address in self._controls or address in self._diagnostics:
-            raise ValueError(f"{address} already exists!")
+        self._check_address(address)
         self._controls[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
@@ -166,8 +175,7 @@ class _DoocsMachine:
                 dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
                 shape=(1750, 2330), dtype='uint16')
         """
-        if address in self._controls or address in self._diagnostics:
-            raise ValueError(f"{address} already exists!")
+        self._check_address(address)
         self._diagnostics[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
@@ -254,4 +262,8 @@ class _DoocsMachine:
 
 
 class EuXFELInterface(_DoocsMachine):
-    ...
+    _facility_name = 'XFEL'
+
+
+class FLASHInterface(_DoocsMachine):
+    _facility_name = 'FLASH'

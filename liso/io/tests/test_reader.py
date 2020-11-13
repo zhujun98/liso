@@ -225,13 +225,13 @@ class TestSimReader(unittest.TestCase):
 class TestExpReader(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface()
-        m.add_control_channel(dc.FLOAT32, "A/B/C/D")
-        m.add_control_channel(dc.FLOAT32, "A/B/C/E")
-        m.add_control_channel(dc.BOOL, "A/B/C/F")
+        m.add_control_channel(dc.FLOAT32, "XFEL.A/B/C/D")
+        m.add_control_channel(dc.FLOAT32, "XFEL.A/B/C/E")
+        m.add_control_channel(dc.BOOL, "XFEL.A/B/C/F")
         self._s1 = (3, 4)
         self._s2 = (6, 5)
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/K", shape=self._s1, dtype='uint16')
-        m.add_diagnostic_channel(dc.IMAGE, "H/I/J/L", shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
@@ -260,9 +260,9 @@ class TestExpReader(unittest.TestCase):
                 for i, pid in enumerate(pulse_ids_gt):
                     writer.write(
                         pid,
-                        {"A/B/C/D": 10 * i, "A/B/C/E": 0.1 * i},
-                        {"H/I/J/K": np.ones(s1, dtype=np.uint16),
-                         "H/I/J/L": np.ones(s2, dtype=np.float32)}
+                        {"XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i},
+                        {"XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
+                         "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)}
                     )
 
             data = open_run(tmp_dir)
@@ -271,33 +271,34 @@ class TestExpReader(unittest.TestCase):
 
             with self.subTest("Test control data"):
                 controls = data.get_controls()
-                self.assertListEqual(["A/B/C/D", "A/B/C/E", "A/B/C/F"],
+                self.assertListEqual(["XFEL.A/B/C/D", "XFEL.A/B/C/E", "XFEL.A/B/C/F"],
                                      controls.columns.tolist())
 
                 np.testing.assert_array_equal(
                     pulse_ids_gt, controls.index.to_numpy())
                 np.testing.assert_array_equal(
-                    10. * np.arange(len(pulse_ids_gt)), controls["A/B/C/D"])
+                    10. * np.arange(len(pulse_ids_gt)), controls["XFEL.A/B/C/D"])
                 np.testing.assert_array_almost_equal(
-                    .1 * np.arange(len(pulse_ids_gt)), controls["A/B/C/E"])
+                    .1 * np.arange(len(pulse_ids_gt)), controls["XFEL.A/B/C/E"])
                 np.testing.assert_array_equal(
-                    np.zeros(len(pulse_ids_gt)).astype(bool), controls["A/B/C/F"])
+                    np.zeros(len(pulse_ids_gt)).astype(bool), controls["XFEL.A/B/C/F"])
 
                 for i, (pid, item) in enumerate(data):
                     self.assertSetEqual({
-                        "A/B/C/D", "A/B/C/E", "A/B/C/F", "H/I/J/K", "H/I/J/L"
+                        "XFEL.A/B/C/D", "XFEL.A/B/C/E", "XFEL.A/B/C/F",
+                        "XFEL.H/I/J/K", "XFEL.H/I/J/L"
                     }, set(item.keys()))
 
-                    self.assertAlmostEqual(10. * i, item["A/B/C/D"])
-                    self.assertAlmostEqual(0.1 * i, item["A/B/C/E"], places=4)
+                    self.assertAlmostEqual(10. * i, item["XFEL.A/B/C/D"])
+                    self.assertAlmostEqual(0.1 * i, item["XFEL.A/B/C/E"], places=4)
 
             with self.subTest("Test diagnostic data"):
                 for i, (pid, item) in enumerate(data):
-                    np.testing.assert_array_equal(np.ones(s1), item["H/I/J/K"])
-                    np.testing.assert_array_equal(np.ones(s2), item["H/I/J/L"])
+                    np.testing.assert_array_equal(np.ones(s1), item["XFEL.H/I/J/K"])
+                    np.testing.assert_array_equal(np.ones(s2), item["XFEL.H/I/J/L"])
 
             with self.subTest("Test reading a single control data channel"):
-                item = data.channel('A/B/C/D')
+                item = data.channel('XFEL.A/B/C/D')
                 with self.assertRaises(KeyError):
                     item[2]
                 self.assertEqual(30., item[pulse_ids_gt[3]])
@@ -308,7 +309,7 @@ class TestExpReader(unittest.TestCase):
                     10. * np.arange(len(pulse_ids_gt)), item_array)
 
             with self.subTest("Test reading a single diagnostic data channel"):
-                item = data.channel('H/I/J/L')
+                item = data.channel('XFEL.H/I/J/L')
                 np.testing.assert_array_equal(np.ones(s2), item[pulse_ids_gt[1]])
                 item_array = item.numpy()
                 self.assertEqual(np.float32, item_array.dtype)
