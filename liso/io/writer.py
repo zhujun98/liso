@@ -27,7 +27,7 @@ class _BaseWriter(abc.ABC):
     def __init__(self, path, *,
                  group=1,
                  chunk_size=50,
-                 max_events_per_file=10000):
+                 max_events_per_file):
         """Initialization.
 
         :param pathlib.Path path: path of the simulation/run folder.
@@ -41,9 +41,7 @@ class _BaseWriter(abc.ABC):
         if max_events_per_file < chunk_size:
             raise ValueError(
                 "max_events_per_file cannot be smaller than chunk_size")
-        mfs = 50
-        if max_events_per_file < mfs:
-            raise ValueError(f"max_events_per_file must be at least {mfs}!")
+
         self._chunk_size = chunk_size
         self._max_events_per_file = max_events_per_file
 
@@ -94,13 +92,14 @@ class SimWriter(_BaseWriter):
 
     _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
 
-    def __init__(self, path, *, schema, **kwargs):
+    def __init__(self, path, *, schema, max_events_per_file=10000, **kwargs):
         """Initialization.
 
         :param str/pathlib.Path path: path of the simulation folder.
         :param tuple schema: (control, phasespace) data schema
         """
-        super().__init__(path, **kwargs)
+        super().__init__(path,
+                         max_events_per_file=max_events_per_file, **kwargs)
 
         self._sim_ids = []
 
@@ -203,13 +202,14 @@ class ExpWriter(_BaseWriter):
 
     _FILE_ROOT_NAME = Template("RAW-$run-G$group-S$seq.hdf5")
 
-    def __init__(self, path, *, schema, **kwargs):
+    def __init__(self, path, *, schema, max_events_per_file=500, **kwargs):
         """Initialization.
 
         :param pathlib.Path path: path of the run folder.
         :param tuple schema: (control, instrument) data schema.
         """
-        super().__init__(path, **kwargs)
+        super().__init__(path,
+                         max_events_per_file=max_events_per_file, **kwargs)
 
         self._control_schema, self._instrument_schema = schema
 

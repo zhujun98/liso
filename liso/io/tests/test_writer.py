@@ -55,9 +55,6 @@ class TestSimWriter(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "cannot be smaller than chunk_size"):
                     SimWriter(tmp_dir, schema=schema,
                               chunk_size=501, max_events_per_file=500)
-                with self.assertRaisesRegex(ValueError, "must be at least 50"):
-                    SimWriter(tmp_dir, schema=schema,
-                              chunk_size=5, max_events_per_file=49)
                 with self.assertRaisesRegex(ValueError, "group must be an integer"):
                     SimWriter(tmp_dir, schema=schema, group=0)
 
