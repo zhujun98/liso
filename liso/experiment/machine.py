@@ -52,7 +52,7 @@ class _DoocsWriter:
             except ModuleNotFoundError as e:
                 logger.error(repr(e))
                 raise
-            except [DoocsException, PyDoocsException] as e:
+            except (DoocsException, PyDoocsException) as e:
                 logger.warning(f"Failed to write to {channel}: {repr(e)}")
                 succeeded = False
             except Exception as e:
@@ -81,7 +81,7 @@ class _DoocsReader:
             except ModuleNotFoundError as e:
                 logger.error(repr(e))
                 raise
-            except [DoocsException, PyDoocsException] as e:
+            except (DoocsException, PyDoocsException) as e:
                 logger.warning(f"Failed to read {channel}: {repr(e)}")
             except Exception as e:
                 logger.error(f"Unexpected exception when writing to "
