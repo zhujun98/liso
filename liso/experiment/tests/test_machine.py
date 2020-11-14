@@ -6,6 +6,7 @@ import numpy as np
 from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
+from liso.experiment import machine
 from liso.logging import logger
 logger.setLevel("CRITICAL")
 
@@ -86,6 +87,15 @@ class TestDoocsMachine(unittest.TestCase):
 
         self._machine.run(mapping={'XFEL.A/B/C/D': 5})
         patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
+
+        with self.assertRaisesRegex(LisoRuntimeError,
+                                    "Failed to write new values to all channels"):
+            def _side_effect_write(address, v):
+                if address == 'XFEL.A/B/C/E':
+                    raise np.random.choice([machine.PyDoocsException,
+                                            machine.DoocsException])
+            patched_write.side_effect = _side_effect_write
+            self._machine.run(mapping={'XFEL.A/B/C/D': 5, 'XFEL.A/B/C/E': 5})
 
         with self.subTest("Test validation"):
             orig_v = dataset["XFEL.A/B/C/D"]['data']

@@ -39,11 +39,12 @@ class _DoocsWriter:
 
     def update(self, executor, mapping=None):
         if mapping is None:
-            return
+            return True
 
         future_result = {executor.submit(pydoocs_write, ch, v): ch
                          for ch, v in mapping.items()}
 
+        succeeded = True
         for future in as_completed(future_result):
             channel = future_result[future]
             try:
@@ -51,12 +52,16 @@ class _DoocsWriter:
             except ModuleNotFoundError as e:
                 logger.error(repr(e))
                 raise
-            except [DoocsException, PyDoocsException] as e:
+            except (DoocsException, PyDoocsException) as e:
                 logger.warning(f"Failed to write to {channel}: {repr(e)}")
+                succeeded = False
             except Exception as e:
                 logger.error(f"Unexpected exception when writing to"
                              f" {channel}: {repr(e)}")
-                # TODO: here should raise
+                # FIXME: here should raise
+                succeeded = False
+
+        return succeeded
 
 
 class _DoocsReader:
@@ -76,12 +81,12 @@ class _DoocsReader:
             except ModuleNotFoundError as e:
                 logger.error(repr(e))
                 raise
-            except [DoocsException, PyDoocsException] as e:
+            except (DoocsException, PyDoocsException) as e:
                 logger.warning(f"Failed to read {channel}: {repr(e)}")
             except Exception as e:
                 logger.error(f"Unexpected exception when writing to "
                              f"{channel}: {repr(e)}")
-                # TODO: here should raise
+                # FIXME: here should raise
 
         return ret
 
@@ -180,7 +185,7 @@ class _DoocsMachine:
         self._reader.add_channel(address)
 
     def _compile(self, executor, mapping):
-        self._writer.update(executor, mapping=mapping)
+        return self._writer.update(executor, mapping=mapping)
 
     def _correlate(self, executor, max_attempts):
         n_channels = len(self._controls) + len(self._diagnostics)
@@ -205,11 +210,11 @@ class _DoocsMachine:
                         return pid, cached[pid]
                 else:
                     if pid < 0:
+                        # TODO: document when a macropulse ID is -1
                         logger.warning(f"Received data from channel {address} "
                                        f"with invalid macropulse ID: {pid}")
-                    else:
-                        # wait for 10 ms if we are receiving the old data
-                        time.sleep(0.01)
+                    # take a break
+                    time.sleep(0.01)
 
         raise LisoRuntimeError("Unable to match all data!")
 
@@ -245,9 +250,9 @@ class _DoocsMachine:
         if executor is None:
             executor = ThreadPoolExecutor(max_workers=threads)
 
-        # TODO: handle exceptions raised by reader and writer
-
-        self._compile(executor, mapping)
+        if not self._compile(executor, mapping):
+            raise LisoRuntimeError(
+                "Failed to write new values to all channels!")
 
         time.sleep(self._delay)
 
