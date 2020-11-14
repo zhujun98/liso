@@ -1,7 +1,7 @@
 Introduction
 ============
 
-LISO (**LI**nac **S**imulation and **O**ptimization) is a library which provides
+LISO (**LI**\ nac **S**\ imulation and **O**\ ptimization) is a library which provides
 a unified interface for numerical simulations, experiments and data management
 in the era of big data and artificial intelligence. LISO was initially created only
 for simulation and optimization back in 2017. After a more than two years interruption,

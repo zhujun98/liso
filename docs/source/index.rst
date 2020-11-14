@@ -1,10 +1,7 @@
-.. LISO documentation master file, created by
-   sphinx-quickstart on Fri Jun  8 21:37:56 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome to LISO's documentation!
+================================
 
-Linac Optimization and Simulation (LISO)
-========================================
+Contents:
 
 .. toctree::
    :maxdepth: 1
@@ -15,7 +12,7 @@ Linac Optimization and Simulation (LISO)
 
 .. toctree::
    :maxdepth: 1
-   :caption: USAGE (SIMULATION):
+   :caption: SIMULATION:
 
    sim_optimization
    sim_scan
@@ -23,7 +20,7 @@ Linac Optimization and Simulation (LISO)
 
 .. toctree::
    :maxdepth: 1
-   :caption: USAGE (EXPERIMENT):
+   :caption: EXPERIMENT:
 
    exp_scan
 
