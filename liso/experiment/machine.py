@@ -208,7 +208,8 @@ class _DoocsMachine:
 
                     if len(cached[pid]) == n_channels:
                         logger.info(f"Correlated {n_channels + len(correlated)}"
-                                    f" with macropulse ID: {pid}")
+                                    f"({n_channels}) channels with "
+                                    f"macropulse ID: {pid}")
                         self._last_correlated = pid
                         correlated.update(cached[pid])
                         return pid, correlated
