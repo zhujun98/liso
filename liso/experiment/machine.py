@@ -210,11 +210,11 @@ class _DoocsMachine:
                         return pid, cached[pid]
                 else:
                     if pid < 0:
+                        # TODO: document when a macropulse ID is -1
                         logger.warning(f"Received data from channel {address} "
                                        f"with invalid macropulse ID: {pid}")
-                    else:
-                        # wait for 10 ms if we are receiving the old data
-                        time.sleep(0.01)
+                    # take a break
+                    time.sleep(0.01)
 
         raise LisoRuntimeError("Unable to match all data!")
 
