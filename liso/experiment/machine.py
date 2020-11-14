@@ -191,6 +191,9 @@ class _DoocsMachine:
         n_channels = len(self._controls) + len(self._diagnostics)
         cached = OrderedDict()
 
+        _NON_EVENT = 0
+        correlated = dict()
+
         for _ in range(max_attempts):
             readout = self._reader.update(executor)
 
@@ -204,10 +207,15 @@ class _DoocsMachine:
                     cached[pid][address] = ch_data['data']
 
                     if len(cached[pid]) == n_channels:
-                        logger.info(
-                            f"Correlated all data with macropulse ID: {pid}")
+                        logger.info(f"Correlated {n_channels + len(correlated)}"
+                                    f" with macropulse ID: {pid}")
                         self._last_correlated = pid
-                        return pid, cached[pid]
+                        correlated.update(cached[pid])
+                        return pid, correlated
+                elif pid == _NON_EVENT:
+                    if address not in correlated:
+                        n_channels -= 1
+                    correlated[address] = ch_data['data']
                 else:
                     if pid < 0:
                         # TODO: document when a macropulse ID is -1

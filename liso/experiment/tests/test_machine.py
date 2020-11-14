@@ -14,9 +14,11 @@ from . import DoocsDataGenerator as ddgen
 
 
 def _side_effect(dataset, address):
-    dataset[address]['macropulse'] += 1
-    dataset[address]['data'] += 1
-    return dataset[address]
+    data = dataset[address]
+    if data['macropulse'] > 0:
+        data['macropulse'] += 1
+    data['data'] += 1
+    return data
 
 
 class TestDoocsMachine(unittest.TestCase):
@@ -122,17 +124,25 @@ class TestDoocsMachine(unittest.TestCase):
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=1)
 
-        dataset["XFEL.A/B/C/D"] = ddgen.scalar(
-                1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=-1)
-        with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-            self._machine.run(max_attempts=10)
+        with self.subTest("Test receiving data with invalid macropulse ID"):
+            dataset["XFEL.A/B/C/D"] = ddgen.scalar(
+                    1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=-1)
+            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+                self._machine.run(max_attempts=10)
+
+        with self.subTest("Test receiving non-event based data"):
+            dataset["XFEL.A/B/C/D"] = ddgen.scalar(
+                    1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
+            dataset["XFEL.H/I/J/K"] = ddgen.image(
+                self._machine._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=0)
+            self._machine.run(max_attempts=1)
 
         with self.subTest("Test receiving data with pulse ID smaller than the correlated one"):
-            self.assertEqual(1002, self._machine._last_correlated)
+            self.assertEqual(1014, self._machine._last_correlated)
             for address in dataset:
-                dataset[address]['macropulse'] = 1001
+                dataset[address]['macropulse'] = 1013
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
                 self._machine.run(max_attempts=1)
-            self.assertEqual(1002, self._machine._last_correlated)
+            self.assertEqual(1014, self._machine._last_correlated)
             self._machine.run(max_attempts=1)
-            self.assertEqual(1003, self._machine._last_correlated)
+            self.assertEqual(1015, self._machine._last_correlated)
