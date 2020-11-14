@@ -9,3 +9,11 @@ Scan
     .. automethod:: __init__
     .. automethod:: add_param
     .. automethod:: scan
+
+
+.. autoclass:: MachineScan
+    :show-inheritance:
+
+    .. automethod:: __init__
+    .. automethod:: add_param
+    .. automethod:: scan

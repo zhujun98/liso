@@ -6,30 +6,36 @@
 Linac Optimization and Simulation (LISO)
 ========================================
 
-**LISO** is an API for various beam dynamics and FEL codes like ASTRA, IMPACT-T, IMPACT-Z and GENESIS.
-
 .. toctree::
    :maxdepth: 1
-   :caption: INSTALLATION:
 
+   introduction
    installation
    configuration
 
 .. toctree::
    :maxdepth: 1
-   :caption: USAGE:
+   :caption: USAGE (SIMULATION):
 
-   param_optimization
-   param_scan
+   sim_optimization
+   sim_scan
    data_visualization
+
+.. toctree::
+   :maxdepth: 1
+   :caption: USAGE (EXPERIMENT):
+
+   exp_scan
 
 .. toctree::
    :maxdepth: 1
    :caption: API REFERENCE:
 
-   api_simulation
-   api_data_processing
-   api_scan
+   api_experiment
+   api_io
    api_optimization
    api_optimizers
+   api_proc
+   api_scan
+   api_simulation
    api_visualization

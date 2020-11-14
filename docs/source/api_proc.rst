@@ -1,7 +1,7 @@
 Data processing
 ===============
 
-.. currentmodule:: liso.data_processing
+.. currentmodule:: liso.proc
 
 Data parsing
 ++++++++++++
