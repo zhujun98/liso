@@ -51,8 +51,7 @@ class _BaseScan(abc.ABC):
     def _check_param_name(self, name):
         return name
 
-    def _generate_param_sequence(self, cycles, seed):
-        np.random.seed(seed)  # set the random state!
+    def _generate_param_sequence(self, cycles):
         repeats = np.prod([len(param) for param in self._params.values()])
         ret = []
         for param in self._params.values():
@@ -123,9 +122,9 @@ class LinacScan(_BaseScan):
         return parent_path
 
     async def _async_scan(self, cycles, run_folder, *,
-                          start_id, group, n_tasks, seed, **kwargs):
+                          start_id, group, n_tasks, **kwargs):
         tasks = set()
-        sequence = self._generate_param_sequence(cycles, seed)
+        sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence)
 
         phasespace_schema = self._linac.schema
@@ -209,13 +208,14 @@ class LinacScan(_BaseScan):
         logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
         logger.info(self.summarize())
 
+        np.random.seed(seed)
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
             cycles, run_folder,
             start_id=start_id,
             group=group,
             n_tasks=n_tasks,
-            seed=seed,
             **kwargs))
 
         logger.info(f"Scan finished!")
@@ -273,11 +273,13 @@ class MachineScan(_BaseScan):
         logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
         logger.info(self.summarize())
 
+        np.random.seed(seed)
+
         executor = ThreadPoolExecutor(max_workers=n_tasks)
 
         run_folder = self._create_run_folder(folder)
 
-        sequence = self._generate_param_sequence(cycles, seed)
+        sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence) if sequence else cycles
         with ExpWriter(run_folder,
                        schema=self._machine.schema,
