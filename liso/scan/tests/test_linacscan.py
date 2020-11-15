@@ -50,7 +50,8 @@ class TestLinacScan(unittest.TestCase):
             self._sc.add_param("param4")
         self._sc.summarize()
 
-        lst = self._sc._generate_param_sequence(2, seed=42)
+        np.random.seed(42)
+        lst = self._sc._generate_param_sequence(2)
         self.assertListEqual([
             (-0.1, -1.0, 3.0, -0.9503285846988767, 0.5924145688620425),
             (-0.1, -1.0, 4.0, -1.0138264301171185, 0.046450412719997725),
@@ -82,7 +83,7 @@ class TestLinacScan(unittest.TestCase):
         n = 1000
         self._sc.add_param("param1", -0.1, sigma=0.01)
         self._sc.add_param("param2", -10., sigma=-0.1)
-        lst = self._sc._generate_param_sequence(n, seed=None)
+        lst = self._sc._generate_param_sequence(n)
         self.assertEqual(n, len(lst))
         self.assertEqual(2, len(lst[0]))
 
@@ -94,7 +95,7 @@ class TestLinacScan(unittest.TestCase):
         n = 10
         self._sc.add_param("param1", -0.1, 0.1)
         self._sc.add_param("param2", -10., 20)
-        lst = self._sc._generate_param_sequence(n, seed=None)
+        lst = self._sc._generate_param_sequence(n)
         self.assertEqual(n, len(lst))
         self.assertEqual(2, len(lst[0]))
 
