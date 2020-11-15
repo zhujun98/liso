@@ -10,9 +10,7 @@ from .phasespace_parser import (
 from .line_parser import (
     parse_astra_line, parse_impactt_line, parse_elegant_line,
 )
-from .scaler import (
-    Normalizer,
-)
+
 
 __all__ = [
     # line analysis
@@ -33,6 +31,4 @@ __all__ = [
     'parse_astra_line',
     'parse_impactt_line',
     'parse_elegant_line',
-    # scaler
-    'Normalizer',
 ]
