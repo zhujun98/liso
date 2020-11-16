@@ -109,6 +109,7 @@ class _DoocsMachine:
 
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
+        self._no_event = set()
 
         self._reader = _DoocsReader()
         self._writer = _DoocsWriter()
@@ -143,11 +144,12 @@ class _DoocsMachine:
         if not address.startswith(self._facility_name):
             raise ValueError(f"{address} must start with {self._facility_name}")
 
-    def add_control_channel(self, kls, address, **kwargs):
+    def add_control_channel(self, kls, address, *, no_event=False, **kwargs):
         """Add a DOOCS channel for control data.
 
         :param DoocsChannel kls: a concrete DoocsChannel class.
         :param str address: DOOCS address.
+        :param bool no_event: True for a non-event-based channel.
         **kwargs: keyword arguments which will be passed to the constructor
             of kls after address.
 
@@ -162,12 +164,15 @@ class _DoocsMachine:
         self._check_address(address)
         self._controls[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
+        if no_event:
+            self._no_event.add(address)
 
-    def add_diagnostic_channel(self, kls, address, **kwargs):
+    def add_diagnostic_channel(self, kls, address, *, no_event=False, **kwargs):
         """Add a DOOCS channel to diagnostic data.
 
         :param DoocsChannel kls: a concrete DoocsChannel class.
         :param str address: DOOCS address.
+        :param bool no_event: True for a non-event-based channel.
         **kwargs: keyword arguments which will be passed to the constructor
             of kls after address.
 
@@ -183,6 +188,8 @@ class _DoocsMachine:
         self._check_address(address)
         self._diagnostics[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
+        if no_event:
+            self._no_event.add(address)
 
     def _compile(self, mapping):
         writein = dict()
@@ -212,7 +219,8 @@ class _DoocsMachine:
         return True, ""
 
     def _correlate(self, executor, max_attempts, readout):
-        n_channels = len(self._controls) + len(self._diagnostics)
+        n_channels = len(self._controls) + len(self._diagnostics) \
+                     - len(self._no_event)
         cached = OrderedDict()
 
         _NON_EVENT = 0
@@ -229,6 +237,9 @@ class _DoocsMachine:
                     # from a channel.
                     continue
 
+                if address in self._no_event:
+                    continue
+
                 pid = ch_data['macropulse']
                 if pid > self._last_correlated:
                     if pid not in cached:
@@ -236,10 +247,6 @@ class _DoocsMachine:
                     cached[pid][address] = ch_data['data']
 
                     if len(cached[pid]) == n_channels:
-                        logger.info(f"Correlated {n_channels + len(correlated)}"
-                                    f"({n_channels}) channels with "
-                                    f"macropulse ID: {pid}")
-
                         compare_ret, msg = self._compare_readout(
                             cached[pid], readout)
                         if not compare_ret:
@@ -247,8 +254,16 @@ class _DoocsMachine:
                                         f"all taken effect: {msg}")
                             continue
 
+                        for no_event_addr in self._no_event:
+                            correlated[no_event_addr] = data[no_event_addr]['data']
+
+                        logger.info(f"Correlated {n_channels + len(correlated)}"
+                                    f"({n_channels}) channels with "
+                                    f"macropulse ID: {pid}")
+
                         self._last_correlated = pid
                         correlated.update(cached[pid])
+
                         return pid, correlated
                 elif pid == _NON_EVENT:
                     if address not in correlated:

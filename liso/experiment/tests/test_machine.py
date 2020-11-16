@@ -8,7 +8,7 @@ from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
 from liso.experiment import machine
 from liso.logging import logger
-logger.setLevel("INFO")
+logger.setLevel("CRITICAL")
 
 from . import DoocsDataGenerator as ddgen
 
@@ -26,7 +26,7 @@ class TestDoocsMachine(unittest.TestCase):
         m = EuXFELInterface(delay=0.01)
         m.add_control_channel(dc.FLOAT, "XFEL.A/B/C/D")
         m.add_control_channel(dc.DOUBLE, "XFEL.A/B/C/E")
-        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(4, 4), dtype="uint16")
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(4, 4), dtype="uint16", no_event=True)
         m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=(5, 6), dtype="float32")
         self._machine = m
 
@@ -36,7 +36,7 @@ class TestDoocsMachine(unittest.TestCase):
             "XFEL.A/B/C/E": ddgen.scalar(
                 100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=1000),
             "XFEL.H/I/J/K": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1000),
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1),
             "XFEL.H/I/J/L": ddgen.image(
                 m._diagnostics["XFEL.H/I/J/L"].value_schema(), pid=1000)
         }
@@ -155,7 +155,19 @@ class TestDoocsMachine(unittest.TestCase):
 
         dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                 1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=1001)
-        self._machine.run(max_attempts=2)
+
+        # add an implicit non-event based data
+        self._machine.add_control_channel(dc.FLOAT, "XFEL.A/B/C/F")
+        dataset["XFEL.A/B/C/F"] = ddgen.scalar(
+                1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
+
+        pid, control_data, diagnostic_data = self._machine.run(max_attempts=2)
+        self.assertEqual(1002, pid)
+        self.assertDictEqual({'XFEL.A/B/C/D': 2.0, 'XFEL.A/B/C/E': 102.0, 'XFEL.A/B/C/F': 3.0},
+                             control_data)
+        np.testing.assert_array_equal(3 * np.ones((4, 4)), diagnostic_data['XFEL.H/I/J/K'])
+        np.testing.assert_array_equal(3 * np.ones((5, 6)), diagnostic_data['XFEL.H/I/J/L'])
+
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=1)
 
@@ -178,11 +190,9 @@ class TestDoocsMachine(unittest.TestCase):
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
                 self._machine.run(max_attempts=10)
 
-        with self.subTest("Test receiving non-event based data"):
+        with self.subTest("Test receiving non-event based data (ID = 0)"):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                     1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
-            dataset["XFEL.H/I/J/K"] = ddgen.image(
-                self._machine._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=0)
             self._machine.run(max_attempts=1)
 
         with self.subTest("Test receiving data with pulse ID smaller than the correlated one"):
@@ -193,5 +203,5 @@ class TestDoocsMachine(unittest.TestCase):
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
                 self._machine.run(max_attempts=1)
             self.assertEqual(last_correlated_gt, self._machine._last_correlated)
-            self._machine.run(max_attempts=1)
+            self._machine.run(max_attempts=2)
             self.assertEqual(last_correlated_gt + 1, self._machine._last_correlated)
