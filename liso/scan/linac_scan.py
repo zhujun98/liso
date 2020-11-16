@@ -27,29 +27,24 @@ class _BaseScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
 
-    def add_param(self, name, *args, **kwargs):
-        """Add a parameter for scan.
+    def _check_param_name(self, name):
+        return name
 
-        :param str name: parameter name for simulations and a valid
-            DOOCS address for experiments.
-        """
+    def _add_scan_param(self, name, **kwargs):
         name = self._check_param_name(name)
 
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
 
         try:
-            param = ScanParam(name, *args, **kwargs)
+            param = ScanParam(name, **kwargs)
         except TypeError:
             try:
-                param = SampleParam(name, *args, **kwargs)
+                param = SampleParam(name, **kwargs)
             except TypeError:
-                param = JitterParam(name, *args, **kwargs)
+                param = JitterParam(name, **kwargs)
 
         self._params[name] = param
-
-    def _check_param_name(self, name):
-        return name
 
     def _generate_param_sequence(self, cycles):
         repeats = np.prod([len(param) for param in self._params.values()])
@@ -106,6 +101,13 @@ class LinacScan(_BaseScan):
         super().__init__()
 
         self._linac = linac
+
+    def add_param(self, name, **kwargs):
+        """Add a parameter for scan.
+
+        :param str name: parameter name for simulations.
+        """
+        self._add_scan_param(name, **kwargs)
 
     def _check_param_name(self, name):
         """Override."""
@@ -233,6 +235,8 @@ class MachineScan(_BaseScan):
 
         self._machine = machine
 
+        self._param_readouts = dict()
+
     def _create_run_folder(self, parent):
         parent_path = pathlib.Path(parent)
         # It is allowed to use an existing parent folder, but not a run folder.
@@ -289,15 +293,19 @@ class MachineScan(_BaseScan):
                 mapping = dict()
                 if sequence:
                     for i, k in enumerate(self._params):
-                        mapping[k] = sequence[count][i]
-
+                        mapping[k] = {'value': sequence[count][i]}
+                        mapping[k].update(self._param_readouts[k])
                 count += 1
                 logger.info(f"Scan {count:06d}: "
-                            + str(mapping)[1:-1].replace(': ', ' = '))
+                            + str({address: item['value']
+                                   for address, item in mapping.items()})
+                            [1:-1].replace(': ', ' = '))
 
                 try:
                     idx, controls, diagnostics = self._machine.run(
-                        executor=executor, mapping=mapping)
+                        executor=executor,
+                        mapping=mapping
+                    )
                     writer.write(idx, controls, diagnostics)
                 except LisoRuntimeError as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -313,3 +321,18 @@ class MachineScan(_BaseScan):
                     raise
 
         logger.info(f"Scan finished!")
+
+    def add_param(self, name, readout=None, tol=1e-6, **kwargs):
+        """Add a parameter for scan.
+
+        :param str name: the DOOCS address.
+        :param str/None readout: the DOOCS address for validating the value
+            being written. If None, the written value will not be validated.
+        :param float tol: tolerance for the validation. Positive value for
+            absolute error and negative value for relative error.
+        """
+        self._add_scan_param(name, **kwargs)
+
+        self._param_readouts[name] = {'readout': readout}
+
+        self._param_readouts[name]['tol'] = tol

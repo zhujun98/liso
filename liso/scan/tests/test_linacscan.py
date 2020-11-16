@@ -41,11 +41,11 @@ class TestLinacScan(unittest.TestCase):
             super().run(result)
 
     def testParams(self):
-        self._sc.add_param("param1", -0.1, 0.1, 2)
-        self._sc.add_param("param2", -1., 1., 3)
-        self._sc.add_param("param3",  3.,  4., 2)
-        self._sc.add_param("param4", -1., sigma=0.1)  # jitter parameter
-        self._sc.add_param("param5", 0., 1.)  # sample parameter
+        self._sc.add_param("param1", start=-0.1, stop=0.1, num=2)
+        self._sc.add_param("param2", start=-1., stop=1., num=3)
+        self._sc.add_param("param3", start=3.,  stop=4., num=2)
+        self._sc.add_param("param4", value=-1., sigma=0.1)  # jitter parameter
+        self._sc.add_param("param5", lb=0., ub=1.)  # sample parameter
         with self.assertRaises(ValueError):
             self._sc.add_param("param4")
         self._sc.summarize()
@@ -81,8 +81,8 @@ class TestLinacScan(unittest.TestCase):
 
     def testJitterParams(self):
         n = 1000
-        self._sc.add_param("param1", -0.1, sigma=0.01)
-        self._sc.add_param("param2", -10., sigma=-0.1)
+        self._sc.add_param("param1", value=-0.1, sigma=0.01)
+        self._sc.add_param("param2", value=-10., sigma=-0.1)
         lst = self._sc._generate_param_sequence(n)
         self.assertEqual(n, len(lst))
         self.assertEqual(2, len(lst[0]))
@@ -93,8 +93,8 @@ class TestLinacScan(unittest.TestCase):
 
     def testSampleParm(self):
         n = 10
-        self._sc.add_param("param1", -0.1, 0.1)
-        self._sc.add_param("param2", -10., 20)
+        self._sc.add_param("param1", lb=-0.1, ub=0.1)
+        self._sc.add_param("param2", lb=-10., ub=20)
         lst = self._sc._generate_param_sequence(n)
         self.assertEqual(n, len(lst))
         self.assertEqual(2, len(lst[0]))
@@ -106,8 +106,8 @@ class TestLinacScan(unittest.TestCase):
         self.assertTrue(np.all(np.array(lst2) < 20))
 
     def testScan(self):
-        self._sc.add_param('gun_gradient', 1., 3., num=3)
-        self._sc.add_param('gun_phase', 10., 30., num=3)
+        self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
+        self._sc.add_param('gun_phase', start=10., stop=30., num=3)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             ps = Phasespace(pd.DataFrame(
@@ -173,8 +173,8 @@ class TestMachineScan(unittest.TestCase):
             self._machine = m
 
             sc = MachineScan(m)
-            sc.add_param('XFEL.A/B/C/D', -3, 3)
-            sc.add_param('XFEL.A/B/C/E', -3, 3)
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
             self._sc = sc
 
             super().run(result)

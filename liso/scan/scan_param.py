@@ -37,7 +37,7 @@ class ScanParam(OperationalElement):
     A scan parameter is a parameter that changes from start to end
     values stepwise.
     """
-    def __init__(self, name, start, stop, num, *, sigma=0.):
+    def __init__(self, name, *, start, stop, num, sigma=0.):
         """Initialization.
 
         :param float start: the starting value of the scan.
@@ -45,7 +45,7 @@ class ScanParam(OperationalElement):
         :param int num: number of scanning points.
         :param float sigma: standard deviation of the jitter of the
             parameter if given. Positive for absolute jitter and negative
-            for negative jitter.
+            for relative jitter.
         """
         super().__init__(name)
 
@@ -99,7 +99,7 @@ class SampleParam(OperationalElement):
     A sample parameter is a parameter that is sampled uniformly within a
     given range.
     """
-    def __init__(self, name, lb, ub):
+    def __init__(self, name, *, lb, ub):
         """Initialization.
 
         :param float lb: the lower boundary of the sample.
@@ -134,7 +134,7 @@ class JitterParam(OperationalElement):
 
     A jitter parameter is a parameter that jitters around a given value.
     """
-    def __init__(self, name, value, *, sigma=0.):
+    def __init__(self, name, *, value, sigma=0.):
         """Initialization.
 
         :param float value: the reference value.
