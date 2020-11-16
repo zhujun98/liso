@@ -37,12 +37,12 @@ class _DoocsWriter:
     def __init__(self):
         super().__init__()
 
-    def update(self, executor, mapping=None):
-        if mapping is None:
+    def update(self, executor, writein):
+        if not writein:
             return True
 
         future_result = {executor.submit(pydoocs_write, ch, v): ch
-                         for ch, v in mapping.items()}
+                         for ch, v in writein.items()}
 
         succeeded = True
         for future in as_completed(future_result):
@@ -184,10 +184,34 @@ class _DoocsMachine:
         self._diagnostics[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address)
 
-    def _compile(self, executor, mapping):
-        return self._writer.update(executor, mapping=mapping)
+    def _compile(self, mapping):
+        writein = dict()
+        readout = dict()
+        if mapping is not None:
+            for address, item in mapping.items():
+                writein[address] = item['value']
+                if item.get('readout', None) is not None:
+                    readout_address = item['readout']
+                    if readout_address not in self._controls \
+                            and readout_address not in self._diagnostics:
+                        raise ValueError(f"Channel {readout_address} has not "
+                                         f"been registered!")
 
-    def _correlate(self, executor, max_attempts):
+                    readout[readout_address] = (item['value'], item['tol'])
+
+        return writein, readout
+
+    def _update_machine(self, executor, writein):
+        return self._writer.update(executor, writein)
+
+    def _compare_readout(self, data, expected):
+        for address, (v, tol) in expected.items():
+            if abs(data[address] - v) > tol:
+                return False, \
+                       f"{address} - expected: {v}, actual: {data[address]}"
+        return True, ""
+
+    def _correlate(self, executor, max_attempts, readout):
         n_channels = len(self._controls) + len(self._diagnostics)
         cached = OrderedDict()
 
@@ -195,11 +219,16 @@ class _DoocsMachine:
         correlated = dict()
 
         for _ in range(max_attempts):
-            readout = self._reader.update(executor)
-
+            data = self._reader.update(executor)
             for address, ch in chain(self._controls.items(),
                                      self._diagnostics.items()):
-                ch_data = readout[address]
+                try:
+                    ch_data = data[address]
+                except KeyError:
+                    # It happens if the reader failed completely to read data
+                    # from a channel.
+                    continue
+
                 pid = ch_data['macropulse']
                 if pid > self._last_correlated:
                     if pid not in cached:
@@ -210,6 +239,14 @@ class _DoocsMachine:
                         logger.info(f"Correlated {n_channels + len(correlated)}"
                                     f"({n_channels}) channels with "
                                     f"macropulse ID: {pid}")
+
+                        compare_ret, msg = self._compare_readout(
+                            cached[pid], readout)
+                        if not compare_ret:
+                            logger.info(f"The newly written channels have not "
+                                        f"all taken effect: {msg}")
+                            continue
+
                         self._last_correlated = pid
                         correlated.update(cached[pid])
                         return pid, correlated
@@ -227,7 +264,7 @@ class _DoocsMachine:
 
         raise LisoRuntimeError("Unable to match all data!")
 
-    def _update(self, correlated):
+    def _update_channels(self, correlated):
         control_data = dict()
         for address, ch in self._controls.items():
             ch.value = correlated[address]  # validate
@@ -241,7 +278,11 @@ class _DoocsMachine:
         return control_data, diagnostic_data
 
     @profiler("machine run")
-    def run(self, *, executor=None, threads=2, mapping=None, max_attempts=20):
+    def run(self, *,
+            executor=None,
+            threads=2,
+            mapping=None,
+            max_attempts=20):
         """Run the machine once.
 
         :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
@@ -251,7 +292,6 @@ class _DoocsMachine:
             addresses and values being the numbers to be written into the
             corresponding address.
         :param int max_attempts: maximum attempts when correlating data.
-
         :raises:
             LisoRuntimeError: if validation fails or it is unable to
                 correlate data.
@@ -259,16 +299,18 @@ class _DoocsMachine:
         if executor is None:
             executor = ThreadPoolExecutor(max_workers=threads)
 
-        if not self._compile(executor, mapping):
+        writein, readout = self._compile(mapping)
+
+        if not self._update_machine(executor, writein):
             raise LisoRuntimeError(
                 "Failed to write new values to all channels!")
 
         time.sleep(self._delay)
 
-        pid, correlated = self._correlate(executor, max_attempts)
+        pid, correlated = self._correlate(executor, max_attempts, readout)
 
         try:
-            control_data, diagnostic_data = self._update(correlated)
+            control_data, diagnostic_data = self._update_channels(correlated)
         except ValidationError as e:
             raise LisoRuntimeError(repr(e))
 

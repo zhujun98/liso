@@ -8,16 +8,16 @@ from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
 from liso.experiment import machine
 from liso.logging import logger
-logger.setLevel("CRITICAL")
+logger.setLevel("INFO")
 
 from . import DoocsDataGenerator as ddgen
 
 
-def _side_effect(dataset, address):
+def _side_effect_read(dataset, address, error=0):
     data = dataset[address]
     if data['macropulse'] > 0:
         data['macropulse'] += 1
-    data['data'] += 1
+    data['data'] += error
     return data
 
 
@@ -82,22 +82,30 @@ class TestDoocsMachine(unittest.TestCase):
     @patch("liso.experiment.machine.pydoocs_read")
     def testRun(self, patched_read, patched_write):
         dataset = self._dataset
-        patched_read.side_effect = lambda x: _side_effect(dataset, x)
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         self._machine.run()
         self.assertEqual(len(self._machine.channels), patched_read.call_count)
 
-        self._machine.run(mapping={'XFEL.A/B/C/D': 5})
+        # 'readout' is empty or None
+        self._machine.run(mapping={'XFEL.A/B/C/D': {
+            'value': 5., 'readout': None, 'tol': 1e-6}})
         patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
+        patched_write.reset_mock()
+        self._machine.run(mapping={'XFEL.A/B/C/D': {
+            'value': 5, 'tol': 1e-6}})
+        patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
+        patched_write.reset_mock()
 
-        with self.assertRaisesRegex(LisoRuntimeError,
-                                    "Failed to write new values to all channels"):
-            def _side_effect_write(address, v):
-                if address == 'XFEL.A/B/C/E':
-                    raise np.random.choice([machine.PyDoocsException,
-                                            machine.DoocsException])
-            patched_write.side_effect = _side_effect_write
-            self._machine.run(mapping={'XFEL.A/B/C/D': 5, 'XFEL.A/B/C/E': 5})
+        # 'readout' is a registered channel
+        self._machine.run(mapping={'XFEL.A/B/C/D': {
+            'value': 10, 'readout': 'XFEL.A/B/C/D', 'tol': 1e-6}})
+        patched_write.assert_called_once_with('XFEL.A/B/C/D', 10)
+
+        # 'readout' is not registered
+        with self.assertRaisesRegex(ValueError, "not been registered"):
+            self._machine.run(mapping={'XFEL.A/B/C/D': {
+                'value': 10, 'readout': 'XFEL.A/B/C/F', 'tol': 1e-6}})
 
         with self.subTest("Test validation"):
             orig_v = dataset["XFEL.A/B/C/D"]['data']
@@ -112,17 +120,57 @@ class TestDoocsMachine(unittest.TestCase):
                 self._machine.run()
             dataset["XFEL.H/I/J/K"]['data'] = orig_v
 
+        with self.subTest("Test raise when reading"):
+            def _side_effect_read2(dataset, address):
+                if np.random.rand() > 0.7:
+                    raise np.random.choice([machine.PyDoocsException,
+                                            machine.DoocsException])
+                return dataset[address]
+            patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
+            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+                self._machine.run()
+
+        with self.subTest("Test raise when writing"):
+            with self.assertRaisesRegex(LisoRuntimeError,
+                                        "Failed to write new values to all channels"):
+                def _side_effect_write(address, v):
+                    if address == 'XFEL.A/B/C/E':
+                        raise np.random.choice([machine.PyDoocsException,
+                                                machine.DoocsException])
+                patched_write.side_effect = _side_effect_write
+                self._machine.run(mapping={
+                    'XFEL.A/B/C/D': {
+                        'value': 10, 'readout': 'XFEL.A/B/C/D', 'tol': 1e-6
+                    },
+                    'XFEL.A/B/C/E': {
+                        'value': 100, 'readout': 'XFEL.A/B/C/D', 'tol': 1e-5
+                    },
+                })
+
     @patch("liso.experiment.machine.pydoocs_write")
     @patch("liso.experiment.machine.pydoocs_read")
     def testCorrelation(self, patched_read, patched_write):
         dataset = self._dataset
-        patched_read.side_effect = lambda x: _side_effect(dataset, x)
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x, error=1)
 
         dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                 1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=1001)
         self._machine.run(max_attempts=2)
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
             self._machine.run(max_attempts=1)
+
+        with self.subTest("Test checking written data"):
+            self._machine.run(mapping={
+                'XFEL.A/B/C/D': {
+                    'value': 4.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
+                },
+            }, max_attempts=2)
+            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+                self._machine.run(mapping={
+                    'XFEL.A/B/C/D': {
+                        'value': 6.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.09
+                    },
+                }, max_attempts=10)
 
         with self.subTest("Test receiving data with invalid macropulse ID"):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
@@ -138,11 +186,12 @@ class TestDoocsMachine(unittest.TestCase):
             self._machine.run(max_attempts=1)
 
         with self.subTest("Test receiving data with pulse ID smaller than the correlated one"):
-            self.assertEqual(1014, self._machine._last_correlated)
+            last_correlated_gt = 1026
+            self.assertEqual(last_correlated_gt, self._machine._last_correlated)
             for address in dataset:
-                dataset[address]['macropulse'] = 1013
+                dataset[address]['macropulse'] = last_correlated_gt - 1
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
                 self._machine.run(max_attempts=1)
-            self.assertEqual(1014, self._machine._last_correlated)
+            self.assertEqual(last_correlated_gt, self._machine._last_correlated)
             self._machine.run(max_attempts=1)
-            self.assertEqual(1015, self._machine._last_correlated)
+            self.assertEqual(last_correlated_gt + 1, self._machine._last_correlated)
