@@ -297,7 +297,9 @@ class MachineScan(_BaseScan):
                         mapping[k].update(self._param_readouts[k])
                 count += 1
                 logger.info(f"Scan {count:06d}: "
-                            + str(mapping)[1:-1].replace(': ', ' = '))
+                            + str({address: item['value']
+                                   for address, item in mapping.items()})
+                            [1:-1].replace(': ', ' = '))
 
                 try:
                     idx, controls, diagnostics = self._machine.run(
