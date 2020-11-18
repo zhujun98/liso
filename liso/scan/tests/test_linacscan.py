@@ -16,7 +16,7 @@ from liso import (
 from liso import doocs_channels as dc
 from liso.io import ExpWriter
 from liso.logging import logger
-logger.setLevel('CRITICAL')
+logger.setLevel('ERROR')
 
 from ...experiment.tests import DoocsDataGenerator as ddgen
 
@@ -92,7 +92,7 @@ class TestLinacScan(unittest.TestCase):
         self.assertLess(abs(1 - np.std(lst2)), 0.1)
 
     def testSampleParm(self):
-        n = 10
+        n = 1000
         self._sc.add_param("param1", lb=-0.1, ub=0.1)
         self._sc.add_param("param2", lb=-10., ub=20)
         lst = self._sc._generate_param_sequence(n)
@@ -104,6 +104,8 @@ class TestLinacScan(unittest.TestCase):
         self.assertTrue(np.all(np.array(lst1) < 0.1))
         self.assertTrue(np.all(np.array(lst2) >= -10))
         self.assertTrue(np.all(np.array(lst2) < 20))
+        self.assertLess(np.abs(np.mean(lst1)), 0.005)
+        self.assertLess(np.abs(np.mean(lst2) - 5.), 0.25)
 
     def testScan(self):
         self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
@@ -172,17 +174,41 @@ class TestMachineScan(unittest.TestCase):
             m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
-            sc = MachineScan(m)
-            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
-            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
-            self._sc = sc
+            self._sc = MachineScan(m)
 
             super().run(result)
+
+    def testSampleDistance(self):
+        n = 1
+        self._sc.add_param("param1", dist=0.5, lb=10, ub=20)
+        self._sc.add_param("param2", dist=0.5, lb=-5, ub=5)
+        with self.assertRaises(RuntimeError):
+            self._sc._generate_param_sequence(n)
+
+        n = 100
+        self._sc.add_param("param3", dist=0.3, start=-1., stop=1., num=10)
+        seq = self._sc._generate_param_sequence(n)
+        self.assertEqual(1000, len(seq))
+        for i in range(len(seq) - 1):
+            self.assertGreater(abs(seq[i][0] - seq[i+1][0]), 0.5)
+            self.assertGreater(abs(seq[i][1] - seq[i+1][1]), 0.5)
+            self.assertGreater(abs(seq[i][2] - seq[i+1][2]), 0.3)
+
+        with self.assertRaises(RuntimeError):
+            self._sc._params.pop('param3')
+            self._sc._param_dists.pop('param3')
+            self._sc.add_param("param3", dist=1., start=-1., stop=1., num=10)
+            self._sc._generate_param_sequence(n)
 
     @patch("liso.experiment.machine.pydoocs_write")
     @patch("liso.experiment.machine.pydoocs_read")
     def testScan(self, patched_read, patched_write):
         m = self._machine
+
+        sc = self._sc
+        sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+        sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
+
         dataset = {
             "XFEL.A/B/C/D": ddgen.scalar(
                 1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=1000),
@@ -201,7 +227,7 @@ class TestMachineScan(unittest.TestCase):
             n_pulses = 40
 
             path = pathlib.Path(tmp_dir)
-            self._sc.scan(n_pulses, folder=tmp_dir)
+            sc.scan(n_pulses, folder=tmp_dir)
 
             patched_read.assert_called()
             patched_write.assert_called()
@@ -221,12 +247,12 @@ class TestMachineScan(unittest.TestCase):
             self.assertTrue(np.all(img_data[11] == 13))
 
             with self.subTest("Test creating run folder in sequence"):
-                self._sc.scan(n_pulses, folder=tmp_dir)
+                sc.scan(n_pulses, folder=tmp_dir)
                 self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
                                      sorted((path.iterdir())))
 
                 path.joinpath("r0006").mkdir()
-                self._sc.scan(n_pulses, folder=tmp_dir)
+                sc.scan(n_pulses, folder=tmp_dir)
                 self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                      sorted((path.iterdir())))
 
