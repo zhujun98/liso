@@ -89,6 +89,9 @@ class _BaseScan(abc.ABC):
         return list(ret_queue)
 
     def _generate_param_sequence(self, cycles):
+        if not self._params:
+            return []
+
         repeats = np.prod([len(param) for param in self._params.values()])
         ret = []
         for param in self._params.values():

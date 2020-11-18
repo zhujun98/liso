@@ -108,8 +108,6 @@ class TestLinacScan(unittest.TestCase):
         self.assertLess(np.abs(np.mean(lst2) - 5.), 0.25)
 
     def testScan(self):
-        self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
-        self._sc.add_param('gun_phase', start=10., stop=30., num=3)
 
         with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
             ps = Phasespace(pd.DataFrame(
@@ -123,6 +121,11 @@ class TestLinacScan(unittest.TestCase):
                 patched_run.return_value = future
 
             with tempfile.TemporaryDirectory() as tmp_dir:
+                with self.assertRaises(KeyError):
+                    self._sc.scan(2, folder=tmp_dir, n_tasks=2)
+
+                self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
+                self._sc.add_param('gun_phase', start=10., stop=30., num=3)
                 # Note: use n_tasks > 1 here to track bugs
                 self._sc.scan(2, folder=tmp_dir, n_tasks=2)
 
@@ -217,10 +220,7 @@ class TestMachineScan(unittest.TestCase):
     @patch("liso.experiment.machine.pydoocs_read")
     def testScan(self, patched_read, patched_write):
         m = self._machine
-
         sc = self._sc
-        sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
-        sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
         dataset = {
             "XFEL.A/B/C/D": ddgen.scalar(
@@ -239,34 +239,42 @@ class TestMachineScan(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             n_pulses = 40
 
+            sc.scan(n_pulses, folder=tmp_dir)
+
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
             path = pathlib.Path(tmp_dir)
             sc.scan(n_pulses, folder=tmp_dir)
 
             patched_read.assert_called()
             patched_write.assert_called()
 
-            self.assertListEqual([path.joinpath('r0001')], list(path.iterdir()))
-            run = open_run(path.joinpath('r0001'))
+            self.assertListEqual([path.joinpath('r0001'), path.joinpath('r0002')],
+                                 sorted(path.iterdir()))
+            run = open_run(path.joinpath('r0002'))
             run.info()
 
             control_data = run.get_controls()
-            np.testing.assert_array_equal(control_data.index, 1001 + np.arange(n_pulses))
-            np.testing.assert_array_equal(control_data['XFEL.A/B/C/D'], 2 + np.arange(n_pulses))
-            np.testing.assert_array_equal(control_data['XFEL.A/B/C/E'], 101 + np.arange(n_pulses))
+            np.testing.assert_array_equal(
+                control_data.index, 1001 + n_pulses + np.arange(n_pulses))
+            np.testing.assert_array_equal(
+                control_data['XFEL.A/B/C/D'], 2 + n_pulses + np.arange(n_pulses))
+            np.testing.assert_array_equal(
+                control_data['XFEL.A/B/C/E'], 101 + n_pulses + np.arange(n_pulses))
 
             img_data = run.channel("XFEL.H/I/J/K").numpy()
             self.assertTupleEqual((n_pulses, 3, 4), img_data.shape)
-            self.assertTrue(np.all(img_data[1] == 3))
-            self.assertTrue(np.all(img_data[11] == 13))
+            self.assertTrue(np.all(img_data[1] == 3 + n_pulses))
+            self.assertTrue(np.all(img_data[11] == 13 + n_pulses))
 
             with self.subTest("Test creating run folder in sequence"):
                 sc.scan(n_pulses, folder=tmp_dir)
-                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
+                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 3]],
                                      sorted((path.iterdir())))
 
                 path.joinpath("r0006").mkdir()
                 sc.scan(n_pulses, folder=tmp_dir)
-                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
+                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 3, 6, 7]],
                                      sorted((path.iterdir())))
 
             with self.subTest("Test chmod"):
