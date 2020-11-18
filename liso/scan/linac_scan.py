@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 import asyncio
-from collections import OrderedDict
+from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import pathlib
@@ -26,11 +26,12 @@ from ..logging import logger
 class _BaseScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
+        self._param_dists = OrderedDict()
 
     def _check_param_name(self, name):
         return name
 
-    def _add_scan_param(self, name, **kwargs):
+    def _add_scan_param(self, name, *, dist=-1., **kwargs):
         name = self._check_param_name(name)
 
         if name in self._params:
@@ -45,6 +46,47 @@ class _BaseScan(abc.ABC):
                 param = JitterParam(name, **kwargs)
 
         self._params[name] = param
+        self._param_dists[name] = dist
+
+    def _sort_param_sequence(self, seq):
+        tol = tuple(self._param_dists.values())
+
+        def _check_distance(a, b):
+            for ia, ib, it in zip(a, b, tol):
+                if abs(ia - ib) < it:
+                    return False
+            return True
+
+        cache = list()
+        ret_queue = deque()
+        for item in zip(*seq):
+            if not ret_queue:
+                ret_queue.append(item)
+            else:
+                if _check_distance(item, ret_queue[-1]):
+                    ret_queue.append(item)
+                elif _check_distance(item, ret_queue[0]):
+                    ret_queue.appendleft(item)
+                else:
+                    cache.append(item)
+        n_pulses = len(cache) + len(ret_queue)
+
+        if len(ret_queue) < 2:
+            # unlikely to happen
+            return
+
+        for item in cache:
+            length = len(ret_queue)
+            for i in range(2, length-2, 2):
+                if _check_distance(item, ret_queue[i-1]) and \
+                        _check_distance(item, ret_queue[i]):
+                    ret_queue.insert(i, item)
+                    break
+
+        if len(ret_queue) != n_pulses:
+            return
+
+        return list(ret_queue)
 
     def _generate_param_sequence(self, cycles):
         repeats = np.prod([len(param) for param in self._params.values()])
@@ -54,7 +96,14 @@ class _BaseScan(abc.ABC):
             ret.append(param.generate(repeats=repeats, cycles=cycles))
             cycles *= len(param)
 
-        return list(zip(*ret))
+        for i in range(5):
+            logger.debug(f"Generating scan parameter sequence (attempt {i+1})")
+            seq = self._sort_param_sequence(ret)
+            if seq is not None:
+                return seq
+
+        raise RuntimeError(
+            "Failed to a parameter sequence with enough distance!")
 
     def summarize(self):
         text = '\n' + '=' * 80 + '\n'
