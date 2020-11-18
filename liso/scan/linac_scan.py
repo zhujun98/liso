@@ -173,7 +173,7 @@ class LinacScan(_BaseScan):
         return parent_path
 
     async def _async_scan(self, cycles, run_folder, *,
-                          start_id, group, n_tasks, **kwargs):
+                          start_id, n_tasks, group, chmod, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence)
@@ -184,7 +184,10 @@ class LinacScan(_BaseScan):
             control_schema[param] = {'type': '<f4'}
         schema = (control_schema, phasespace_schema)
 
-        with SimWriter(run_folder, schema=schema, group=group) as writer:
+        with SimWriter(run_folder,
+                       schema=schema,
+                       chmod=chmod,
+                       group=group) as writer:
             count = 0
             while True:
                 if count < n_pulses:
@@ -230,8 +233,9 @@ class LinacScan(_BaseScan):
 
     def scan(self, cycles=1, folder='scan_data', *,
              start_id=1,
-             group=1,
              n_tasks=None,
+             chmod=True,
+             group=1,
              seed=None,
              **kwargs):
         """Start a parameter scan.
@@ -241,8 +245,10 @@ class LinacScan(_BaseScan):
             of variable space is 1.
         :param str folder: folder where the simulation data will be saved.
         :param int start_id: starting simulation id. Default = 1.
-        :param int group: writer group.
         :param int/None n_tasks: maximum number of concurrent tasks.
+        :param bool chmod: True for changing the permission to 400 after
+            finishing writing.
+        :param int group: writer group.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
@@ -265,8 +271,9 @@ class LinacScan(_BaseScan):
         loop.run_until_complete(self._async_scan(
             cycles, run_folder,
             start_id=start_id,
-            group=group,
             n_tasks=n_tasks,
+            group=group,
+            chmod=chmod,
             **kwargs))
 
         logger.info(f"Scan finished!")
@@ -305,8 +312,9 @@ class MachineScan(_BaseScan):
 
     def scan(self, cycles=1, folder='scan_data', *,
              n_tasks=None,
-             seed=None,
-             group=1):
+             chmod=True,
+             group=1,
+             seed=None):
         """Start a parameter scan.
 
         :param int cycles: number of cycles of the parameter space. For
@@ -316,9 +324,11 @@ class MachineScan(_BaseScan):
             in its own sub-folder.
         :param int/None n_tasks: maximum number of concurrent tasks for
             read and write.
+        :param bool chmod: True for changing the permission to 400 after
+            finishing writing.
+        :param int group: writer group.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
-        :param int group: writer group.
         """
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
@@ -336,6 +346,7 @@ class MachineScan(_BaseScan):
         n_pulses = len(sequence) if sequence else cycles
         with ExpWriter(run_folder,
                        schema=self._machine.schema,
+                       chmod=chmod,
                        group=group) as writer:
             count = 0
             while count < n_pulses:

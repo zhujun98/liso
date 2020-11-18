@@ -155,6 +155,19 @@ class TestLinacScan(unittest.TestCase):
                     sim = open_sim(tmp_dir)
                     np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
 
+            with self.subTest("Test chmod"):
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    self._sc.scan(2, folder=tmp_dir)
+                    path = pathlib.Path(tmp_dir)
+                    for file in path.iterdir():
+                        self.assertEqual('400', oct(file.stat().st_mode)[-3:])
+
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    self._sc.scan(2, folder=tmp_dir, chmod=False)
+                    path = pathlib.Path(tmp_dir)
+                    for file in path.iterdir():
+                        self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+
 
 class TestMachineScan(unittest.TestCase):
     def setUp(self):
@@ -256,3 +269,15 @@ class TestMachineScan(unittest.TestCase):
                 self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                      sorted((path.iterdir())))
 
+            with self.subTest("Test chmod"):
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    sc.scan(n_pulses, folder=tmp_dir)
+                    path = pathlib.Path(tmp_dir).joinpath('r0001')
+                    for file in path.iterdir():
+                        self.assertEqual('400', oct(file.stat().st_mode)[-3:])
+
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    sc.scan(n_pulses, folder=tmp_dir, chmod=False)
+                    path = pathlib.Path(tmp_dir).joinpath('r0001')
+                    for file in path.iterdir():
+                        self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])

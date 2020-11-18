@@ -25,12 +25,15 @@ class _BaseWriter(abc.ABC):
     _IMAGE_CHUNK = (16, 512)
 
     def __init__(self, path, *,
+                 chmod=True,
                  group=1,
                  chunk_size=50,
                  max_events_per_file):
         """Initialization.
 
         :param pathlib.Path path: path of the simulation/run folder.
+        :param bool chmod: True for changing the permission to 400 after
+            finishing writing.
         :param int group: writer group (1-99).
         :param int chunk_size: size of the first dimention of a chunk in
             a dataset.
@@ -48,6 +51,8 @@ class _BaseWriter(abc.ABC):
         self._path = path if isinstance(path, pathlib.Path) \
             else pathlib.Path(path)
         self._fp = None
+
+        self._chmod = chmod
 
         self._group = group
         if not isinstance(group, int) or group < 1 or group > 99:
@@ -83,7 +88,8 @@ class _BaseWriter(abc.ABC):
             self._finalize()
             filename = self._fp.filename
             self._fp.close()
-            os.chmod(filename, 0o400)
+            if self._chmod:
+                os.chmod(filename, 0o400)
             self._fp = None
 
 
