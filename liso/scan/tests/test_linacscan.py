@@ -14,6 +14,7 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
+from liso.experiment.machine import _DoocsReader
 from liso.io import ExpWriter
 from liso.logging import logger
 logger.setLevel('ERROR')
@@ -172,6 +173,19 @@ class TestLinacScan(unittest.TestCase):
                         self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
 
 
+_PID0 = 1000
+
+
+def _side_effect_read(dataset, address):
+    data = dataset[address]
+    if data['macropulse'] >= _PID0:
+        if np.random.rand() > 0.5:
+            # do not mutate
+            data['data'] = data['data'] + 1
+            data['macropulse'] += 1
+    return data
+
+
 class TestMachineScan(unittest.TestCase):
     def setUp(self):
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
@@ -186,13 +200,21 @@ class TestMachineScan(unittest.TestCase):
 
             m = EuXFELInterface()
             m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/D')
-            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/E')
+            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/E', no_event=True)
             m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
             self._sc = MachineScan(m)
 
-            super().run(result)
+            DELAY_NO_EVENT = _DoocsReader._DELAY_NO_EVENT
+            DELAY_STALE = _DoocsReader._DELAY_STALE
+            try:
+                _DoocsReader._DELAY_NO_EVENT = 1e-3
+                _DoocsReader._DELAY_STALE = 1e-4
+                super().run(result)
+            finally:
+                _DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
+                _DoocsReader._DELAY_STALE = DELAY_STALE
 
     def testSampleDistance(self):
         n = 1
@@ -216,76 +238,96 @@ class TestMachineScan(unittest.TestCase):
             self._sc.add_param("param3", dist=1., start=-1., stop=1., num=10)
             self._sc._generate_param_sequence(n)
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
-    def testScan(self, patched_read, patched_write):
+    def _prepare_dataset(self):
         m = self._machine
-        sc = self._sc
-
-        dataset = {
+        return {
             "XFEL.A/B/C/D": ddgen.scalar(
-                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=1000),
+                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=_PID0),
             "XFEL.A/B/C/E": ddgen.scalar(
-                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=1000),
+                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=_PID0),
             "XFEL.H/I/J/K": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1000),
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=_PID0),
         }
-        def side_effect(address):
-            dataset[address]['data'] += 1
-            dataset[address]['macropulse'] += 1
-            return dataset[address]
-        patched_read.side_effect = side_effect
+
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testScanWithoutParameter(self, patched_read):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             n_pulses = 40
-
-            sc.scan(n_pulses, folder=tmp_dir)
-
-            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
-            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
-            path = pathlib.Path(tmp_dir)
-            sc.scan(n_pulses, folder=tmp_dir)
+            sc.scan(n_pulses, folder=tmp_dir, timeout=0.005)
 
             patched_read.assert_called()
-            patched_write.assert_called()
 
-            self.assertListEqual([path.joinpath('r0001'), path.joinpath('r0002')],
-                                 sorted(path.iterdir()))
-            run = open_run(path.joinpath('r0002'))
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testRunFolderCreation(self, patched_read):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.scan(2, folder=tmp_dir, timeout=0.001)
+            sc.scan(2, folder=tmp_dir, timeout=0.001)
+            path = pathlib.Path(tmp_dir)
+            self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
+                                 sorted((path.iterdir())))
+
+            path.joinpath("r0006").mkdir()
+            sc.scan(2, folder=tmp_dir, timeout=0.001)
+            self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
+                                 sorted((path.iterdir())))
+
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testChmod(self, patched_read):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.scan(10, folder=tmp_dir, timeout=0.001)
+            path = pathlib.Path(tmp_dir).joinpath('r0001')
+            for file in path.iterdir():
+                self.assertEqual('400', oct(file.stat().st_mode)[-3:])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.scan(10, folder=tmp_dir, chmod=False, timeout=0.001)
+            path = pathlib.Path(tmp_dir).joinpath('r0001')
+            for file in path.iterdir():
+                self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+
+    @patch("liso.experiment.machine.pydoocs_write")
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testScanWithParameters(self, patched_read, patched_write):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
+
+            path = pathlib.Path(tmp_dir)
+
+            n_pulses = 40
+            sc.scan(n_pulses, folder=tmp_dir, timeout=0.01)
+
+            run = open_run(path.joinpath('r0001'))
             run.info()
 
             control_data = run.get_controls()
+
+            pids = control_data.index
+            self.assertEqual(len(np.unique(pids)), len(pids))
             np.testing.assert_array_equal(
-                control_data.index, 1001 + n_pulses + np.arange(n_pulses))
-            np.testing.assert_array_equal(
-                control_data['XFEL.A/B/C/D'], 2 + n_pulses + np.arange(n_pulses))
-            np.testing.assert_array_equal(
-                control_data['XFEL.A/B/C/E'], 101 + n_pulses + np.arange(n_pulses))
+                control_data['XFEL.A/B/C/D'], pids - _PID0 + 1)
+            if len(pids) != 1:
+                self.assertLess(len(np.unique(control_data['XFEL.A/B/C/E'])),
+                                len(control_data['XFEL.A/B/C/E']))
 
             img_data = run.channel("XFEL.H/I/J/K").numpy()
-            self.assertTupleEqual((n_pulses, 3, 4), img_data.shape)
-            self.assertTrue(np.all(img_data[1] == 3 + n_pulses))
-            self.assertTrue(np.all(img_data[11] == 13 + n_pulses))
 
-            with self.subTest("Test creating run folder in sequence"):
-                sc.scan(n_pulses, folder=tmp_dir)
-                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 3]],
-                                     sorted((path.iterdir())))
-
-                path.joinpath("r0006").mkdir()
-                sc.scan(n_pulses, folder=tmp_dir)
-                self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 3, 6, 7]],
-                                     sorted((path.iterdir())))
-
-            with self.subTest("Test chmod"):
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    sc.scan(n_pulses, folder=tmp_dir)
-                    path = pathlib.Path(tmp_dir).joinpath('r0001')
-                    for file in path.iterdir():
-                        self.assertEqual('400', oct(file.stat().st_mode)[-3:])
-
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    sc.scan(n_pulses, folder=tmp_dir, chmod=False)
-                    path = pathlib.Path(tmp_dir).joinpath('r0001')
-                    for file in path.iterdir():
-                        self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+            self.assertTupleEqual((len(pids), 3, 4), img_data.shape)
+            self.assertTrue(np.all(img_data[1] == pids[1] - _PID0 + 1))
+            self.assertTrue(np.all(img_data[-1] == pids[-1] - _PID0 + 1))
