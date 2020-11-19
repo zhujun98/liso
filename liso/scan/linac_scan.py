@@ -71,10 +71,6 @@ class _BaseScan(abc.ABC):
                     cache.append(item)
         n_pulses = len(cache) + len(ret_queue)
 
-        if len(ret_queue) < 2:
-            # unlikely to happen
-            return
-
         for item in cache:
             length = len(ret_queue)
             for i in range(2, length-2, 2):
