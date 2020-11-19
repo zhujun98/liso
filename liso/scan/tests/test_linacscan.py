@@ -198,8 +198,8 @@ class TestMachineScan(unittest.TestCase):
         n = 1
         self._sc.add_param("param1", dist=0.5, lb=10, ub=20)
         self._sc.add_param("param2", dist=0.5, lb=-5, ub=5)
-        with self.assertRaises(RuntimeError):
-            self._sc._generate_param_sequence(n)
+        seq = self._sc._generate_param_sequence(n)
+        self.assertEqual(1, len(seq))
 
         n = 100
         self._sc.add_param("param3", dist=0.3, start=-1., stop=1., num=10)
