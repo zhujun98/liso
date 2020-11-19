@@ -7,38 +7,58 @@ from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
 from liso.experiment import machine
+from liso.experiment.machine import _DoocsReader
 from liso.logging import logger
-logger.setLevel("CRITICAL")
+logger.setLevel("ERROR")
 
 from . import DoocsDataGenerator as ddgen
 
 
+_PID0 = 1000
+
+
 def _side_effect_read(dataset, address, error=0):
     data = dataset[address]
-    if data['macropulse'] > 0:
-        data['macropulse'] += 1
-    data['data'] += error
+    if data['macropulse'] >= _PID0:
+        if np.random.rand() > 0.5:
+            data['macropulse'] += 1
+            # do not mutate
+            data['data'] = data['data'] + error
     return data
 
 
 class TestDoocsMachine(unittest.TestCase):
+    def run(self, result=None):
+        DELAY_NO_EVENT = _DoocsReader._DELAY_NO_EVENT
+        DELAY_STALE = _DoocsReader._DELAY_STALE
+        try:
+            _DoocsReader._DELAY_NO_EVENT = 1e-3
+            _DoocsReader._DELAY_STALE = 1e-4
+            super().run(result)
+        finally:
+            _DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
+            _DoocsReader._DELAY_STALE = DELAY_STALE
+
     def setUp(self):
-        m = EuXFELInterface(delay=0.01)
+        m = EuXFELInterface()
         m.add_control_channel(dc.FLOAT, "XFEL.A/B/C/D")
         m.add_control_channel(dc.DOUBLE, "XFEL.A/B/C/E")
-        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(4, 4), dtype="uint16", no_event=True)
-        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=(5, 6), dtype="float32")
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K",
+                                 shape=(4, 4), dtype="uint16", no_event=True)
+        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L",
+                                 shape=(5, 6), dtype="float32")
         self._machine = m
 
         self._dataset = {
             "XFEL.A/B/C/D": ddgen.scalar(
-                10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=1000),
+                10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=_PID0),
             "XFEL.A/B/C/E": ddgen.scalar(
-                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=1000),
+                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=_PID0),
+            # default value is 1
             "XFEL.H/I/J/K": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=1),
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=100),
             "XFEL.H/I/J/L": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/L"].value_schema(), pid=1000)
+                m._diagnostics["XFEL.H/I/J/L"].value_schema(), pid=_PID0)
         }
 
     def testChannelManipulation(self):
@@ -47,12 +67,16 @@ class TestDoocsMachine(unittest.TestCase):
         self.assertListEqual(["XFEL.A/B/C/D", 'XFEL.A/B/C/E'], m.controls)
         self.assertListEqual(["XFEL.H/I/J/K", 'XFEL.H/I/J/L'], m.diagnostics)
         self.assertListEqual(m.controls + m.diagnostics, m.channels)
+        self.assertSetEqual(set(m.controls + m.diagnostics), m._reader._channels)
+        self.assertSetEqual({"XFEL.H/I/J/K"}, m._reader._no_event)
 
         with self.subTest("Add an existing channel"):
             with self.assertRaises(ValueError):
-                m.add_control_channel(dc.IMAGE, "XFEL.A/B/C/D", shape=(2, 2), dtype="uint16")
+                m.add_control_channel(dc.IMAGE, "XFEL.A/B/C/D",
+                                      shape=(2, 2), dtype="uint16")
             with self.assertRaises(ValueError):
-                m.add_control_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=(2, 2), dtype="uint16")
+                m.add_control_channel(dc.IMAGE, "XFEL.H/I/J/K",
+                                      shape=(2, 2), dtype="uint16")
             with self.assertRaises(ValueError):
                 m.add_diagnostic_channel(dc.FLOAT, "XFEL.A/B/C/D")
             with self.assertRaises(ValueError):
@@ -84,28 +108,29 @@ class TestDoocsMachine(unittest.TestCase):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
-        self._machine.run()
-        self.assertEqual(len(self._machine.channels), patched_read.call_count)
+        self._machine.run(timeout=0.01)
+        self.assertGreaterEqual(patched_read.call_count, len(self._machine.channels))
 
-        # 'readout' is empty or None
-        self._machine.run(mapping={'XFEL.A/B/C/D': {
-            'value': 5., 'readout': None, 'tol': 1e-6}})
-        patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
-        patched_write.reset_mock()
-        self._machine.run(mapping={'XFEL.A/B/C/D': {
-            'value': 5, 'tol': 1e-6}})
-        patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
-        patched_write.reset_mock()
-
-        # 'readout' is a registered channel
-        self._machine.run(mapping={'XFEL.A/B/C/D': {
-            'value': 10, 'readout': 'XFEL.A/B/C/D', 'tol': 1e-6}})
-        patched_write.assert_called_once_with('XFEL.A/B/C/D', 10)
-
-        # 'readout' is not registered
-        with self.assertRaisesRegex(ValueError, "not been registered"):
+        with self.subTest("Test readout"):
+            # 'readout' is empty or None
             self._machine.run(mapping={'XFEL.A/B/C/D': {
-                'value': 10, 'readout': 'XFEL.A/B/C/F', 'tol': 1e-6}})
+                'value': 5., 'readout': None, 'tol': 1e-6}})
+            patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
+            patched_write.reset_mock()
+            self._machine.run(mapping={'XFEL.A/B/C/D': {
+                'value': 5, 'tol': 1e-6}})
+            patched_write.assert_called_once_with('XFEL.A/B/C/D', 5)
+            patched_write.reset_mock()
+
+            # 'readout' is a registered channel
+            self._machine.run(mapping={'XFEL.A/B/C/D': {
+                'value': 10, 'readout': 'XFEL.A/B/C/D', 'tol': 1e-6}})
+            patched_write.assert_called_once_with('XFEL.A/B/C/D', 10)
+
+            # 'readout' is not registered
+            with self.assertRaisesRegex(ValueError, "not been registered"):
+                self._machine.run(mapping={'XFEL.A/B/C/D': {
+                    'value': 10, 'readout': 'XFEL.A/B/C/F', 'tol': 1e-6}})
 
         with self.subTest("Test validation"):
             orig_v = dataset["XFEL.A/B/C/D"]['data']
@@ -121,14 +146,30 @@ class TestDoocsMachine(unittest.TestCase):
             dataset["XFEL.H/I/J/K"]['data'] = orig_v
 
         with self.subTest("Test raise when reading"):
+            # raise happens to an event-based channel
             def _side_effect_read2(dataset, address):
-                if np.random.rand() > 0.7:
+                if address != "XFEL.H/I/J/K":
                     raise np.random.choice([machine.PyDoocsException,
                                             machine.DoocsException])
                 return dataset[address]
             patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
-            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-                self._machine.run()
+            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match all data'):
+                self._machine.run(timeout=0.1)
+
+            # raise happens to a no-event channel
+            def _side_effect_read3(dataset, address):
+                if address == "XFEL.H/I/J/K":
+                    raise np.random.choice([machine.PyDoocsException,
+                                            machine.DoocsException])
+                data = dataset[address]
+                if data['macropulse'] >= _PID0:
+                    if np.random.rand() > 0.5:
+                        data['macropulse'] += 1
+
+                return dataset[address]
+            patched_read.side_effect = lambda x: _side_effect_read3(dataset, x)
+            with self.assertRaisesRegex(LisoRuntimeError, 'XFEL.H/I/J/K'):
+                self._machine.run(timeout=0.1)
 
         with self.subTest("Test raise when writing"):
             with self.assertRaisesRegex(LisoRuntimeError,
@@ -161,47 +202,57 @@ class TestDoocsMachine(unittest.TestCase):
         dataset["XFEL.A/B/C/F"] = ddgen.scalar(
                 1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
 
-        pid, control_data, diagnostic_data = self._machine.run(max_attempts=2)
-        self.assertEqual(1002, pid)
-        self.assertDictEqual({'XFEL.A/B/C/D': 2.0, 'XFEL.A/B/C/E': 102.0, 'XFEL.A/B/C/F': 3.0},
+        pid, control_data, diagnostic_data = self._machine.run()
+        self.assertDictEqual({'XFEL.A/B/C/D': pid - _PID0,
+                              'XFEL.A/B/C/E': pid - _PID0 + 100,
+                              'XFEL.A/B/C/F': 1.0},
                              control_data)
-        np.testing.assert_array_equal(3 * np.ones((4, 4)), diagnostic_data['XFEL.H/I/J/K'])
-        np.testing.assert_array_equal(3 * np.ones((5, 6)), diagnostic_data['XFEL.H/I/J/L'])
-
-        with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-            self._machine.run(max_attempts=1)
-
-        with self.subTest("Test checking written data"):
-            self._machine.run(mapping={
-                'XFEL.A/B/C/D': {
-                    'value': 4.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
-                },
-            }, max_attempts=2)
-            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-                self._machine.run(mapping={
-                    'XFEL.A/B/C/D': {
-                        'value': 6.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.09
-                    },
-                }, max_attempts=10)
+        np.testing.assert_array_equal(np.ones((4, 4)), diagnostic_data['XFEL.H/I/J/K'])
+        np.testing.assert_array_equal((pid - _PID0 + 1) * np.ones((5, 6)),
+                                      diagnostic_data['XFEL.H/I/J/L'])
 
         with self.subTest("Test receiving data with invalid macropulse ID"):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                     1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=-1)
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-                self._machine.run(max_attempts=10)
+                self._machine.run(timeout=0.1)
 
-        with self.subTest("Test receiving non-event based data (ID = 0)"):
-            dataset["XFEL.A/B/C/D"] = ddgen.scalar(
-                    1., self._machine._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
-            self._machine.run(max_attempts=1)
+    @patch("liso.experiment.machine.pydoocs_write")
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testCorrelationWithOldPulseId(self, patched_read, patched_write):
+        dataset = self._dataset
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
-        with self.subTest("Test receiving data with pulse ID smaller than the correlated one"):
-            last_correlated_gt = 1026
-            self.assertEqual(last_correlated_gt, self._machine._last_correlated)
-            for address in dataset:
-                dataset[address]['macropulse'] = last_correlated_gt - 1
-            with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-                self._machine.run(max_attempts=1)
-            self.assertEqual(last_correlated_gt, self._machine._last_correlated)
-            self._machine.run(max_attempts=2)
-            self.assertEqual(last_correlated_gt + 1, self._machine._last_correlated)
+        reader = self._machine._reader
+        last_correlated_gt = 1000
+        reader._last_correlated = 1000
+        for address in dataset:
+            dataset[address]['macropulse'] = last_correlated_gt - 500
+        with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+            self._machine.run(timeout=0.02)
+        self.assertEqual(last_correlated_gt, reader._last_correlated)
+
+        for address in dataset:
+            dataset[address]['macropulse'] = last_correlated_gt
+        self._machine.run(timeout=0.02)
+        self.assertLess(last_correlated_gt, reader._last_correlated)
+
+    @patch("liso.experiment.machine.pydoocs_write")
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testCheckReadoutAfterWriting(self, patched_read, patched_write):
+        dataset = self._dataset
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x, error=1)
+
+        self._machine.run(mapping={
+            'XFEL.A/B/C/D': {
+                'value': 19.91, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
+            },
+        })
+
+        with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
+            # the value below should be much larger than the value above
+            self._machine.run(mapping={
+                'XFEL.A/B/C/D': {
+                    'value': 49.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
+                },
+            }, timeout=0.02)

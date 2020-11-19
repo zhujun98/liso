@@ -312,6 +312,7 @@ class MachineScan(_BaseScan):
     def scan(self, cycles=1, folder='scan_data', *,
              n_tasks=None,
              chmod=True,
+             timeout=None,
              group=1,
              seed=None):
         """Start a parameter scan.
@@ -325,6 +326,8 @@ class MachineScan(_BaseScan):
             read and write.
         :param bool chmod: True for changing the permission to 400 after
             finishing writing.
+        :param float/None timeout: timeout when correlating data by macropulse
+            ID, in seconds.
         :param int group: writer group.
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
@@ -363,7 +366,8 @@ class MachineScan(_BaseScan):
                 try:
                     idx, controls, diagnostics = self._machine.run(
                         executor=executor,
-                        mapping=mapping
+                        mapping=mapping,
+                        timeout=timeout,
                     )
                     writer.write(idx, controls, diagnostics)
                 except LisoRuntimeError as e:

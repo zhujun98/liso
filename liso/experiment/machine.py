@@ -5,10 +5,9 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import asyncio
 from collections import OrderedDict
 from concurrent.futures import as_completed, ThreadPoolExecutor
-from itertools import chain
-import time
 
 from pydantic import ValidationError
 
@@ -31,6 +30,8 @@ except ModuleNotFoundError:
 from ..exceptions import LisoRuntimeError
 from ..logging import logger
 from ..utils import profiler
+
+_loop = asyncio.get_event_loop()
 
 
 class _DoocsWriter:
@@ -65,33 +66,170 @@ class _DoocsWriter:
 
 
 class _DoocsReader:
+
+    _NO_EVENT = 0
+    _DELAY_NO_EVENT = 1.
+    _DELAY_STALE = 0.2
+    _DELAY_EXCEPTION = 0.1
+
     def __init__(self):
         super().__init__()
 
         self._channels = set()
+        self._no_event = set()
 
-    def update(self, executor):
-        tasks = {executor.submit(pydoocs_read, ch): ch for ch in self._channels}
+        self._last_correlated = 0
+
+    def _compare_readout(self, data, expected):
+        for address, (v, tol) in expected.items():
+            if abs(data[address] - v) > tol:
+                return False, \
+                       f"{address} - expected: {v}, actual: {data[address]}"
+        return True, ""
+
+    async def _read_channel(self, address, *, delay=0., executor=None):
+        if delay > 0.:
+            await asyncio.sleep(delay)
+        return await _loop.run_in_executor(executor, pydoocs_read, address)
+
+    async def _read_channels(self, addresses, *, executor=None):
+        future_ret = {asyncio.ensure_future(
+            self._read_channel(address, executor=executor)): address
+            for address in addresses}
 
         ret = dict()
-        for future in as_completed(tasks):
-            channel = tasks[future]
-            try:
-                ret[channel] = future.result()
-            except ModuleNotFoundError as e:
-                logger.error(repr(e))
-                raise
-            except (DoocsException, PyDoocsException) as e:
-                logger.warning(f"Failed to read {channel}: {repr(e)}")
-            except Exception as e:
-                logger.error(f"Unexpected exception when writing to "
-                             f"{channel}: {repr(e)}")
-                # FIXME: here should raise
+        attempts = 5
+        for i in range(attempts):
+            done, _ = await asyncio.wait(future_ret)
 
-        return ret
+            for task in done:
+                address = future_ret[task]
+                data = self._get_result(address, task)
+                if data is not None:
+                    ret[address] = data
+                else:
+                    future_ret[asyncio.ensure_future(self._read_channel(
+                        address, executor=executor))] = address
+                del future_ret[task]
 
-    def add_channel(self, ch):
-        self._channels.add(ch)
+            if not future_ret:
+                return ret
+
+        raise LisoRuntimeError(f"Failed to read data from "
+                               f"{list(future_ret.values())}")
+
+    def _get_result(self, address, task):
+        try:
+            return task.result()
+        except ModuleNotFoundError as e:
+            logger.error(repr(e))
+            raise
+        except (DoocsException, PyDoocsException) as e:
+            logger.warning(f"Failed to read data from {address}: {repr(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected exception when writing to "
+                         f"{address}: {repr(e)}")
+
+    async def _correlate(self, executor, readout, *, timeout):
+        n_events = len(self._channels) - len(self._no_event)
+        cached = OrderedDict()
+
+        _NO_EVENT = self._NO_EVENT
+        _DELAY_NO_EVENT = self._DELAY_NO_EVENT
+        _DELAY_STALE = self._DELAY_STALE
+        _DELAY_EXCEPTION = self._DELAY_EXCEPTION
+        _SENTINEL = object()
+        correlated = dict()
+
+        future_ret = {asyncio.ensure_future(
+            self._read_channel(address, executor=executor)): address
+                 for address in self._channels if address not in self._no_event}
+        future_ret[asyncio.ensure_future(asyncio.sleep(timeout))] = _SENTINEL
+
+        running = True
+        while running:
+            done, _ = await asyncio.wait(
+                future_ret, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                address = future_ret[task]
+                ch_data = self._get_result(address, task)
+
+                if address is _SENTINEL:
+                    running = False
+                    continue
+
+                delay = 0.
+                # exception not raised in _get_result
+                if ch_data is not None:
+                    pid = ch_data['macropulse']
+                    if pid > self._last_correlated:
+                        if pid not in cached:
+                            cached[pid] = dict()
+                        cached[pid][address] = ch_data['data']
+
+                        if len(cached[pid]) == n_events:
+                            compare_ret, msg = self._compare_readout(
+                                cached[pid], readout)
+                            if not compare_ret:
+                                logger.info(
+                                    f"The newly written channels have not "
+                                    f"all taken effect: {msg}")
+                                # remove old data
+                                for key in list(cached.keys()):
+                                    if key > pid:
+                                        break
+                                    del cached[key]
+                                continue
+
+                            no_event_data = await self._read_channels(
+                                self._no_event)
+                            for ne_addr, ne_item in no_event_data.items():
+                                correlated[ne_addr] = ne_item['data']
+
+                            logger.info(
+                                f"Correlated {len(self._channels)}"
+                                f"({n_events}) channels with "
+                                f"macropulse ID: {pid}")
+
+                            self._last_correlated = pid
+                            correlated.update(cached[pid])
+
+                            return pid, correlated
+                    elif pid == _NO_EVENT:
+                        if address not in correlated:
+                            n_events -= 1
+                        correlated[address] = ch_data['data']
+
+                        delay = _DELAY_NO_EVENT
+                    else:
+                        if pid < 0:
+                            # TODO: document when a macropulse ID is -1
+                            logger.warning(
+                                f"Received data from channel {address} "
+                                f"with invalid macropulse ID: {pid}")
+
+                        delay = _DELAY_STALE
+                else:
+                    delay = _DELAY_EXCEPTION
+
+                del future_ret[task]
+                future_ret[asyncio.ensure_future(
+                    self._read_channel(address,
+                                       executor=executor,
+                                       delay=delay))] = address
+
+        raise LisoRuntimeError("Unable to match all data!")
+
+    def next(self, executor, readout, *, timeout):
+        """Get the next pulse with correlated data."""
+        return _loop.run_until_complete(
+            self._correlate(executor, readout, timeout=timeout))
+
+    def add_channel(self, address, no_event=False):
+        self._channels.add(address)
+        if no_event:
+            self._no_event.add(address)
 
 
 class _DoocsMachine:
@@ -99,22 +237,12 @@ class _DoocsMachine:
 
     _facility_name = None
 
-    def __init__(self, *, delay=0.001):
-        """Initialization.
-
-        :param float delay: delay in seconds after writing new values into
-            DOOCS server.
-        """
-        self._delay = delay
-
+    def __init__(self):
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
-        self._no_event = set()
 
         self._reader = _DoocsReader()
         self._writer = _DoocsWriter()
-
-        self._last_correlated = 0
 
     @property
     def channels(self):
@@ -163,9 +291,7 @@ class _DoocsMachine:
         """
         self._check_address(address)
         self._controls[address] = kls(address=address, **kwargs)
-        self._reader.add_channel(address)
-        if no_event:
-            self._no_event.add(address)
+        self._reader.add_channel(address, no_event)
 
     def add_diagnostic_channel(self, kls, address, *, no_event=False, **kwargs):
         """Add a DOOCS channel to diagnostic data.
@@ -187,9 +313,7 @@ class _DoocsMachine:
         """
         self._check_address(address)
         self._diagnostics[address] = kls(address=address, **kwargs)
-        self._reader.add_channel(address)
-        if no_event:
-            self._no_event.add(address)
+        self._reader.add_channel(address, no_event)
 
     def _compile(self, mapping):
         writein = dict()
@@ -211,74 +335,6 @@ class _DoocsMachine:
     def _update_machine(self, executor, writein):
         return self._writer.update(executor, writein)
 
-    def _compare_readout(self, data, expected):
-        for address, (v, tol) in expected.items():
-            if abs(data[address] - v) > tol:
-                return False, \
-                       f"{address} - expected: {v}, actual: {data[address]}"
-        return True, ""
-
-    def _correlate(self, executor, max_attempts, readout):
-        n_channels = len(self._controls) + len(self._diagnostics) \
-                     - len(self._no_event)
-        cached = OrderedDict()
-
-        _NON_EVENT = 0
-        correlated = dict()
-
-        for _ in range(max_attempts):
-            data = self._reader.update(executor)
-            for address, ch in chain(self._controls.items(),
-                                     self._diagnostics.items()):
-                try:
-                    ch_data = data[address]
-                except KeyError:
-                    # It happens if the reader failed completely to read data
-                    # from a channel.
-                    continue
-
-                if address in self._no_event:
-                    continue
-
-                pid = ch_data['macropulse']
-                if pid > self._last_correlated:
-                    if pid not in cached:
-                        cached[pid] = dict()
-                    cached[pid][address] = ch_data['data']
-
-                    if len(cached[pid]) == n_channels:
-                        compare_ret, msg = self._compare_readout(
-                            cached[pid], readout)
-                        if not compare_ret:
-                            logger.info(f"The newly written channels have not "
-                                        f"all taken effect: {msg}")
-                            continue
-
-                        for no_event_addr in self._no_event:
-                            correlated[no_event_addr] = data[no_event_addr]['data']
-
-                        logger.info(f"Correlated {n_channels + len(correlated)}"
-                                    f"({n_channels}) channels with "
-                                    f"macropulse ID: {pid}")
-
-                        self._last_correlated = pid
-                        correlated.update(cached[pid])
-
-                        return pid, correlated
-                elif pid == _NON_EVENT:
-                    if address not in correlated:
-                        n_channels -= 1
-                    correlated[address] = ch_data['data']
-                else:
-                    if pid < 0:
-                        # TODO: document when a macropulse ID is -1
-                        logger.warning(f"Received data from channel {address} "
-                                       f"with invalid macropulse ID: {pid}")
-                    # take a break
-                    time.sleep(0.01)
-
-        raise LisoRuntimeError("Unable to match all data!")
-
     def _update_channels(self, correlated):
         control_data = dict()
         for address, ch in self._controls.items():
@@ -293,26 +349,24 @@ class _DoocsMachine:
         return control_data, diagnostic_data
 
     @profiler("machine run")
-    def run(self, *,
-            executor=None,
-            threads=2,
-            mapping=None,
-            max_attempts=20):
+    def run(self, *, mapping=None, executor=None, timeout=None):
         """Run the machine once.
 
-        :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
-        :param int threads: number of threads used in constructing a
-            ThreadPoolExecutor if the executor is None. Ignored otherwise.
         :param dict mapping: a dictionary with keys being the DOOCS channel
             addresses and values being the numbers to be written into the
             corresponding address.
-        :param int max_attempts: maximum attempts when correlating data.
+        :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
+        :param float/None timeout: timeout when correlating data by macropulse
+            ID, in seconds. If None, it is set to the default value 2.0.
+
         :raises:
             LisoRuntimeError: if validation fails or it is unable to
                 correlate data.
         """
         if executor is None:
-            executor = ThreadPoolExecutor(max_workers=threads)
+            executor = ThreadPoolExecutor()
+        if timeout is None:
+            timeout = 2.0
 
         writein, readout = self._compile(mapping)
 
@@ -320,9 +374,7 @@ class _DoocsMachine:
             raise LisoRuntimeError(
                 "Failed to write new values to all channels!")
 
-        time.sleep(self._delay)
-
-        pid, correlated = self._correlate(executor, max_attempts, readout)
+        pid, correlated = self._reader.next(executor, readout, timeout=timeout)
 
         try:
             control_data, diagnostic_data = self._update_channels(correlated)
