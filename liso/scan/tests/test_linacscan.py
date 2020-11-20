@@ -14,6 +14,7 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
+from liso.experiment import machine
 from liso.experiment.machine import _DoocsReader
 from liso.io import ExpWriter
 from liso.logging import logger
@@ -331,3 +332,23 @@ class TestMachineScan(unittest.TestCase):
             self.assertTupleEqual((len(pids), 3, 4), img_data.shape)
             self.assertTrue(np.all(img_data[1] == pids[1] - _PID0 + 1))
             self.assertTrue(np.all(img_data[-1] == pids[-1] - _PID0 + 1))
+
+    @patch("liso.experiment.machine.pydoocs_write")
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testLogInitialParameters(self, patched_read, patched_write):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
+
+            patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+            sc.scan(10, folder=tmp_dir, timeout=0.01)
+
+            def _side_effect_raise(x):
+                raise machine.DoocsException
+            patched_read.side_effect = _side_effect_raise
+            with self.assertRaisesRegex(RuntimeError,
+                                        "Failed to read all the initial values"):
+                sc.scan(10, folder=tmp_dir, timeout=0.01)

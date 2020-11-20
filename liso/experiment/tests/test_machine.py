@@ -267,3 +267,14 @@ class TestDoocsMachine(unittest.TestCase):
                     'value': 29.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
                 },
             }, timeout=0.02)
+
+    @patch("liso.experiment.machine.pydoocs_read")
+    def testTakeSnapshot(self, patched_read):
+        dataset = self._dataset
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        snapshot = self._machine.take_snapshot(self._machine.channels)
+        self.assertSetEqual(
+            {"XFEL.A/B/C/D", 'XFEL.A/B/C/E', "XFEL.H/I/J/K", 'XFEL.H/I/J/L'},
+            set(snapshot)
+        )

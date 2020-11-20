@@ -122,7 +122,7 @@ class _DoocsReader:
         return await _machine_event_loop.run_in_executor(
             executor, pydoocs_read, address)
 
-    async def _read_channels(self, addresses, *, executor=None, attempts=3):
+    async def read_channels(self, addresses, *, executor=None, attempts=3):
         future_ret = {asyncio.create_task(
             self._read_channel(address, executor=executor)): address
             for address in addresses}
@@ -211,7 +211,7 @@ class _DoocsReader:
                                     del cached[key]
                                 continue
 
-                            no_event_data = await self._read_channels(
+                            no_event_data = await self.read_channels(
                                 self._no_event)
                             for ne_addr, ne_item in no_event_data.items():
                                 correlated[ne_addr] = ne_item['data']
@@ -401,6 +401,14 @@ class _DoocsMachine:
             raise LisoRuntimeError(repr(e))
 
         return pid, control_data, diagnostic_data
+
+    def take_snapshot(self, channels):
+        if not channels:
+            return
+
+        return {address: data['data']
+                for address, data in _machine_event_loop.run_until_complete(
+                self._reader.read_channels(channels)).items()}
 
 
 class EuXFELInterface(_DoocsMachine):
