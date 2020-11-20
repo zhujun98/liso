@@ -364,7 +364,7 @@ class MachineScan(_BaseScan):
                             [1:-1].replace(': ', ' = '))
 
                 try:
-                    idx, controls, diagnostics = self._machine.run(
+                    idx, controls, diagnostics = self._machine.write_and_read(
                         executor=executor,
                         mapping=mapping,
                         timeout=timeout,
