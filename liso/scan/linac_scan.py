@@ -195,7 +195,7 @@ class LinacScan(_BaseScan):
                         x_map[k] = sequence[count][i]
 
                     sim_id = count + start_id
-                    task = asyncio.ensure_future(
+                    task = asyncio.create_task(
                         self._linac.async_run(sim_id, x_map, **kwargs))
                     tasks.add(task)
 

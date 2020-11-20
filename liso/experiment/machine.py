@@ -69,9 +69,9 @@ class _DoocsWriter:
 
         _DELAY_EXCEPTION = self._DELAY_EXCEPTION
 
-        future_ret = {asyncio.ensure_future(
+        future_ret = {asyncio.create_task(
             self._write_channel(addr, v, executor=executor)): (addr, v)
-                         for addr, v in writein.items()}
+                      for addr, v in writein.items()}
 
         for i in range(attempts):
             done, _ = await asyncio.wait(
@@ -81,7 +81,7 @@ class _DoocsWriter:
                 address, value = future_ret[task]
 
                 if not self._get_result(address, task):
-                    future_ret[asyncio.ensure_future(self._write_channel(
+                    future_ret[asyncio.create_task(self._write_channel(
                         address, value,
                         executor=executor,
                         delay=_DELAY_EXCEPTION))] = (address, value)
@@ -126,7 +126,7 @@ class _DoocsReader:
         return await _loop.run_in_executor(executor, pydoocs_read, address)
 
     async def _read_channels(self, addresses, *, executor=None, attempts=3):
-        future_ret = {asyncio.ensure_future(
+        future_ret = {asyncio.create_task(
             self._read_channel(address, executor=executor)): address
             for address in addresses}
 
@@ -140,7 +140,7 @@ class _DoocsReader:
                 if data is not None:
                     ret[address] = data
                 else:
-                    future_ret[asyncio.ensure_future(self._read_channel(
+                    future_ret[asyncio.create_task(self._read_channel(
                         address, executor=executor))] = address
                 del future_ret[task]
 
@@ -173,10 +173,10 @@ class _DoocsReader:
         _SENTINEL = object()
         correlated = dict()
 
-        future_ret = {asyncio.ensure_future(
+        future_ret = {asyncio.create_task(
             self._read_channel(address, executor=executor)): address
                  for address in self._channels if address not in self._no_event}
-        future_ret[asyncio.ensure_future(asyncio.sleep(timeout))] = _SENTINEL
+        future_ret[asyncio.create_task(asyncio.sleep(timeout))] = _SENTINEL
 
         running = True
         while running:
@@ -246,10 +246,8 @@ class _DoocsReader:
                     delay = _DELAY_EXCEPTION
 
                 del future_ret[task]
-                future_ret[asyncio.ensure_future(
-                    self._read_channel(address,
-                                       executor=executor,
-                                       delay=delay))] = address
+                future_ret[asyncio.create_task(self._read_channel(
+                    address, executor=executor, delay=delay))] = address
 
         raise LisoRuntimeError("Unable to match all data!")
 

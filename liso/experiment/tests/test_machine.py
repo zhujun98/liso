@@ -9,7 +9,7 @@ from liso.exceptions import LisoRuntimeError
 from liso.experiment import machine
 from liso.experiment.machine import _DoocsReader, _DoocsWriter
 from liso.logging import logger
-logger.setLevel("INFO")
+logger.setLevel("ERROR")
 
 from . import DoocsDataGenerator as ddgen
 
