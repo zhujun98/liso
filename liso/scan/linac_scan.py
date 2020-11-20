@@ -310,7 +310,7 @@ class MachineScan(_BaseScan):
         return next_run_folder
 
     def scan(self, cycles=1, folder='scan_data', *,
-             n_tasks=None,
+             tasks=None,
              chmod=True,
              timeout=None,
              group=1,
@@ -322,7 +322,7 @@ class MachineScan(_BaseScan):
             of variable space is 1.
         :param str folder: folder in which data for each run will be stored in
             in its own sub-folder.
-        :param int/None n_tasks: maximum number of concurrent tasks for
+        :param int/None tasks: maximum number of concurrent tasks for
             read and write.
         :param bool chmod: True for changing the permission to 400 after
             finishing writing.
@@ -332,10 +332,9 @@ class MachineScan(_BaseScan):
         :param int/None seed: seed for the legacy MT19937 BitGenerator
             in numpy.
         """
-        if n_tasks is None:
-            n_tasks = multiprocessing.cpu_count()
-
-        executor = ThreadPoolExecutor(max_workers=n_tasks)
+        if tasks is None:
+            tasks = multiprocessing.cpu_count()
+        executor = ThreadPoolExecutor(max_workers=tasks)
 
         try:
             ret = self._machine.take_snapshot(self._params)
@@ -345,7 +344,7 @@ class MachineScan(_BaseScan):
             raise RuntimeError("Failed to read all the initial values of "
                                "the scanned parameters!")
 
-        logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
+        logger.info(f"Starting parameter scan with {tasks} CPUs.")
         logger.info(self.summarize())
 
         np.random.seed(seed)
