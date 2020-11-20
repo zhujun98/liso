@@ -92,13 +92,12 @@ class _DoocsReader:
             await asyncio.sleep(delay)
         return await _loop.run_in_executor(executor, pydoocs_read, address)
 
-    async def _read_channels(self, addresses, *, executor=None):
+    async def _read_channels(self, addresses, *, executor=None, attempts=3):
         future_ret = {asyncio.ensure_future(
             self._read_channel(address, executor=executor)): address
             for address in addresses}
 
         ret = dict()
-        attempts = 5
         for i in range(attempts):
             done, _ = await asyncio.wait(future_ret)
 
