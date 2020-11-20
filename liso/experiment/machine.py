@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
 from collections import OrderedDict
-from concurrent.futures import as_completed, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from pydantic import ValidationError
 
@@ -35,34 +35,67 @@ _loop = asyncio.get_event_loop()
 
 
 class _DoocsWriter:
+
+    _DELAY_EXCEPTION = 0.1
+
     def __init__(self):
         super().__init__()
 
-    def update(self, executor, writein):
+    async def _write_channel(self, address, value, *, delay=0., executor=None):
+        if delay > 0.:
+            await asyncio.sleep(delay)
+        return await _loop.run_in_executor(
+            executor, pydoocs_write, address, value)
+
+    def _get_result(self, address, task):
+        try:
+            task.result()
+            return True
+        except ModuleNotFoundError as e:
+            logger.error(repr(e))
+            raise
+        except (DoocsException, PyDoocsException) as e:
+            logger.warning(f"Failed to write to {address}: {repr(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected exception when writing to"
+                         f" {address}: {repr(e)}")
+            # FIXME: here should raise
+
+        return False
+
+    async def _write_channels(self, executor, writein, *, attempts=5):
         if not writein:
             return True
 
-        future_result = {executor.submit(pydoocs_write, ch, v): ch
-                         for ch, v in writein.items()}
+        _DELAY_EXCEPTION = self._DELAY_EXCEPTION
 
-        succeeded = True
-        for future in as_completed(future_result):
-            channel = future_result[future]
-            try:
-                future.result()
-            except ModuleNotFoundError as e:
-                logger.error(repr(e))
-                raise
-            except (DoocsException, PyDoocsException) as e:
-                logger.warning(f"Failed to write to {channel}: {repr(e)}")
-                succeeded = False
-            except Exception as e:
-                logger.error(f"Unexpected exception when writing to"
-                             f" {channel}: {repr(e)}")
-                # FIXME: here should raise
-                succeeded = False
+        future_ret = {asyncio.ensure_future(
+            self._write_channel(addr, v, executor=executor)): (addr, v)
+                         for addr, v in writein.items()}
 
-        return succeeded
+        for i in range(attempts):
+            done, _ = await asyncio.wait(
+                future_ret, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                address, value = future_ret[task]
+
+                if not self._get_result(address, task):
+                    future_ret[asyncio.ensure_future(self._write_channel(
+                        address, value,
+                        executor=executor,
+                        delay=_DELAY_EXCEPTION))] = (address, value)
+
+                del future_ret[task]
+                if not future_ret:
+                    return
+
+        raise LisoRuntimeError(
+            "Failed to write new values to all channels!")
+
+    def write_channels(self, executor, writein):
+        return _loop.run_until_complete(
+            self._write_channels(executor, writein))
 
 
 class _DoocsReader:
@@ -332,7 +365,7 @@ class _DoocsMachine:
         return writein, readout
 
     def _update_machine(self, executor, writein):
-        return self._writer.update(executor, writein)
+        self._writer.write_channels(executor, writein)
 
     def _update_channels(self, correlated):
         control_data = dict()
@@ -369,9 +402,7 @@ class _DoocsMachine:
 
         writein, readout = self._compile(mapping)
 
-        if not self._update_machine(executor, writein):
-            raise LisoRuntimeError(
-                "Failed to write new values to all channels!")
+        self._update_machine(executor, writein)
 
         pid, correlated = self._reader.next(executor, readout, timeout=timeout)
 
