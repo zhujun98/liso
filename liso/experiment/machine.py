@@ -201,7 +201,7 @@ class _DoocsReader:
                             compare_ret, msg = self._compare_readout(
                                 cached[pid], readout)
                             if not compare_ret:
-                                logger.info(
+                                logger.debug(
                                     f"The newly written channels have not "
                                     f"all taken effect: {msg}")
                                 # remove old data
