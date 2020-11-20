@@ -7,7 +7,7 @@ from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
 from liso.experiment import machine
-from liso.experiment.machine import _DoocsReader
+from liso.experiment.machine import _DoocsReader, _DoocsWriter
 from liso.logging import logger
 logger.setLevel("ERROR")
 
@@ -31,13 +31,23 @@ class TestDoocsMachine(unittest.TestCase):
     def run(self, result=None):
         DELAY_NO_EVENT = _DoocsReader._DELAY_NO_EVENT
         DELAY_STALE = _DoocsReader._DELAY_STALE
+        DELAY_EXCEPTION = _DoocsReader._DELAY_EXCEPTION
+
+        WRITE_DELAY_EXCEPTION = _DoocsWriter._DELAY_EXCEPTION
+
         try:
             _DoocsReader._DELAY_NO_EVENT = 1e-3
             _DoocsReader._DELAY_STALE = 1e-4
+            _DoocsReader._DELAY_EXCEPTION = 5e-4
+
+            _DoocsWriter._DELAY_EXCEPTION = 5e-4
             super().run(result)
         finally:
             _DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
             _DoocsReader._DELAY_STALE = DELAY_STALE
+            _DoocsReader._DELAY_EXCEPTION = DELAY_EXCEPTION
+
+            _DoocsWriter._DELAY_EXCEPTION = WRITE_DELAY_EXCEPTION
 
     def setUp(self):
         m = EuXFELInterface()
@@ -250,9 +260,10 @@ class TestDoocsMachine(unittest.TestCase):
         })
 
         with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
-            # the value below should be much larger than the value above
+            # The value below should be much larger than the value above.
+            # The actual value should get to 30, but 30 - 29.9 = 0.1
             self._machine.run(mapping={
                 'XFEL.A/B/C/D': {
-                    'value': 49.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
+                    'value': 29.9, 'readout': 'XFEL.A/B/C/D', 'tol': 0.1
                 },
             }, timeout=0.02)
