@@ -1,5 +1,14 @@
+import argparse
+
 from liso import EuXFELInterface, MachineScan
 from liso import doocs_channels as dc
+
+parser = argparse.ArgumentParser(description="EuXFEL interface")
+parser.add_argument('pulses', type=int, default=100,
+                    help='Number of pulses (scan points)')
+parser.add_argument('--tasks', type=int, default=16,
+                    help='Number of parallel tasks')
+args = parser.parse_args()
 
 
 m = EuXFELInterface()
@@ -44,4 +53,4 @@ sc = MachineScan(m)
 #              tol=0.02,
 #              lb=182, ub=186)
 
-sc.scan(1230, folder='my_exp_data', n_tasks=16)
+sc.scan(args.pulses, folder='my_exp_data', tasks=args.tasks)
