@@ -335,12 +335,20 @@ class MachineScan(_BaseScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
+        executor = ThreadPoolExecutor(max_workers=n_tasks)
+
+        try:
+            ret = self._machine.take_snapshot(self._params)
+            logger.info(f"Current values of the scanned parameters: "
+                        f"{str(ret)[1:-1].replace(': ', ' = ')}")
+        except LisoRuntimeError:
+            raise RuntimeError("Failed to read all the initial values of "
+                               "the scanned parameters!")
+
         logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
         logger.info(self.summarize())
 
         np.random.seed(seed)
-
-        executor = ThreadPoolExecutor(max_workers=n_tasks)
 
         run_folder = self._create_run_folder(folder)
 
