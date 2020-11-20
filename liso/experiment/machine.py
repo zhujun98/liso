@@ -31,7 +31,7 @@ from ..exceptions import LisoRuntimeError
 from ..logging import logger
 from ..utils import profiler
 
-_loop = asyncio.get_event_loop()
+_machine_event_loop = asyncio.get_event_loop()
 
 
 class _DoocsWriter:
@@ -44,7 +44,7 @@ class _DoocsWriter:
     async def _write_channel(self, address, value, *, delay=0., executor=None):
         if delay > 0.:
             await asyncio.sleep(delay)
-        return await _loop.run_in_executor(
+        return await _machine_event_loop.run_in_executor(
             executor, pydoocs_write, address, value)
 
     def _get_result(self, address, task):
@@ -63,7 +63,7 @@ class _DoocsWriter:
 
         return False
 
-    async def _write_channels(self, executor, writein, *, attempts=5):
+    async def write_channels(self, executor, writein, *, attempts=5):
         if not writein:
             return True
 
@@ -93,10 +93,6 @@ class _DoocsWriter:
         raise LisoRuntimeError(
             "Failed to write new values to all channels!")
 
-    def write_channels(self, executor, writein):
-        return _loop.run_until_complete(
-            self._write_channels(executor, writein))
-
 
 class _DoocsReader:
 
@@ -123,7 +119,8 @@ class _DoocsReader:
     async def _read_channel(self, address, *, delay=0., executor=None):
         if delay > 0.:
             await asyncio.sleep(delay)
-        return await _loop.run_in_executor(executor, pydoocs_read, address)
+        return await _machine_event_loop.run_in_executor(
+            executor, pydoocs_read, address)
 
     async def _read_channels(self, addresses, *, executor=None, attempts=3):
         future_ret = {asyncio.create_task(
@@ -162,7 +159,7 @@ class _DoocsReader:
             logger.error(f"Unexpected exception when writing to "
                          f"{address}: {repr(e)}")
 
-    async def _correlate(self, executor, readout, *, timeout):
+    async def correlate(self, executor, readout, *, timeout):
         n_events = len(self._channels) - len(self._no_event)
         cached = OrderedDict()
 
@@ -250,11 +247,6 @@ class _DoocsReader:
                     address, executor=executor, delay=delay))] = address
 
         raise LisoRuntimeError("Unable to match all data!")
-
-    def next(self, executor, readout, *, timeout):
-        """Get the next pulse with correlated data."""
-        return _loop.run_until_complete(
-            self._correlate(executor, readout, timeout=timeout))
 
     def add_channel(self, address, no_event=False):
         self._channels.add(address)
@@ -362,9 +354,6 @@ class _DoocsMachine:
 
         return writein, readout
 
-    def _update_machine(self, executor, writein):
-        self._writer.write_channels(executor, writein)
-
     def _update_channels(self, correlated):
         control_data = dict()
         for address, ch in self._controls.items():
@@ -378,9 +367,14 @@ class _DoocsMachine:
 
         return control_data, diagnostic_data
 
-    @profiler("machine run")
-    def run(self, *, mapping=None, executor=None, timeout=None):
-        """Run the machine once.
+    async def _write_read_once(self, mapping, *, executor, timeout):
+        writein, readout = self._compile(mapping)
+        await self._writer.write_channels(executor, writein)
+        return await self._reader.correlate(executor, readout, timeout=timeout)
+
+    @profiler("machine write and read")
+    def write_and_read(self, *, mapping=None, executor=None, timeout=None):
+        """Write and read the machine once.
 
         :param dict mapping: a dictionary with keys being the DOOCS channel
             addresses and values being the numbers to be written into the
@@ -398,11 +392,8 @@ class _DoocsMachine:
         if timeout is None:
             timeout = 2.0
 
-        writein, readout = self._compile(mapping)
-
-        self._update_machine(executor, writein)
-
-        pid, correlated = self._reader.next(executor, readout, timeout=timeout)
+        pid, correlated = _machine_event_loop.run_until_complete(
+            self._write_read_once(mapping, executor=executor, timeout=timeout))
 
         try:
             control_data, diagnostic_data = self._update_channels(correlated)
