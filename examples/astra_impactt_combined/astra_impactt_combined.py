@@ -44,13 +44,13 @@ opt.add_obj('St_betaxy', func=lambda a: max(a['chicane'].out.emitx*1e6,
                                             a['chicane'].out.betax,
                                             a['chicane'].out.betay))
 
-opt.add_var('gun.laser_spot',  value=0.1, lb=0.04, ub=0.30)
-opt.add_var('gun.main_sole_b', value=0.1, lb=0.00, ub=0.40)
-opt.add_var('chicane.MQZM1_G', value=0.0, lb=-10, ub=10)
-opt.add_var('chicane.MQZM3_G', value=0.0, lb=-10, ub=10)
+opt.add_var('gun/laser_spot',  value=0.1, lb=0.04, ub=0.30)
+opt.add_var('gun/main_sole_b', value=0.1, lb=0.00, ub=0.40)
+opt.add_var('chicane/MQZM1_G', value=0.0, lb=-10, ub=10)
+opt.add_var('chicane/MQZM3_G', value=0.0, lb=-10, ub=10)
 
-opt.add_covar('chicane.MQZM2_G', 'chicane.MQZM1_G', scale=-1)
-opt.add_covar('chicane.MQZM4_G', 'chicane.MQZM3_G', scale=-1)
+opt.add_covar('chicane/MQZM2_G', 'chicane/MQZM1_G', scale=-1)
+opt.add_covar('chicane/MQZM4_G', 'chicane/MQZM3_G', scale=-1)
 
 optimizer = NelderMead()
 opt.solve(optimizer)

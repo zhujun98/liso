@@ -5,9 +5,10 @@ import os.path as osp
 import asyncio
 import tempfile
 
+from liso import Linac
 from liso.config import config
 from liso.io import TempSimulationDirectory
-from liso.simulation import Linac
+from liso.exceptions import LisoRuntimeError
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
@@ -27,7 +28,7 @@ class TestAstraBeamline(unittest.TestCase):
         self._bl = next(iter(linac._beamlines.values()))
 
     def testUpdateOutput(self):
-        with self.assertRaisesRegex(RuntimeError, "Output file"):
+        with self.assertRaisesRegex(LisoRuntimeError, "Output file"):
             self._bl._update_output(_ROOT_DIR)
 
         with patch.object(self._bl, '_check_file'):
@@ -95,15 +96,15 @@ class TestLinacOneBeamLine(unittest.TestCase):
                 future.set_result(object())
                 mocked_async_run_core.return_value = future
 
-                tmp_dir = osp.join(self._tmp_dir, "tmp0001")
-                os.mkdir(tmp_dir)
-                idx, controls, phasespaces = loop.run_until_complete(
-                    self._linac.async_run(0, self._mapping, "tmp0001"))
+                tmp_dir = osp.join(self._tmp_dir, "tmp000001")
+                # os.mkdir(tmp_dir)
+                sim_id, controls, phasespaces = loop.run_until_complete(
+                    self._linac.async_run(1, self._mapping))
 
                 mocked_uo.assert_called_once_with(tmp_dir)
                 mocked_gipf.assert_not_called()
 
-                self.assertEqual(0, idx)
+                self.assertEqual(1, sim_id)
                 self.assertDictEqual({'gun/gun_gradient': 1.0, 'gun/gun_phase': 2.0}, controls)
                 self.assertDictEqual({'gun/out': mocked_uo()}, phasespaces)
 
@@ -113,10 +114,10 @@ class TestLinacTwoBeamLine(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
             self._mapping = {
-                'gun.gun_gradient': 1.,
-                'gun.gun_phase': 1.,
-                'chicane.MQZM1_G': 1.,
-                'chicane.MQZM2_G': 1.,
+                'gun/gun_gradient': 1.,
+                'gun/gun_phase': 1.,
+                'chicane/MQZM1_G': 1.,
+                'chicane/MQZM2_G': 1.,
             }
             self._linac = Linac()
 
@@ -146,17 +147,17 @@ class TestLinacTwoBeamLine(unittest.TestCase):
         mapping = self._mapping.copy()
 
         # test when not all patterns are found in mapping
-        del mapping['gun.gun_phase']
+        del mapping['gun/gun_phase']
         with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
             self._linac.compile(mapping)
 
         # test when keys in mapping are not found in the templates
-        mapping['gun.gun_phase'] = 1.0
-        mapping['gun.charge'] = 1.0
+        mapping['gun/gun_phase'] = 1.0
+        mapping['gun/charge'] = 1.0
         with self.assertRaisesRegex(KeyError, "{'charge'} not found in the templates"):
             self._linac.compile(mapping)
 
-        del mapping['gun.charge']
+        del mapping['gun/charge']
         self.assertDictEqual({
             'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
             'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0,
@@ -185,42 +186,41 @@ class TestLinacTwoBeamLine(unittest.TestCase):
 
     @patch('liso.simulation.beamline.Beamline._async_run_core')
     def testAsyncRun(self, mocked_async_run_core):
-        index = 10
+        sim_id_gt = 10
         mapping = self._mapping
 
         loop = asyncio.get_event_loop()
-        with TempSimulationDirectory('temp_dir', delete_old=True) as tmp_dir:
+        with patch.object(
+                self._linac['gun'], '_update_output') as mocked_gun_uo:
             with patch.object(
-                    self._linac['gun'], '_update_output') as mocked_gun_uo:
+                    self._linac['chicane'], '_update_output') as mocked_chicane_uo:
                 with patch.object(
-                        self._linac['chicane'], '_update_output') as mocked_chicane_uo:
+                        self._linac['gun'],
+                        '_generate_initial_particle_file') as mocked_gun_gipf:
                     with patch.object(
-                            self._linac['gun'],
-                            '_generate_initial_particle_file') as mocked_gun_gipf:
-                        with patch.object(
-                                self._linac['chicane'],
-                                '_generate_initial_particle_file') as mocked_chicane_gipf:
+                            self._linac['chicane'],
+                            '_generate_initial_particle_file') as mocked_chicane_gipf:
 
-                            future = asyncio.Future()
-                            future.set_result(object())
-                            mocked_async_run_core.return_value = future
+                        future = asyncio.Future()
+                        future.set_result(object())
+                        mocked_async_run_core.return_value = future
 
-                            idx, controls, phasespaces = loop.run_until_complete(
-                                self._linac.async_run(index, mapping, tmp_dir))
+                        sim_id, controls, phasespaces = loop.run_until_complete(
+                            self._linac.async_run(sim_id_gt, mapping))
 
-                            self.assertEqual(2, mocked_async_run_core.call_count)
-                            actual_tmp_dir = osp.join(self._tmp_dir, tmp_dir)
-                            mocked_gun_uo.assert_called_once_with(actual_tmp_dir)
-                            mocked_chicane_uo.assert_called_once_with(actual_tmp_dir)
+                        self.assertEqual(2, mocked_async_run_core.call_count)
+                        actual_tmp_dir = osp.join(self._tmp_dir, f"tmp0000{sim_id_gt}")
+                        mocked_gun_uo.assert_called_once_with(actual_tmp_dir)
+                        mocked_chicane_uo.assert_called_once_with(actual_tmp_dir)
 
-                            mocked_gun_gipf.assert_not_called()
-                            mocked_chicane_gipf.assert_called_once_with(
-                                mocked_gun_uo(), actual_tmp_dir)
+                        mocked_gun_gipf.assert_not_called()
+                        mocked_chicane_gipf.assert_called_once_with(
+                            mocked_gun_uo(), actual_tmp_dir)
 
-                            self.assertEqual(10, idx)
-                            self.assertDictEqual(
-                                {'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
-                                 'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0}, controls)
-                            self.assertDictEqual(
-                                {'gun/out': mocked_gun_uo(),
-                                 'chicane/out': mocked_chicane_uo()}, phasespaces)
+                        self.assertEqual(sim_id_gt, sim_id)
+                        self.assertDictEqual(
+                            {'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
+                             'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0}, controls)
+                        self.assertDictEqual(
+                            {'gun/out': mocked_gun_uo(),
+                             'chicane/out': mocked_chicane_uo()}, phasespaces)

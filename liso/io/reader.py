@@ -10,11 +10,12 @@ from collections import defaultdict
 import os
 import os.path as osp
 
+import numpy as np
 import pandas as pd
 
 from .channel_data import ChannelData
 from .file_access import SimFileAccess, ExpFileAccess
-from ..data_processing import Phasespace
+from ..proc import Phasespace
 
 
 class _DataCollectionBase:
@@ -72,8 +73,14 @@ class _DataCollectionBase:
 
         return cls(files)
 
-    def get_controls(self):
-        """Return control data in a Pandas.DataFrame."""
+    def get_controls(self, *, sorted=False):
+        """Return control data in a Pandas.DataFrame.
+
+        :param bool sorted: sort the index, which is indeed the ID, of the
+            returned dataframe. This is sometime needed because the simulation
+            data are not stored with the simulation IDs monotonically
+            increasing.
+        """
         data = []
         for fa in self._files:
             if 'METADATA/controlChannels' in fa.file:
@@ -81,14 +88,18 @@ class _DataCollectionBase:
                 control_channel_path = 'METADATA/controlChannels'
             else:
                 control_channel_path = 'METADATA/controlChannel'
+
+            ids = fa._ids
             df = pd.DataFrame.from_dict({
-                ch: fa.file[f"CONTROL/{ch}"][()]
+                ch: fa.file[f"CONTROL/{ch}"][:len(ids)]
                 for ch in fa.file[control_channel_path]
             })
-            df.set_index(fa._ids, inplace=True)
+            df.set_index(ids, inplace=True)
             data.append(df)
-        # set "inplace=True" is even slower
-        return pd.concat(data).sort_index()
+
+        if sorted:
+            return pd.concat(data).sort_index()
+        return pd.concat(data)
 
     @abc.abstractmethod
     def __getitem__(self, item):
@@ -152,8 +163,7 @@ class SimDataCollection(_DataCollectionBase):
         self.control_channels = frozenset(self.control_channels)
         self.phasespace_channels = frozenset(self.phasespace_channels)
 
-        # this returns a list!
-        self.sim_ids = sorted(set().union(*(f.sim_ids for f in files)))
+        self.sim_ids = np.concatenate([f.sim_ids for f in files])
         self._ids = self.sim_ids
 
     def info(self):
@@ -196,7 +206,7 @@ def open_sim(path):
     paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
     if not paths:
         raise Exception(f"No HDF5 files found in {path}!")
-    return SimDataCollection.from_paths(paths)
+    return SimDataCollection.from_paths(sorted(paths))
 
 
 class ExpDataCollection(_DataCollectionBase):
@@ -207,18 +217,17 @@ class ExpDataCollection(_DataCollectionBase):
         super().__init__(files)
 
         self.control_channels = set()
-        self.detector_channels = set()
+        self.diagnostic_channels = set()
         for fa in self._files:
             self.control_channels.update(fa.control_channels)
-            self.detector_channels.update(fa.detector_channels)
-            for ch in (fa.control_channels | fa.detector_channels):
+            self.diagnostic_channels.update(fa.diagnostic_channels)
+            for ch in (fa.control_channels | fa.diagnostic_channels):
                 self._channel_files[ch].append(fa)
 
         self.control_channels = frozenset(self.control_channels)
-        self.detector_channels = frozenset(self.detector_channels)
+        self.diagnostic_channels = frozenset(self.diagnostic_channels)
 
-        # this returns a list!
-        self.pulse_ids = sorted(set().union(*(f.pulse_ids for f in files)))
+        self.pulse_ids = np.concatenate([f.pulse_ids for f in files])
         self._ids = self.pulse_ids
 
     def info(self):
@@ -229,8 +238,8 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.control_channels):
             print('  - ', ch)
 
-        print(f"\ndetector channels ({len(self.detector_channels)}):")
-        for ch in sorted(self.detector_channels):
+        print(f"\nInstrument channels ({len(self.diagnostic_channels)}):")
+        for ch in sorted(self.diagnostic_channels):
             print('  - ', ch)
 
     def __getitem__(self, pulse_id):
@@ -238,18 +247,24 @@ class ExpDataCollection(_DataCollectionBase):
         ret = dict()
         for ch in self.control_channels:
             ret[ch] = fa.file[f"CONTROL/{ch}"][idx]
-        for ch in self.detector_channels:
-            ret[ch] = fa.file[f"DETECTOR/{ch}"][idx]
+        for ch in self.diagnostic_channels:
+            ret[ch] = fa.file[f"DIAGNOSTIC/{ch}"][idx]
 
         return pulse_id, ret
 
     def _get_channel_category(self, ch):
-        return 'CONTROL' if ch in self.control_channels else 'DETECTOR'
+        return 'CONTROL' if ch in self.control_channels else 'DIAGNOSTIC'
 
 
-def open_run(filepath):
+def open_run(path):
     """Open experimental data from a single file or a directory.
 
     :param str path: file or directory path.
     """
-    return ExpDataCollection.from_path(filepath)
+    if osp.isfile(path):
+        return ExpDataCollection.from_path(path)
+
+    paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
+    if not paths:
+        raise Exception(f"No HDF5 files found in {path}!")
+    return ExpDataCollection.from_paths(sorted(paths))

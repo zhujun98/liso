@@ -1,8 +1,7 @@
 import unittest
 import os.path as osp
 
-from liso import parse_astra_phasespace
-from liso.visualization.phasespace_plot import PhasespacePlot
+from liso import parse_astra_phasespace, PhasespacePlot
 
 
 _ROOT_DIR = osp.dirname(osp.abspath(__file__))
@@ -11,7 +10,7 @@ _ROOT_DIR = osp.dirname(osp.abspath(__file__))
 class TestUtilities(unittest.TestCase):
 
     def setUp(self):
-        pfile = osp.join(_ROOT_DIR, "../../data_processing/tests/astra_output/astra.out")
+        pfile = osp.join(_ROOT_DIR, "../../proc/tests/astra_output/astra.out")
         self._data = parse_astra_phasespace(pfile)
 
         self.psp = PhasespacePlot(self._data)

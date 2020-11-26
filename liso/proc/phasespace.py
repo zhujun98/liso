@@ -13,9 +13,12 @@ from .phasespace_analysis import (
     compute_canonical_emit, compute_twiss, compute_current_profile,
     gaussian_filter1d
 )
+from ..exceptions import LisoRuntimeError
 
 
 class Phasespace:
+
+    columns = ('x', 'px', 'y', 'py', 'z', 'pz', 't')
 
     def __init__(self, data, charge):
         """Initialization.
@@ -28,17 +31,12 @@ class Phasespace:
         if not isinstance(data, pd.DataFrame):
             raise TypeError("data must be a pandas.DataFrame")
 
-        columns = {'x', 'px', 'y', 'py', 'z', 'pz', 't'}
-        if set(data.columns) != columns:
-            raise ValueError(f"Data can only have columns: {columns}: "
+        if set(data.columns) != set(self.columns):
+            raise ValueError(f"Data can only have columns: {self.columns}: "
                              f"actual {data.columns}")
 
         self._data = data
         self.charge = charge
-
-    @property
-    def columns(self):
-        return self._data.columns
 
     def __getitem__(self, item):
         try:
@@ -199,7 +197,7 @@ class Phasespace:
         # Too few particles may cause error during the following
         # calculation, e.g. negative value in sqrt.
         if n0 < min_particles:
-            raise RuntimeError(f"Too few particles {n0} in the phasespace")
+            raise LisoRuntimeError(f"Too few particles {n0} in the phasespace")
 
         p = np.sqrt(data['pz'] ** 2 + data['px'] ** 2 + data['py'] ** 2)
 
@@ -253,7 +251,7 @@ class Phasespace:
                                      (sorted_data.t < Ct_slice + dt_slice / 2)]
 
             if len(slice_data) < min_particles:
-                raise RuntimeError(
+                raise LisoRuntimeError(
                     f"Too few particles {len(slice_data)} in the slice")
 
             p_slice = np.sqrt(slice_data['pz'] ** 2

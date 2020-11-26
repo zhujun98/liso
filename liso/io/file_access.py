@@ -154,7 +154,7 @@ class ExpFileAccess(_FileAccessBase):
     def __init__(self, filepath):
         super().__init__(filepath)
 
-        self.control_channels, self.detector_channels = \
+        self.control_channels, self.diagnostic_channels = \
             self._read_data_channels()
 
         try:
@@ -172,15 +172,15 @@ class ExpFileAccess(_FileAccessBase):
         if 'METADATA/controlChannels' in self.file:
             # backward compatibility
             control_channel_path = 'METADATA/controlChannels'
-            detector_channel_path = 'METADATA/detectorChannels'
+            diagnostic_channel_path = 'METADATA/diagnosticChannels'
         else:
             control_channel_path = 'METADATA/controlChannel'
-            detector_channel_path = 'METADATA/detectorChannel'
+            diagnostic_channel_path = 'METADATA/diagnosticChannel'
 
-        control_channels, detector_channels = set(), set()
+        control_channels, diagnostic_channels = set(), set()
         for src in self.file[control_channel_path][()]:
             control_channels.add(src)
-        for src in self.file[detector_channel_path][()]:
-            detector_channels.add(src)
+        for src in self.file[diagnostic_channel_path][()]:
+            diagnostic_channels.add(src)
 
-        return frozenset(control_channels), frozenset(detector_channels)
+        return frozenset(control_channels), frozenset(diagnostic_channels)

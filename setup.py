@@ -23,28 +23,16 @@ setup(
     author_email='zhujun981661@gmail.com',
     url='https://github.com/zhujun98/liso',
     download_url='https://github.com/zhujun98/liso',
-    description='Python API for Linac Simulation and Optimization',
-    long_description='liso is a Python API for linac simulation and'
-                     'optimization using one or a combination of'
-                     'different beam dynamics codes.',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Topic :: Scientific/Engineering',
-        'Operating System :: Microsoft :: Windows',
-        'Operating System :: POSIX',
-        'Operating System :: Unix',
-        'Operating System :: MacOS',
-    ],
+    description='Python API for LInac Simulation and Optimization',
+    long_description='LISO is a Python API for optimization of accelerators'
+                     'in both simulations and experiments.',
     install_requires=[
         'numpy>=1.18',
         'pandas>=1.1',
         'scipy>=1.4.1',
-        'h5py>=2.10',
+        'h5py==2.10',
         'matplotlib',
+        'pydantic>=1.7.2',
     ],
     entry_points={
     },
@@ -52,5 +40,17 @@ setup(
         'testing': [
             'pytest',
         ],
-    }
+    },
+    python_requires='>=3.7',
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'Topic :: Scientific/Engineering :: Physics',
+    ]
 )

@@ -18,7 +18,14 @@ class Linac(Mapping):
     consists of one or multiple beamlines. These beamlines can be
     simulated using different codes.
     """
-    def __init__(self):
+    def __init__(self, mps=None):
+        """Initialization.
+
+        :param int/None mps: number of macro-particles at the
+            start of the simulation.
+        """
+        self._mps = mps
+
         self._beamlines = OrderedDict()
 
     def __getitem__(self, item):
@@ -62,19 +69,33 @@ class Linac(Mapping):
 
         bl.add_watch(*args, **kwargs)
 
+    @property
+    def schema(self):
+        """Return the schema of phasespace data."""
+        if self._mps is None:
+            raise ValueError("Please specify the number of particles "
+                             "when instantiating a Linac object!")
+
+        phasespace_schema = dict()
+        for name in self._beamlines:
+            phasespace_schema[f"{name}/out"] = {
+                "macroparticles": self._mps,
+                "type": "phasespace",
+            }
+        return phasespace_schema
+
     def _split_mapping(self, mapping):
         """Split mapping into different groups.
 
         The keys in the dictionary "mapping" are expected to have the
-        format beamline.variable. If beamline is not presented, the
-        default one (the name of the first beamline will be assigned).
+        format beamline/variable.
         """
         mapping_grp = defaultdict(dict)
-        default = next(iter(self._beamlines))
+        first_bl = next(iter(self._beamlines))
         for key, value in mapping.items():
-            splitted = key.split('.', 1)
+            splitted = key.split('/', 1)
             if len(splitted) == 1:
-                mapping_grp[default][splitted[0]] = value
+                mapping_grp[first_bl][splitted[0]] = value
             else:
                 mapping_grp[splitted[0]][splitted[1]] = value
         return mapping_grp
@@ -104,15 +125,15 @@ class Linac(Mapping):
         for i, bl in enumerate(self._beamlines.values()):
             out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
-    async def async_run(self, idx, mapping, tmp_dir, *, timeout=None):
+    async def async_run(self, sim_id, mapping, *, timeout=None):
         controls = self.compile(mapping)
 
         out = None
         phasespaces = OrderedDict()
         for name, bl in self._beamlines.items():
-            out = await bl.async_run(out, tmp_dir, timeout=timeout)
+            out = await bl.async_run(out, f'tmp{sim_id:06d}', timeout=timeout)
             phasespaces[f"{name}/out"] = out
-        return idx, controls, phasespaces
+        return sim_id, controls, phasespaces
 
     def status(self):
         """Return the status of the linac."""

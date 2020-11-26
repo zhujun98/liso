@@ -6,7 +6,7 @@ from liso.logging import logger
 logger.setLevel('DEBUG')
 
 
-linac = Linac()  # instantiate a Linac
+linac = Linac(2000)  # instantiate a Linac
 
 linac.add_beamline('astra',
                    name='gun',
@@ -17,9 +17,9 @@ linac.add_beamline('astra',
 
 sc = LinacScan(linac)
 
-sc.add_param('gun_gradient', 120, 140, num=4, sigma=-0.001)
-sc.add_param('gun_phase', -10, 10, num=3, sigma=0.1)
-sc.add_param('tws_gradient', 25, 35)
-sc.add_param('tws_phase', -90, sigma=0.1)
+sc.add_param('gun_gradient', start=120, stop=140, num=4, sigma=-0.001)
+sc.add_param('gun_phase', start=-10, stop=10, num=3, sigma=0.1)
+sc.add_param('tws_gradient', lb=25, ub=35)
+sc.add_param('tws_phase', value=-90, sigma=0.1)
 
-sc.scan(n_particles=2000)
+sc.scan(1, folder="my_scan_data")

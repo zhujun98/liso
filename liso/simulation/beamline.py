@@ -13,8 +13,12 @@ from distutils.spawn import find_executable
 
 import numpy as np
 
+from .input import (
+    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
+)
 from ..config import config
-from ..data_processing import (
+from ..exceptions import LisoRuntimeError
+from ..proc import (
     analyze_line,
     parse_astra_phasespace, parse_astra_line,
     parse_impactt_phasespace, parse_impactt_line,
@@ -22,9 +26,6 @@ from ..data_processing import (
 )
 from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
-from .input import (
-    AstraInputGenerator, ImpacttInputGenerator, ElegantInputGenerator,
-)
 
 
 class Beamline(ABC):
@@ -45,7 +46,7 @@ class Beamline(ABC):
         :param str swd: path of the simulation working directory. This where
             the Python subprocess runs.
         :param str fin: input file name.
-        :param str pin: input particle file name.
+        :param str/None pin: initial particle file name.
         :param str pout: final particle file name. It must be located in the
             same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
@@ -184,9 +185,9 @@ class Beamline(ABC):
 
     def _check_file(self, filepath, title=''):
         if not osp.isfile(filepath):
-            raise RuntimeError(f"{title} file {filepath} does not exist!")
+            raise LisoRuntimeError(f"{title} file {filepath} does not exist!")
         if not osp.getsize(filepath):
-            raise RuntimeError(f"{title} file {filepath} is empty!")
+            raise LisoRuntimeError(f"{title} file {filepath} is empty!")
 
     def _check_executable(self, parallel=False):
         filepath = self._get_executable(parallel)
@@ -198,7 +199,7 @@ class Beamline(ABC):
     def _update_output(self, swd):
         """Analyse output particle file.
 
-        Also prepare the input particle file for the downstream simulation.
+        Also prepare the initial particle file for the downstream simulation.
 
         :param str swd: simulation working directory.
         """
@@ -246,7 +247,7 @@ class Beamline(ABC):
                                shell=True,
                                cwd=self._swd)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(repr(e))
+            raise LisoRuntimeError(repr(e))
 
     def run(self, phasespace, *, timeout, n_workers):
         """Run simulation for the beamline."""

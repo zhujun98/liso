@@ -4,10 +4,11 @@ import os.path as osp
 import pandas as pd
 import numpy as np
 
-from liso.data_processing import (
+from liso import (
+    Phasespace,
     parse_astra_phasespace, parse_impactt_phasespace, parse_elegant_phasespace,
 )
-from liso import Phasespace
+from liso.exceptions import LisoRuntimeError
 
 SKIP_TEST = False
 try:
@@ -46,8 +47,8 @@ class TestPhasespaceAstra(unittest.TestCase):
         self.assertEqual(self.data.charge, ps.charge)
 
     def testAccessItem(self):
-        self.assertListEqual(['x', 'y', 'z', 'px', 'py', 'pz', 't'],
-                             list(self.data.columns))
+        self.assertTupleEqual(('x', 'px', 'y', 'py', 'z', 'pz', 't'),
+                              self.data.columns)
 
         for item in ['x', 'y', 'z', 'px', 'py', 'pz', 't', 'dt',
                      'p', 'xp', 'yp', 'dz', 'delta']:
@@ -69,7 +70,7 @@ class TestPhasespaceAstra(unittest.TestCase):
         self.assertEqual(200, len(self.data))
 
     def testAnalysis(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(LisoRuntimeError):
             self.data.analyze(min_particles=int(2e5))
 
         # with self.assertRaisesRegex(RuntimeError, "slice"):

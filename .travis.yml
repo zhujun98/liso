@@ -4,10 +4,10 @@ jobs:
   include:
     - os: linux
       dist: xenial
-      python: 3.6
+      python: 3.7
     - os: linux
       dist: xenial
-      python: 3.7
+      python: 3.8
       env: COVERAGE_SCAN=1
       after_success:
         - codecov
