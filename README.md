@@ -37,7 +37,7 @@ $ pip install liso
 
 ### Use LISO in your experiments
 
-#### Acquiring data
+#### Acquire data
 
 ```py
 from liso import EuXFELInterface, MachineScan
@@ -50,8 +50,6 @@ m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE'
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/AMPL.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE')
-m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE')
-m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
 m.add_diagnostic_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
                          shape=(1750, 2330), dtype='uint16')
@@ -61,34 +59,85 @@ sc = MachineScan(m)
 sc.scan(4000, folder='my_exp', n_tasks=8)
 ```
 
-#### Reading data
+#### Read experimental data from files
 
 ```py
 from liso import open_run
 
 run = open_run('my_exp/r0001')
+
+# Get an overview of the run
+run.info()
+
+# Loop over a run
+for pid, data in run:
+    pass
+
+# Access a single macropulse
+# - by id
+pid, data = run.from_id(123456789)
+# - by index
+pid, data = run.from_index(0)
+
+# Access a channel data
+ch_data = run.channel('XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE')
+# and convert it to a numpy array
+ch_data_array = ch_data.numpy()
 ```
 
 ### Use LISO to run simulations
 
-#### Building a linac
+#### Build a linac
 
-TBD
+```py
+linac = Linac(2000)
 
-#### Running a parameter scan, jitter study, etc.
+linac.add_beamline('astra',
+                   name='injector',
+                   swd='../astra_files',
+                   fin='injector.in',
+                   template='injector.in.000',
+                   pout='injector.0450.001')
+```
 
-TBD
+#### Run a parameter scan or a jitter study
 
-#### Running an optimization
+```py
+from liso import LinacScan
 
-TBD
 
-#### Reading data
+sc = LinacScan(linac)
+
+sc.add_param('gun_gradient', start=120, stop=140, num=10, sigma=-0.001)
+sc.add_param('gun_phase', start=-10, stop=10, num=20, sigma=0.1)
+
+sc.scan(folder="my_scan_data")
+```
+
+#### Read simulated data from files
 
 ```py
 from liso import open_sim
 
-sim = open_sim('scan.hdf5')
+sim = open_sim('my_scan_data')
+
+# Get an overview of the simulation
+sim.info()
+
+# Loop over the simulated data
+for sid, data in sim:
+    pass
+
+# Access a single simulation
+# - by id
+sid, data = sim.from_id(1)
+# - by index
+sid, data = sim.from_index(0)
+
+# Access a phasespace data
+ch_data = sim.channel('injector/out', ['x', 'px'])
+# and convert it to a numpy array
+ch_data_array = ch_data.numpy()
 ```
 
 ### Cite LISO
