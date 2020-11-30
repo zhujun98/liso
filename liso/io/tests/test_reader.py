@@ -77,14 +77,14 @@ class TestSimReader(unittest.TestCase):
                     self._check_sim_metadata(data, i)
                     self._check_sim_get_control(data, i)
                     self._check_sim_iterate_over_data(data, i)
-                    self._check_sim_access_data_by_index(data, i)
+                    self._check_sim_access_data(data, i)
 
             with self.subTest("Test opening a folder"):
                 data = open_sim(tmp_dir)
                 self._check_sim_metadata(data)
                 self._check_sim_get_control(data)
                 self._check_sim_iterate_over_data(data)
-                self._check_sim_access_data_by_index(data)
+                self._check_sim_access_data(data)
 
             with self.subTest("Test control channel data"):
                 with self.assertRaisesRegex(KeyError, 'No data was found for channel'):
@@ -98,6 +98,7 @@ class TestSimReader(unittest.TestCase):
 
                 idx = 9
                 self.assertEqual(idx * 20, item[self._sim_ids_gt[idx]])
+                self.assertEqual(idx * 20, item.from_id(self._sim_ids_gt[idx]))
                 self.assertEqual(idx * 20, item.from_index(idx))
                 self.assertEqual(np.float32, item.numpy().dtype)
                 np.testing.assert_array_equal(
@@ -196,7 +197,7 @@ class TestSimReader(unittest.TestCase):
             np.testing.assert_array_equal(
                 np.ones(self._n_particles) * idx * 0.1, sim['gun/out2']['y'])
 
-    def _check_sim_access_data_by_index(self, data, i=None):
+    def _check_sim_access_data(self, data, i=None):
         if i is None:
             idx = np.random.randint(0, len(self._sim_ids_gt))
             sim_id, sim = data.from_index(idx)
@@ -209,7 +210,10 @@ class TestSimReader(unittest.TestCase):
             sim_id, sim = data.from_index(idx)
             idx += i * self._file_size
 
-        self.assertEqual(self._sim_ids_gt[idx], sim_id)
+        id_ = self._sim_ids_gt[idx]
+        self.assertEqual(id_, sim_id)
+        sim_id, _ = data.from_id(id_)
+        self.assertEqual(id_, sim_id)
 
         self.assertSetEqual({
             'gun/gun_phase', 'gun/gun_gradient', 'gun/out1', 'gun/out2'
@@ -302,6 +306,7 @@ class TestExpReader(unittest.TestCase):
                 with self.assertRaises(KeyError):
                     item[2]
                 self.assertEqual(30., item[pulse_ids_gt[3]])
+                self.assertEqual(30., item.from_id(pulse_ids_gt[3]))
                 self.assertEqual(10., item.from_index(1))
                 item_array = item.numpy()
                 self.assertEqual(np.float32, item_array.dtype)

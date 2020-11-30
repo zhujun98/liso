@@ -7,8 +7,44 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import numpy as np
 
+from .file_access import _FileAccessBase
 
-class ChannelData:
+
+class _AbstractPulseTrainData:
+    def __init__(self):
+        self._ids = []
+        self._files = []
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __iter__(self):
+        for id_ in self._ids:
+            yield self.__getitem__(id_)
+
+    def from_id(self, id_):
+        """Return pulse-train data from the specified pulse ID.
+
+        :param int id_: pulse ID.
+        """
+        return self.__getitem__(id_)
+
+    def from_index(self, index):
+        """Return pulse-train data from the nth pulse given index.
+
+        :param int index: pulse index.
+        """
+        return self.__getitem__(self._ids[index])
+
+    def _find_data(self, id_) -> (_FileAccessBase, int):
+        for fa in self._files:
+            idx = (fa._ids == id_).nonzero()[0]
+            if idx.size > 0:
+                return fa, idx[0]
+        raise KeyError
+
+
+class ChannelData(_AbstractPulseTrainData):
     """Data for one single channel.
 
     This class should not be created directly.
@@ -25,6 +61,8 @@ class ChannelData:
         :param None/str/array-like columns: columns for the phasespace data.
             If None, all the columns are taken.
         """
+        super().__init__()
+
         self._address = address
         self._files = files
         self._category = category
@@ -62,6 +100,7 @@ class ChannelData:
         self._ids = ids
 
     def __getitem__(self, id_):
+        """Override."""
         fa, idx = self._find_data(id_)
         if self._category == 'PHASESPACE':
             category = self._category
@@ -72,24 +111,6 @@ class ChannelData:
             return out
 
         return fa.file[self._full_path][idx]
-
-    def __iter__(self):
-        for id_ in self._ids:
-            yield self.__getitem__(id_)
-
-    def from_index(self, index):
-        """Return the data from the nth pulse given index.
-
-        :param int index: pulse index.
-        """
-        return self.__getitem__(self._ids[index])
-
-    def _find_data(self, id_):
-        for fa in self._files:
-            idx = (fa._ids == id_).nonzero()[0]
-            if idx.size > 0:
-                return fa, idx[0]
-        raise KeyError
 
     def numpy(self):
         """Return data as a numpy array."""
