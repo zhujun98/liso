@@ -37,7 +37,7 @@ $ pip install liso
 
 ### Use LISO in your experiments
 
-#### Acquire data
+#### Acquiring data
 
 ```py
 from liso import EuXFELInterface, MachineScan
@@ -59,7 +59,7 @@ sc = MachineScan(m)
 sc.scan(4000, folder='my_exp', n_tasks=8)
 ```
 
-#### Read experimental data from files
+#### Reading experimental data from files
 
 ```py
 from liso import open_run
@@ -87,7 +87,7 @@ ch_data_array = ch_data.numpy()
 
 ### Use LISO to run simulations
 
-#### Build a linac
+#### Building a linac
 
 ```py
 linac = Linac(2000)
@@ -100,7 +100,7 @@ linac.add_beamline('astra',
                    pout='injector.0450.001')
 ```
 
-#### Run a parameter scan or a jitter study
+#### Running a parameter scan or a jitter study
 
 ```py
 from liso import LinacScan
@@ -114,7 +114,7 @@ sc.add_param('gun_phase', start=-10, stop=10, num=20, sigma=0.1)
 sc.scan(folder="my_scan_data")
 ```
 
-#### Read simulated data from files
+#### Reading simulated data from files
 
 ```py
 from liso import open_sim

@@ -14,15 +14,18 @@ Contents:
    :maxdepth: 1
    :caption: SIMULATION:
 
+   sim_building_a_linac
    sim_optimization
    sim_scan
-   data_visualization
+   sim_reading_scan_files
 
 .. toctree::
    :maxdepth: 1
    :caption: EXPERIMENT:
 
+   exp_data_recording
    exp_scan
+   exp_reading_files
 
 .. toctree::
    :maxdepth: 1
