@@ -218,7 +218,7 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.control_channels):
             print('  - ', ch)
 
-        print(f"\nInstrument channels ({len(self.diagnostic_channels)}):")
+        print(f"\nDiagnostic channels ({len(self.diagnostic_channels)}):")
         for ch in sorted(self.diagnostic_channels):
             print('  - ', ch)
 
