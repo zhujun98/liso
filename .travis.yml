@@ -11,10 +11,6 @@ jobs:
       env: COVERAGE_SCAN=1
       after_success:
         - codecov
-    - os: osx
-      osx_image: xcode11.2
-      language: shell
-      if: branch == master
     - os: windows
       language: shell
       before_install:
