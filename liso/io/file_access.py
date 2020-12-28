@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 from abc import abstractmethod
 import os.path as osp
-import resource
+import platform
 
 from collections import OrderedDict
 from weakref import WeakValueDictionary
@@ -65,8 +65,12 @@ class FileOpenRegistry:
 
 
 def _init_file_open_registry():
-    # (soft, hard) = (1024, 4096) on the Maxwell cluster
-    max_files = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if platform.system().lower() == 'windows':
+        max_files = (1024, 4096)
+    else:
+        import resource
+        # (soft, hard) = (1024, 4096) on the Maxwell cluster
+        max_files = resource.getrlimit(resource.RLIMIT_NOFILE)
     return FileOpenRegistry(max_files[0])
 
 

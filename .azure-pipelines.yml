@@ -1,19 +1,30 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-16.04'
 strategy:
   matrix:
-    Python37:
+    Python37_linux:
       PYTHON_VERSION: '3.7'
-    Python38:
+      IMAGE_NAME: 'ubuntu-16.04'
+    Python38_linux:
       PYTHON_VERSION: '3.8'
+      IMAGE_NAME: 'ubuntu-16.04'
+    Python37_mac:
+      PYTHON_VERSION: '3.7'
+      IMAGE_NAME: 'macos-10.15'
+#    Python37_windows:
+#      PYTHON_VERSION: '3.7'
+#      IMAGE_NAME: 'windows-2019'
+
+pool:
+  vmImage: $(IMAGE_NAME)
 
 steps:
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '$(PYTHON_VERSION)'
+    addToPath: true
+    architecture: 'x64'
   displayName: 'Use Python $(PYTHON_VERSION)'
 
 - script: |
