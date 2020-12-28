@@ -9,7 +9,7 @@ Experiment
     .. automethod:: __init__
     .. automethod:: add_control_channel
     .. automethod:: add_diagnostic_channel
-    .. automethod:: run
+    .. automethod:: write_and_read
 
 
 .. autoclass:: FLASHInterface
@@ -18,4 +18,4 @@ Experiment
     .. automethod:: __init__
     .. automethod:: add_control_channel
     .. automethod:: add_diagnostic_channel
-    .. automethod:: run
+    .. automethod:: write_and_read

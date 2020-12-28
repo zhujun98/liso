@@ -1,28 +1,43 @@
 Welcome to LISO's documentation!
 ================================
 
-Contents:
+Introduction
+------------
+
+LISO (**LI**\ nac **S**\ imulation and **O**\ ptimization) is a library which provides
+a unified interface for numerical simulations, experiments and data management
+in the era of big data and artificial intelligence. LISO was initially created only
+for simulation and optimization back in 2017. After a more than two years interruption,
+it is live again but aims at:
+
+- providing a high-level API to run a large numbers of beam dynamics simulations using a combination
+  of different codes;
+- providing a unified IO for the simulated and experimental data;
+- providing an interface for deep learning and deep reinforcement learning studies on accelerator physics.
+
 
 .. toctree::
    :maxdepth: 1
+   :caption: INSTALLATION:
 
-   introduction
    installation
-   configuration
 
 .. toctree::
    :maxdepth: 1
    :caption: SIMULATION:
 
+   sim_building_a_linac
    sim_optimization
    sim_scan
-   data_visualization
+   sim_reading_scan_files
 
 .. toctree::
    :maxdepth: 1
    :caption: EXPERIMENT:
 
+   exp_data_recording
    exp_scan
+   exp_reading_files
 
 .. toctree::
    :maxdepth: 1

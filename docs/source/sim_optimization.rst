@@ -1,2 +1,2 @@
-Optimization (Simulation)
-=========================
+Optimization
+============

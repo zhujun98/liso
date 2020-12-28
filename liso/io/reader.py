@@ -13,12 +13,12 @@ import os.path as osp
 import numpy as np
 import pandas as pd
 
-from .channel_data import ChannelData
+from .channel_data import _AbstractPulseTrainData, ChannelData
 from .file_access import SimFileAccess, ExpFileAccess
 from ..proc import Phasespace
 
 
-class _DataCollectionBase:
+class _DataCollectionBase(_AbstractPulseTrainData):
     """A collection of simulated or experimental data."""
 
     _FileAccess = None
@@ -28,8 +28,9 @@ class _DataCollectionBase:
 
         :param list files: a list of FileAccess instances.
         """
+        super().__init__()
+
         self._files = list(files)
-        self._ids = []
 
         # channels are not ubiquitous in each file
         self._channel_files = defaultdict(list)
@@ -102,28 +103,6 @@ class _DataCollectionBase:
         return pd.concat(data)
 
     @abc.abstractmethod
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-    def __iter__(self):
-        for id_ in self._ids:
-            yield self.__getitem__(id_)
-
-    def from_index(self, index):
-        """Return the data from the nth pulse given index.
-
-        :param int index: pulse index.
-        """
-        return self.__getitem__(self._ids[index])
-
-    def _find_data(self, id_) -> (ExpFileAccess, int):
-        for fa in self._files:
-            idx = (fa._ids == id_).nonzero()[0]
-            if idx.size > 0:
-                return fa, idx[0]
-        raise KeyError
-
-    @abc.abstractmethod
     def _get_channel_category(self, ch):
         raise NotImplementedError
 
@@ -179,6 +158,7 @@ class SimDataCollection(_DataCollectionBase):
             print('  - ', src)
 
     def __getitem__(self, sim_id):
+        """Override."""
         fa, idx = self._find_data(sim_id)
         ret = dict()
         for ch in self.control_channels:
@@ -238,11 +218,12 @@ class ExpDataCollection(_DataCollectionBase):
         for ch in sorted(self.control_channels):
             print('  - ', ch)
 
-        print(f"\nInstrument channels ({len(self.diagnostic_channels)}):")
+        print(f"\nDiagnostic channels ({len(self.diagnostic_channels)}):")
         for ch in sorted(self.diagnostic_channels):
             print('  - ', ch)
 
     def __getitem__(self, pulse_id):
+        """Override."""
         fa, idx = self._find_data(pulse_id)
         ret = dict()
         for ch in self.control_channels:
