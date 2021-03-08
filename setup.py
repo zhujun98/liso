@@ -37,7 +37,7 @@ setup(
     entry_points={
     },
     extras_require={
-        'testing': [
+        'test': [
             'pytest',
         ],
     },
