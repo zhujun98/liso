@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Start the Spark cluster
+echo ""
+echo Starting master on ${SPARK_MASTER_URL}
+echo ""
+mkdir -p $SPARK_LOG_DIR ${SPARK_WORKER_DIR}
+start-master.sh
+sleep 10s
+echo ""
+echo Starting workers
+echo ""
+srun spark-class org.apache.spark.deploy.worker.Worker ${SPARK_MASTER_URL} -d ${SPARK_WORKER_DIR} &
+sleep 10s
