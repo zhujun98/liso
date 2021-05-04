@@ -211,6 +211,8 @@ class PhasespacePlot(object):
                y_range=None,
                x_unit=None,
                y_unit=None,
+               v_min=None,
+               v_max=None,
                cmap=None,
                ax=None,
                flip_origin=True):
@@ -226,6 +228,8 @@ class PhasespacePlot(object):
             and (y_max - y_min) / y_bins should be the pixel size in y.
         :param string x_unit: unit for x axis.
         :param string y_unit: unit for y axis.
+        :param float v_min: Minimum value of the colormap.
+        :param float v_max: Maximum value of the colormap.
         :param matplotlib.axes.Axes/None ax: axis of the plot.
         :param bool flip_origin: True for flipping the y_axis.
         """
@@ -251,6 +255,8 @@ class PhasespacePlot(object):
             cmap = 'viridis'
 
         ax.imshow(intensity,
+                  vmin=v_min,
+                  vmax=v_max,
                   aspect='auto',
                   cmap=cmap,
                   extent=[xc.min(), xc.max(), yc.min(), yc.max()],
