@@ -56,7 +56,7 @@ m.add_diagnostic_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
 
 sc = MachineScan(m)
 
-sc.scan(4000, folder='my_exp', n_tasks=8)
+sc.scan(4000, n_tasks=8)
 ```
 
 #### Reading experimental data from files
@@ -64,7 +64,7 @@ sc.scan(4000, folder='my_exp', n_tasks=8)
 ```py
 from liso import open_run
 
-run = open_run('my_exp/r0001')
+run = open_run('r0001')
 
 # Get an overview of the run
 run.info()
@@ -111,7 +111,7 @@ sc = LinacScan(linac)
 sc.add_param('gun_gradient', start=120, stop=140, num=10, sigma=-0.001)
 sc.add_param('gun_phase', start=-10, stop=10, num=20, sigma=0.1)
 
-sc.scan(folder="my_scan_data")
+sc.scan()
 ```
 
 #### Reading simulated data from files
@@ -119,7 +119,7 @@ sc.scan(folder="my_scan_data")
 ```py
 from liso import open_sim
 
-sim = open_sim('my_scan_data')
+sim = open_sim('./')
 
 # Get an overview of the simulation
 sim.info()
