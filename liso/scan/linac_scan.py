@@ -17,7 +17,7 @@ import traceback
 
 import numpy as np
 
-from .scan_param import JitterParam, SampleParam, ScanParam
+from .scan_param import JitterParam, SampleParam, StepParam
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter, SimWriter
 from ..logging import logger
@@ -38,7 +38,7 @@ class _BaseScan(abc.ABC):
             raise ValueError(f"Parameter {name} already exists!")
 
         try:
-            param = ScanParam(name, **kwargs)
+            param = StepParam(name, **kwargs)
         except TypeError:
             try:
                 param = SampleParam(name, **kwargs)
@@ -116,7 +116,7 @@ class _BaseScan(abc.ABC):
         sample_params = []
         jitter_params = []
         for param in self._params.values():
-            if isinstance(param, ScanParam):
+            if isinstance(param, StepParam):
                 scan_params.append(param)
             elif isinstance(param, SampleParam):
                 sample_params.append(param)
@@ -153,7 +153,9 @@ class LinacScan(_BaseScan):
     def add_param(self, name, **kwargs):
         """Add a parameter for scan.
 
-        :param str name: parameter name for simulations.
+        The kwargs will be passed to the construct of a ScanParam subclass.
+
+        :param str name: Parameter name in the simulation input file.
         """
         self._add_scan_param(name, **kwargs)
 
@@ -396,6 +398,8 @@ class MachineScan(_BaseScan):
 
     def add_param(self, name, readout=None, tol=1e-6, **kwargs):
         """Add a parameter for scan.
+
+        The kwargs will be passed to the construct of a ScanParam subclass.
 
         :param str name: the DOOCS address.
         :param str/None readout: the DOOCS address for validating the value
