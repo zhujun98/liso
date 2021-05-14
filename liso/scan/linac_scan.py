@@ -135,7 +135,7 @@ class _BaseScan(abc.ABC):
         return text
 
     @abc.abstractmethod
-    def _create_run_folder(self, parent):
+    def _create_output_dir(self, parent):
         pass
 
 
@@ -165,13 +165,13 @@ class LinacScan(_BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    def _create_run_folder(self, parent):
+    def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
-        # It is allowed to use an existing folder, but not an existing file.
+        # It is allowed to use an existing directory, but not an existing file.
         parent_path.mkdir(exist_ok=True)
         return parent_path
 
-    async def _async_scan(self, cycles, run_folder, *,
+    async def _async_scan(self, cycles, output_dir, *,
                           start_id, n_tasks, group, chmod, **kwargs):
         tasks = set()
         sequence = self._generate_param_sequence(cycles)
@@ -183,7 +183,7 @@ class LinacScan(_BaseScan):
             control_schema[param] = {'type': '<f4'}
         schema = (control_schema, phasespace_schema)
 
-        with SimWriter(run_folder,
+        with SimWriter(output_dir,
                        schema=schema,
                        chmod=chmod,
                        group=group) as writer:
@@ -230,7 +230,7 @@ class LinacScan(_BaseScan):
 
                         tasks.remove(task)
 
-    def scan(self, cycles=1, folder='scan_data', *,
+    def scan(self, cycles=1, output_dir="./", *,
              start_id=1,
              n_tasks=None,
              chmod=True,
@@ -242,7 +242,8 @@ class LinacScan(_BaseScan):
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str folder: folder where the simulation data will be saved.
+        :param str output_dir: Directory where the output simulation data
+            is saved.
         :param int start_id: starting simulation id. Default = 1.
         :param int/None n_tasks: maximum number of concurrent tasks.
         :param bool chmod: True for changing the permission to 400 after
@@ -258,7 +259,7 @@ class LinacScan(_BaseScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        run_folder = self._create_run_folder(folder)
+        output_dir = self._create_output_dir(output_dir)
 
         logger.info(str(self._linac))
         logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
@@ -268,7 +269,7 @@ class LinacScan(_BaseScan):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._async_scan(
-            cycles, run_folder,
+            cycles, output_dir,
             start_id=start_id,
             n_tasks=n_tasks,
             group=group,
@@ -292,24 +293,25 @@ class MachineScan(_BaseScan):
 
         self._param_readouts = dict()
 
-    def _create_run_folder(self, parent):
+    def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
-        # It is allowed to use an existing parent folder, but not a run folder.
+        # It is allowed to use an existing parent directory,
+        # but not a run folder.
         parent_path.mkdir(exist_ok=True)
 
-        next_run = 1  # starting from 1
+        next_run_index = 1  # starting from 1
         for d in parent_path.iterdir():
             # Here d could also be a file
             if re.search(r'r\d{4}', d.name):
                 seq = int(d.name[1:])
-                if seq >= next_run:
-                    next_run = seq + 1
+                if seq >= next_run_index:
+                    next_run_index = seq + 1
 
-        next_run_folder = parent_path.joinpath(f'r{next_run:04d}')
-        next_run_folder.mkdir(parents=True, exist_ok=False)
-        return next_run_folder
+        next_output_dir = parent_path.joinpath(f'r{next_run_index:04d}')
+        next_output_dir.mkdir(parents=True, exist_ok=False)
+        return next_output_dir
 
-    def scan(self, cycles=1, folder='scan_data', *,
+    def scan(self, cycles=1, output_dir="./", *,
              tasks=None,
              chmod=True,
              timeout=None,
@@ -320,8 +322,8 @@ class MachineScan(_BaseScan):
         :param int cycles: number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str folder: folder in which data for each run will be stored in
-            in its own sub-folder.
+        :param str output_dir: Directory in which data for each run is
+            stored in in its own sub-directory.
         :param int/None tasks: maximum number of concurrent tasks for
             read and write.
         :param bool chmod: True for changing the permission to 400 after
@@ -349,11 +351,11 @@ class MachineScan(_BaseScan):
 
         np.random.seed(seed)
 
-        run_folder = self._create_run_folder(folder)
+        output_dir = self._create_output_dir(output_dir)
 
         sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence) if sequence else cycles
-        with ExpWriter(run_folder,
+        with ExpWriter(output_dir,
                        schema=self._machine.schema,
                        chmod=chmod,
                        group=group) as writer:

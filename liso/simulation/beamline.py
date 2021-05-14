@@ -50,7 +50,7 @@ class Beamline(ABC):
         :param str pout: final particle file name. It must be located in the
             same directory as the input file.
         :param float charge: Bunch charge at the beginning of the beamline.
-            Only used for certain codes (e.g. ImpactT).
+            Only used for certain simulation codes (e.g. ImpactT).
         :param float z0: Starting z coordinate in meter. Used for concatenated
             simulation. Default = None, inherit z coordinate from the upstream
             beamline. However, for instance, when the second beamline is
@@ -86,7 +86,7 @@ class Beamline(ABC):
         # suffixes for the output files related to Line instance.
         self._output_suffixes = []
 
-        self.next = None  # downstream beamline
+        self.next = None  # the immediate downstream beamline
 
     @property
     def out(self):

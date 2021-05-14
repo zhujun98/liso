@@ -53,4 +53,4 @@ sc = MachineScan(m)
 #              tol=0.02,
 #              lb=182, ub=186)
 
-sc.scan(args.pulses, folder='my_exp_data', tasks=args.tasks)
+sc.scan(args.pulses, tasks=args.tasks)
