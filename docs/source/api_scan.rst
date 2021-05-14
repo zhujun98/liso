@@ -1,9 +1,7 @@
 Scan
 ====
 
-.. currentmodule:: liso.scan.linac_scan
-
-.. autoclass:: LinacScan
+.. autoclass:: liso.scan.linac_scan.LinacScan
     :show-inheritance:
 
     .. automethod:: __init__
@@ -11,7 +9,7 @@ Scan
     .. automethod:: scan
 
 
-.. autoclass:: MachineScan
+.. autoclass:: liso.scan.machine_scan.MachineScan
     :show-inheritance:
 
     .. automethod:: __init__

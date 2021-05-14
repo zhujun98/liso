@@ -48,7 +48,7 @@ read out the result, please refer to `Reading Experimental Data Files <./exp_rea
 Scan parameters
 ---------------
 
-.. autofunction:: liso.scan.linac_scan.MachineScan.add_param
+.. autofunction:: liso.scan.machine_scan.MachineScan.add_param
     :noindex:
 
 For available scan parameter types, please refer to :ref:`scan parameters`.
