@@ -24,7 +24,7 @@ class Linac(Mapping):
         :param int/None mps: number of macro-particles at the
             start of the simulation.
         """
-        self._mps = mps
+        self._mps = mps  # Number of macro-particles.
 
         self._beamlines = OrderedDict()
 
@@ -43,6 +43,9 @@ class Linac(Mapping):
     def add_beamline(self, code, *args, **kwargs):
         """Add a beamline.
 
+        The args and kwargs will be passed to the constructor of the
+        corresponding Beamline type.
+
         :param str code: Code used to simulate the beamline. ASTRA: 'astra'
             or 'a'; IMPACT-T: 'impactt' or 't'. Case Insensitive.
         """
@@ -54,6 +57,7 @@ class Linac(Mapping):
 
         lst = list(self._beamlines.keys())
         if len(lst) > 0:
+            # not the first Beamline
             self._beamlines[lst[-1]].next = bl
         self._beamlines[name] = bl
 
@@ -114,7 +118,8 @@ class Linac(Mapping):
     def run(self, mapping, *, n_workers=1, timeout=None):
         """Run simulation for all the beamlines.
 
-        :param dict mapping:
+        :param dict mapping: A mapping of parameters used in the simulation
+            input file.
         :param int n_workers: Number of processes used in simulation.
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.

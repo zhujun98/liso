@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 class OperationalElement(ABC):
     """Abstract class.
 
-    Base class of Variables, Objectives, ScanParam and so on used in
+    Base class of Variables, Objectives, StepParam and so on used in
     Optimization and Scan studies.
     """
     def __init__(self, name):

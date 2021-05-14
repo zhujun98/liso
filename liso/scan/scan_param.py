@@ -12,7 +12,7 @@ import numpy as np
 from ..elements import OperationalElement
 
 
-class _IterParam(OperationalElement):
+class ScanParam(OperationalElement):
     """Base class for parameters used in parameter scan."""
     def __init__(self, name):
         super().__init__(name)
@@ -31,12 +31,8 @@ class _IterParam(OperationalElement):
         raise NotImplementedError
 
 
-class ScanParam(OperationalElement):
-    """ScanParam class.
-
-    A scan parameter is a parameter that changes from start to end
-    values stepwise.
-    """
+class StepParam(ScanParam):
+    """Generate parameters that change from start to end values stepwise."""
     def __init__(self, name, *, start, stop, num, sigma=0.):
         """Initialization.
 
@@ -93,12 +89,8 @@ class ScanParam(OperationalElement):
                self.list_item()
 
 
-class SampleParam(OperationalElement):
-    """SampleParam class.
-
-    A sample parameter is a parameter that is sampled uniformly within a
-    given range.
-    """
+class SampleParam(ScanParam):
+    """Generate parameters that are sampled uniformly within a given range."""
     def __init__(self, name, *, lb, ub):
         """Initialization.
 
@@ -129,18 +121,15 @@ class SampleParam(OperationalElement):
             'Name', 'Lower bound', 'Upper bound') + self.list_item()
 
 
-class JitterParam(OperationalElement):
-    """JitterParam class.
-
-    A jitter parameter is a parameter that jitters around a given value.
-    """
+class JitterParam(ScanParam):
+    """Generate parameters that are randomly sampled around a given value."""
     def __init__(self, name, *, value, sigma=0.):
         """Initialization.
 
         :param float value: the reference value.
         :param float sigma: standard deviation of the jitter of the
             parameter if given. Positive for absolute jitter and negative
-            for negative jitter.
+            for relative jitter.
         """
         super().__init__(name)
 

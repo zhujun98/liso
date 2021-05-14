@@ -1,4 +1,5 @@
-from .linac_scan import LinacScan, MachineScan
+from .linac_scan import LinacScan
+from .machine_scan import MachineScan
 
 
 __all__ = [

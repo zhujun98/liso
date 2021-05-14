@@ -2,43 +2,43 @@ import unittest
 
 import numpy as np
 
-from liso.scan.scan_param import JitterParam, SampleParam, ScanParam
+from liso.scan.scan_param import JitterParam, SampleParam, StepParam
 
 
-class TestScanParam(unittest.TestCase):
-    def testScanParam(self):
+class TestStepParam(unittest.TestCase):
+    def testStepParam(self):
         with self.assertRaises(ValueError):
             # num is 0
-            ScanParam('param', start=-1., stop=1., num=0)
+            StepParam('param', start=-1., stop=1., num=0)
 
-        param = ScanParam('param', start=-0.1, stop=0.1, num=5)
+        param = StepParam('param', start=-0.1, stop=0.1, num=5)
         np.testing.assert_array_almost_equal(
             [-0.1, -0.05, 0., 0.05, 0.1], param.generate())
 
-        param = ScanParam('param', start=-0.1, stop=-0.1, num=5)
+        param = StepParam('param', start=-0.1, stop=-0.1, num=5)
         np.testing.assert_array_almost_equal([-0.1] * 5, param.generate())
 
         # test positive sigma
-        param = ScanParam('param', start=-10., stop=-10., num=1000, sigma=0.1)
+        param = StepParam('param', start=-10., stop=-10., num=1000, sigma=0.1)
         param_lst = param.generate()
         self.assertLess(abs(-10. - np.mean(param_lst)), 0.1)
         self.assertLess(abs(0.1 - np.std(param_lst)), 0.01)
 
         # test negative sigma
-        param = ScanParam('param', start=-10., stop=-10., num=1000, sigma=-0.1)
+        param = StepParam('param', start=-10., stop=-10., num=1000, sigma=-0.1)
         param_lst = param.generate()
         self.assertLess(abs(-10. - np.mean(param_lst)), 0.1)
         self.assertLess(abs(1. - np.std(param_lst)),  0.1)
 
         # test repeats and cycles
-        param = ScanParam('param', start=-1., stop=1., num=3)
+        param = StepParam('param', start=-1., stop=1., num=3)
         np.testing.assert_array_equal([-1.0, -1.0, 0.0, 0.0, 1.0, 1.0],
                                       param.generate(repeats=2, cycles=1))
         np.testing.assert_array_equal([-1.0, -1.0, 0.0, 0.0, 1.0, 1.0] * 3,
                                       param.generate(repeats=2, cycles=3))
 
         # test repeats and cycles with jitter
-        param = ScanParam('param', start=-1., stop=1., num=2, sigma=0.1)
+        param = StepParam('param', start=-1., stop=1., num=2, sigma=0.1)
         lst = param.generate(cycles=200, repeats=2)
         self.assertNotEqual(lst[0], lst[1])
         self.assertNotEqual(lst[3], lst[4])

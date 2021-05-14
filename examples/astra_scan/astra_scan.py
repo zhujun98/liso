@@ -22,4 +22,4 @@ sc.add_param('gun_phase', start=-10, stop=10, num=3, sigma=0.1)
 sc.add_param('tws_gradient', lb=25, ub=35)
 sc.add_param('tws_phase', value=-90, sigma=0.1)
 
-sc.scan(1, folder="my_scan_data")
+sc.scan(1)

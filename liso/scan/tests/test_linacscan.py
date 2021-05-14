@@ -124,12 +124,12 @@ class TestLinacScan(unittest.TestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 with self.assertRaises(KeyError):
-                    self._sc.scan(2, folder=tmp_dir, n_tasks=2)
+                    self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
 
                 self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
                 self._sc.add_param('gun_phase', start=10., stop=30., num=3)
                 # Note: use n_tasks > 1 here to track bugs
-                self._sc.scan(2, folder=tmp_dir, n_tasks=2)
+                self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
 
                 # Testing with a real file is necessary to check the
                 # expected results were written.
@@ -147,28 +147,28 @@ class TestLinacScan(unittest.TestCase):
                     sim.get_controls(sorted=True)['gun/gun_phase'])
 
                 # test when folder does not exist
-                self._sc.scan(2, folder=f"{tmp_dir}/tmp", n_tasks=2)
+                self._sc.scan(2, output_dir=f"{tmp_dir}/tmp", n_tasks=2)
 
             with self.subTest("Test start_id"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     with self.assertRaisesRegex(
                             ValueError, "start_id must a positive integer"):
-                        self._sc.scan(2, folder=tmp_dir, start_id=0, n_tasks=2)
+                        self._sc.scan(2, output_dir=tmp_dir, start_id=0, n_tasks=2)
 
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, folder=tmp_dir, start_id=11)
+                    self._sc.scan(2, output_dir=tmp_dir, start_id=11)
                     sim = open_sim(tmp_dir)
                     np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
 
             with self.subTest("Test chmod"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, folder=tmp_dir)
+                    self._sc.scan(2, output_dir=tmp_dir)
                     path = pathlib.Path(tmp_dir)
                     for file in path.iterdir():
                         self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, folder=tmp_dir, chmod=False)
+                    self._sc.scan(2, output_dir=tmp_dir, chmod=False)
                     path = pathlib.Path(tmp_dir)
                     for file in path.iterdir():
                         self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
@@ -258,7 +258,7 @@ class TestMachineScan(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             n_pulses = 40
-            sc.scan(n_pulses, folder=tmp_dir, timeout=0.005)
+            sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.005)
 
             patched_read.assert_called()
 
@@ -269,14 +269,14 @@ class TestMachineScan(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(2, folder=tmp_dir, timeout=0.001)
-            sc.scan(2, folder=tmp_dir, timeout=0.001)
+            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
+            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
             path = pathlib.Path(tmp_dir)
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
                                  sorted((path.iterdir())))
 
             path.joinpath("r0006").mkdir()
-            sc.scan(2, folder=tmp_dir, timeout=0.001)
+            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                  sorted((path.iterdir())))
 
@@ -287,13 +287,13 @@ class TestMachineScan(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, folder=tmp_dir, timeout=0.001)
+            sc.scan(10, output_dir=tmp_dir, timeout=0.001)
             path = pathlib.Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, folder=tmp_dir, chmod=False, timeout=0.001)
+            sc.scan(10, output_dir=tmp_dir, chmod=False, timeout=0.001)
             path = pathlib.Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
@@ -312,7 +312,7 @@ class TestMachineScan(unittest.TestCase):
             path = pathlib.Path(tmp_dir)
 
             n_pulses = 40
-            sc.scan(n_pulses, folder=tmp_dir, timeout=0.01)
+            sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.01)
 
             run = open_run(path.joinpath('r0001'))
             run.info()
@@ -344,11 +344,11 @@ class TestMachineScan(unittest.TestCase):
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
             patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
-            sc.scan(10, folder=tmp_dir, timeout=0.01)
+            sc.scan(10, output_dir=tmp_dir, timeout=0.01)
 
             def _side_effect_raise(x):
                 raise machine.DoocsException
             patched_read.side_effect = _side_effect_raise
             with self.assertRaisesRegex(RuntimeError,
                                         "Failed to read all the initial values"):
-                sc.scan(10, folder=tmp_dir, timeout=0.01)
+                sc.scan(10, output_dir=tmp_dir, timeout=0.01)
