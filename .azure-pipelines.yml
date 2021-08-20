@@ -5,7 +5,7 @@ strategy:
   matrix:
     Python37_linux:
       PYTHON_VERSION: '3.7'
-      IMAGE_NAME: 'ubuntu-16.04'
+      IMAGE_NAME: 'ubuntu-latest'
     Python37_mac:
       PYTHON_VERSION: '3.7'
       IMAGE_NAME: 'macos-10.15'
