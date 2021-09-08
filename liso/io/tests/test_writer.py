@@ -10,13 +10,21 @@ import numpy as np
 from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.io import ExpWriter, SimWriter
+from liso.io.file_access import _IS_H5PY_VERSION_2
 from liso.proc import Phasespace
 
 
 def _check_create_update_date(fp):
-    create_date = datetime.fromisoformat(fp['METADATA/createDate'][()])
+    if _IS_H5PY_VERSION_2:
+        create_date = datetime.fromisoformat(fp['METADATA/createDate'][()])
+    else:
+        create_date = datetime.fromisoformat(fp['METADATA/createDate'].asstr()[()])
     assert 0 < (datetime.now() - create_date).total_seconds() < 1.0
-    update_date = datetime.fromisoformat(fp['METADATA/updateDate'][()])
+
+    if _IS_H5PY_VERSION_2:
+        update_date = datetime.fromisoformat(fp['METADATA/updateDate'][()])
+    else:
+        update_date = datetime.fromisoformat(fp['METADATA/updateDate'].asstr()[()])
     assert 0 < (datetime.now() - update_date).total_seconds() < 1.0
     assert (update_date - create_date).total_seconds() > 0
 
@@ -112,10 +120,16 @@ class TestSimWriter(unittest.TestCase):
             with h5py.File(path.joinpath(file), 'r') as fp:
                 _check_create_update_date(fp)
 
-                self.assertSetEqual({'gun/gun_gradient', 'gun/gun_phase'},
-                                    set(fp['METADATA/controlChannel']))
-                self.assertSetEqual({'gun/out'},
-                                    set(fp['METADATA/phasespaceChannel']))
+                if _IS_H5PY_VERSION_2:
+                    self.assertSetEqual({'gun/gun_gradient', 'gun/gun_phase'},
+                                        set(fp['METADATA/controlChannel']))
+                    self.assertSetEqual({'gun/out'},
+                                        set(fp['METADATA/phasespaceChannel']))
+                else:
+                    self.assertSetEqual({b'gun/gun_gradient', b'gun/gun_phase'},
+                                        set(fp['METADATA/controlChannel']))
+                    self.assertSetEqual({b'gun/out'},
+                                        set(fp['METADATA/phasespaceChannel']))
 
                 if i == 2:
                     np.testing.assert_array_equal(
@@ -219,10 +233,16 @@ class TestExpWriter(unittest.TestCase):
             with h5py.File(path.joinpath(file), 'r') as fp:
                 _check_create_update_date(fp)
 
-                self.assertSetEqual(
-                    {"XFEL.A/B/C/D", "XFEL.A/B/C/E"}, set(fp['METADATA/controlChannel']))
-                self.assertSetEqual(
-                    {"XFEL.H/I/J/K", "XFEL.H/I/J/L"}, set(fp['METADATA/diagnosticChannel']))
+                if _IS_H5PY_VERSION_2:
+                    self.assertSetEqual({"XFEL.A/B/C/D", "XFEL.A/B/C/E"},
+                                        set(fp['METADATA/controlChannel']))
+                    self.assertSetEqual({"XFEL.H/I/J/K", "XFEL.H/I/J/L"},
+                                        set(fp['METADATA/diagnosticChannel']))
+                else:
+                    self.assertSetEqual({b"XFEL.A/B/C/D", b"XFEL.A/B/C/E"},
+                                        set(fp['METADATA/controlChannel']))
+                    self.assertSetEqual({b"XFEL.H/I/J/K", b"XFEL.H/I/J/L"},
+                                        set(fp['METADATA/diagnosticChannel']))
 
                 if i == 2:
                     np.testing.assert_array_equal(

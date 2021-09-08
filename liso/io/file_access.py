@@ -14,6 +14,8 @@ from weakref import WeakValueDictionary
 
 import h5py
 
+_IS_H5PY_VERSION_2 = h5py.__version__[0] == '2'
+
 # Track all FileAccess objects - {path: FileAccess}
 _file_access_registry = WeakValueDictionary()
 
@@ -75,6 +77,19 @@ def _init_file_open_registry():
 
 
 _file_open_registry = _init_file_open_registry()
+
+
+# Define a function to handle the different behaviors in different
+# h5py versions.
+def _read_channels(ds):
+    chs = set()
+    if _IS_H5PY_VERSION_2:
+        for src in ds[()]:
+            chs.add(src)
+    else:
+        for src in ds[()]:
+            chs.add(src.decode('utf-8'))
+    return chs
 
 
 class _FileAccessBase:
@@ -144,11 +159,8 @@ class SimFileAccess(_FileAccessBase):
             control_channel_path = 'METADATA/controlChannel'
             phasespace_channel_path = 'METADATA/phasespaceChannel'
 
-        control_channels, phasespace_channels = set(), set()
-        for src in self.file[control_channel_path][()]:
-            control_channels.add(src)
-        for src in self.file[phasespace_channel_path][()]:
-            phasespace_channels.add(src)
+        control_channels = _read_channels(self.file[control_channel_path])
+        phasespace_channels = _read_channels(self.file[phasespace_channel_path])
 
         return frozenset(control_channels), frozenset(phasespace_channels)
 
@@ -181,10 +193,7 @@ class ExpFileAccess(_FileAccessBase):
             control_channel_path = 'METADATA/controlChannel'
             diagnostic_channel_path = 'METADATA/diagnosticChannel'
 
-        control_channels, diagnostic_channels = set(), set()
-        for src in self.file[control_channel_path][()]:
-            control_channels.add(src)
-        for src in self.file[diagnostic_channel_path][()]:
-            diagnostic_channels.add(src)
+        control_channels = _read_channels(self.file[control_channel_path])
+        diagnostic_channels = _read_channels(self.file[diagnostic_channel_path])
 
         return frozenset(control_channels), frozenset(diagnostic_channels)
