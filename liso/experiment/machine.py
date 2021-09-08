@@ -254,12 +254,19 @@ class _DoocsReader:
             self._no_event.add(address)
 
 
-class _DoocsMachine:
+class BaseMachine:
+    # TODO: Improve when there are more than one machine types.
+    def __init__(self) -> None:
+        pass
+
+
+class DoocsMachine(BaseMachine):
     """Base class for machine interface using DOOCS control system."""
 
     _facility_name = None
 
     def __init__(self):
+        super().__init__()
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
 
@@ -411,9 +418,9 @@ class _DoocsMachine:
                 self._reader.read_channels(channels)).items()}
 
 
-class EuXFELInterface(_DoocsMachine):
+class EuXFELInterface(DoocsMachine):
     _facility_name = 'XFEL'
 
 
-class FLASHInterface(_DoocsMachine):
+class FLASHInterface(DoocsMachine):
     _facility_name = 'FLASH'

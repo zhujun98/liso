@@ -14,22 +14,24 @@ import pathlib
 import re
 import sys
 import traceback
+from typing import Optional
 
 import numpy as np
 
-from .base_scan import _BaseScan
+from .base_scan import BaseScan
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter
 from ..logging import logger
+from ..experiment.machine import BaseMachine
 
 
-class MachineScan(_BaseScan):
+class MachineScan(BaseScan):
     """Class for performing scans with a real machine."""
 
-    def __init__(self, machine):
+    def __init__(self, machine: BaseMachine):
         """Initialization.
 
-        :param _BaseMachine machine: Machine instance.
+        :param machine: Machine instance.
         """
         super().__init__()
 
@@ -55,28 +57,27 @@ class MachineScan(_BaseScan):
         next_output_dir.mkdir(parents=True, exist_ok=False)
         return next_output_dir
 
-    def scan(self, cycles=1, output_dir="./", *,
-             tasks=None,
-             chmod=True,
-             timeout=None,
-             group=1,
-             seed=None):
+    def scan(self, cycles: int = 1, output_dir: str = "./", *,
+             tasks: Optional[int] = None,
+             chmod: bool = True,
+             timeout: float = None,
+             group: int = 1,
+             seed: Optional[int] = None):
         """Start a parameter scan.
 
-        :param int cycles: number of cycles of the parameter space. For
+        :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str output_dir: Directory in which data for each run is
+        :param output_dir: Directory in which data for each run is
             stored in in its own sub-directory.
-        :param int/None tasks: maximum number of concurrent tasks for
+        :param tasks: Maximum number of concurrent tasks for
             read and write.
-        :param bool chmod: True for changing the permission to 400 after
+        :param chmod: True for changing the permission to 400 after
             finishing writing.
-        :param float/None timeout: timeout when correlating data by macropulse
+        :param timeout: Timeout when correlating data by macropulse
             ID, in seconds.
-        :param int group: writer group.
-        :param int/None seed: seed for the legacy MT19937 BitGenerator
-            in numpy.
+        :param group: Writer group.
+        :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
         """
         if tasks is None:
             tasks = multiprocessing.cpu_count()
