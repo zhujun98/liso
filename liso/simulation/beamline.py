@@ -10,6 +10,7 @@ import os.path as osp
 from abc import ABC, abstractmethod
 import subprocess
 from distutils.spawn import find_executable
+from typing import Optional
 
 import numpy as np
 
@@ -31,27 +32,27 @@ from ..io import TempSimulationDirectory
 class Beamline(ABC):
     """Beamline abstraction class."""
 
-    def __init__(self, name, *,
-                 template=None,
-                 swd=None,
-                 fin=None,
-                 pin=None,
-                 pout=None,
-                 charge=None,
-                 z0=None):
+    def __init__(self, name: str, *,
+                 template: Optional[str] = None,
+                 swd: Optional[str] = None,
+                 fin: Optional[str] = None,
+                 pin: Optional[str] = None,
+                 pout: Optional[str] = None,
+                 charge: Optional[float] = None,
+                 z0: Optional[float] = None) -> None:
         """Initialization.
 
-        :param str name: Name of the beamline.
-        :param str template: path of the template of the input file.
-        :param str swd: path of the simulation working directory. This where
+        :param name: Name of the beamline.
+        :param template: Path of the template of the input file.
+        :param swd: Path of the simulation working directory. This where
             the Python subprocess runs.
-        :param str fin: input file name.
-        :param str/None pin: initial particle file name.
-        :param str pout: final particle file name. It must be located in the
+        :param fin: Input file name.
+        :param pin: Initial particle file name.
+        :param pout: Final particle file name. It must be located in the
             same directory as the input file.
-        :param float charge: Bunch charge at the beginning of the beamline.
+        :param charge: Bunch charge at the beginning of the beamline.
             Only used for certain simulation codes (e.g. ImpactT).
-        :param float z0: Starting z coordinate in meter. Used for concatenated
+        :param z0: Starting z coordinate in meter. Used for concatenated
             simulation. Default = None, inherit z coordinate from the upstream
             beamline. However, for instance, when the second beamline is
             defined from z0 = 0.0, z0 is required to generate a correct initial

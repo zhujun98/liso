@@ -14,7 +14,7 @@ from .scan_param import JitterParam, SampleParam, StepParam
 from ..logging import logger
 
 
-class _BaseScan(abc.ABC):
+class BaseScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
         self._param_dists = OrderedDict()

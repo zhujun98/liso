@@ -6,23 +6,23 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections.abc import Mapping
+from typing import Optional
 
 from collections import defaultdict, OrderedDict
 from .beamline import create_beamline
 
 
 class Linac(Mapping):
-    """Linac class.
+    """A linear accelerator complex for simulation.
 
     The linac class is the abstraction of a linear accelerator. It
     consists of one or multiple beamlines. These beamlines can be
     simulated using different codes.
     """
-    def __init__(self, mps=None):
+    def __init__(self, mps: Optional[int] = None):
         """Initialization.
 
-        :param int/None mps: number of macro-particles at the
-            start of the simulation.
+        :param mps: Number of macro-particles at the start of the simulation.
         """
         self._mps = mps  # Number of macro-particles.
 
@@ -40,14 +40,15 @@ class Linac(Mapping):
         """Override."""
         return self._beamlines.__len__()
 
-    def add_beamline(self, code, *args, **kwargs):
+    def add_beamline(self, code: str, *args, **kwargs) -> None:
         """Add a beamline.
 
         The args and kwargs will be passed to the constructor of the
-        corresponding Beamline type.
+        corresponding :class:`liso.simulation.beamline.Beamline` type.
 
-        :param str code: Code used to simulate the beamline. ASTRA: 'astra'
-            or 'a'; IMPACT-T: 'impactt' or 't'. Case Insensitive.
+        :param code: Simulation code name (case insensitive) used to
+            simulate the beamline: 'astra' or 'a' for ASTRA; 'impactt' or
+            't' for IMPACT-T; 'elegant' or 'e' for ELEGANT.
         """
         bl = create_beamline(code, *args, **kwargs)
 
@@ -61,10 +62,10 @@ class Linac(Mapping):
             self._beamlines[lst[-1]].next = bl
         self._beamlines[name] = bl
 
-    def add_watch(self, name, *args, **kwargs):
+    def add_watch(self, name: str, *args, **kwargs):
         """Add a Watch object to a beamline of the Linac.
 
-        :param str name: beamline name.
+        :param name: beamline name.
         """
         try:
             bl = self._beamlines[name]

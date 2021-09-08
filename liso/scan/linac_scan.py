@@ -9,37 +9,39 @@ import asyncio
 import multiprocessing
 import pathlib
 import sys
+from typing import Optional
 import traceback
 
 import numpy as np
 
-from .base_scan import _BaseScan
+from .base_scan import BaseScan
 from ..exceptions import LisoRuntimeError
 from ..io import SimWriter
+from ..simulation import Linac
 from ..logging import logger
 
 
-class LinacScan(_BaseScan):
+class LinacScan(BaseScan):
     """Class for performing scans in simulations."""
-    def __init__(self, linac):
+    def __init__(self, linac: Linac) -> None:
         """Initialization.
 
-        :param Linac linac: Linac instance.
+        :param linac: Linac instance.
         """
         super().__init__()
 
         self._linac = linac
 
-    def add_param(self, name, **kwargs):
+    def add_param(self, name: str, **kwargs):
         """Add a parameter for scan.
 
         The kwargs will be passed to the construct of a ScanParam subclass.
 
-        :param str name: Parameter name in the simulation input file.
+        :param name: Parameter name in the simulation input file.
         """
         self._add_scan_param(name, **kwargs)
 
-    def _check_param_name(self, name):
+    def _check_param_name(self, name: str):
         """Override."""
         splitted = name.split('/', 1)
         first_bl = next(iter(self._linac))
@@ -112,27 +114,25 @@ class LinacScan(_BaseScan):
 
                         tasks.remove(task)
 
-    def scan(self, cycles=1, output_dir="./", *,
-             start_id=1,
-             n_tasks=None,
-             chmod=True,
-             group=1,
-             seed=None,
-             **kwargs):
+    def scan(self, cycles: int = 1, output_dir: str = "./", *,
+             start_id: int = 1,
+             n_tasks: Optional[int] = None,
+             chmod: bool = True,
+             group: int = 1,
+             seed: Optional[int] = None,
+             **kwargs) -> None:
         """Start a parameter scan.
 
-        :param int cycles: number of cycles of the parameter space. For
+        :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param str output_dir: Directory where the output simulation data
-            is saved.
-        :param int start_id: starting simulation id. Default = 1.
-        :param int/None n_tasks: maximum number of concurrent tasks.
-        :param bool chmod: True for changing the permission to 400 after
+        :param output_dir: Directory where the output simulation data is saved.
+        :param start_id: Starting simulation id. Default = 1.
+        :param n_tasks: Maximum number of concurrent tasks.
+        :param chmod: True for changing the permission to 400 after
             finishing writing.
-        :param int group: writer group.
-        :param int/None seed: seed for the legacy MT19937 BitGenerator
-            in numpy.
+        :param group: Writer group.
+        :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
         """
         if not isinstance(start_id, int) or start_id < 1:
             raise ValueError(
