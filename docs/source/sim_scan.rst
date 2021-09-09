@@ -1,5 +1,5 @@
-Parameter Scan (simulation)
-===========================
+Parameter Scan
+==============
 
 
 Run a parameter scan
@@ -9,7 +9,17 @@ An example script of running a parameter scan is given below:
 
 .. code-block:: py
 
-    from liso import LinacScan
+    from liso import Linac, LinacScan
+
+
+    linac = Linac(2000)
+
+    linac.add_beamline('astra',
+                       name='gun',
+                       swd='../astra_files',
+                       fin='injector.in',
+                       template='injector.in.000',
+                       pout='injector.0450.001')
 
 
     sc = LinacScan(linac)
@@ -21,30 +31,7 @@ An example script of running a parameter scan is given below:
 
     sc.scan()
 
+Check how to define different :ref:`scan parameters`.
 
 By default, the scan output will be stored in the current directory. For how to
 read out the result, please refer to `Reading Simulated Scan Data Files <./sim_reading_scan_files.ipynb>`_.
-
-.. _scan parameters:
-
-Scan parameters
----------------
-
-.. autofunction:: liso.scan.linac_scan.LinacScan.add_param
-    :noindex:
-
-There are three different kinds of `ScanParam` types:
-
-.. currentmodule:: liso.scan.scan_param
-
-.. autoclass:: StepParam
-
-    .. automethod:: __init__
-
-.. autoclass:: SampleParam
-
-    .. automethod:: __init__
-
-.. autoclass:: JitterParam
-
-    .. automethod:: __init__

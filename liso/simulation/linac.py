@@ -116,16 +116,17 @@ class Linac(Mapping):
             })
         return mapping_norm
 
-    def run(self, mapping, *, n_workers=1, timeout=None):
+    def run(self, params: dict, *,
+            n_workers: int = 1, timeout: Optional[float] = None) -> None:
         """Run simulation for all the beamlines.
 
-        :param dict mapping: A mapping of parameters used in the simulation
+        :param params: A dictionary of parameters used in the simulation
             input file.
         :param int n_workers: Number of processes used in simulation.
         :param float timeout: Maximum allowed duration in seconds of the
             simulation.
         """
-        self.compile(mapping)
+        self.compile(params)
 
         out = None
         for i, bl in enumerate(self._beamlines.values()):
