@@ -144,8 +144,8 @@ class TestSimReader(unittest.TestCase):
         chunk_size = self._chunk_size
 
         control_data = data.get_controls()
-        self.assertEqual(['gun/gun_gradient', 'gun/gun_phase'],
-                         control_data.columns.tolist())
+        self.assertListEqual(['gun/gun_gradient', 'gun/gun_phase'],
+                             sorted(control_data.columns.tolist()))
 
         if i is None:
             self.assertEqual(len(self._sim_ids_gt), len(control_data))
@@ -276,7 +276,7 @@ class TestExpReader(unittest.TestCase):
             with self.subTest("Test control data"):
                 controls = data.get_controls()
                 self.assertListEqual(["XFEL.A/B/C/D", "XFEL.A/B/C/E", "XFEL.A/B/C/F"],
-                                     controls.columns.tolist())
+                                     sorted(controls.columns.tolist()))
 
                 np.testing.assert_array_equal(
                     pulse_ids_gt, controls.index.to_numpy())

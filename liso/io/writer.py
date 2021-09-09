@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 import pathlib
 from string import Template
+from typing import Union
 
 import h5py
 
@@ -24,22 +25,22 @@ class _BaseWriter(abc.ABC):
 
     _IMAGE_CHUNK = (16, 512)
 
-    def __init__(self, path, *,
-                 chmod=True,
-                 group=1,
-                 chunk_size=50,
-                 max_events_per_file):
+    def __init__(self, path: Union[str, pathlib.Path], *,
+                 chmod: bool = True,
+                 group: int = 1,
+                 chunk_size: int = 50,
+                 max_events_per_file: int):
         """Initialization.
 
-        :param pathlib.Path path: path of the simulation/run folder.
-        :param bool chmod: True for changing the permission to 400 after
+        :param path: Path of the simulation/run folder.
+        :param chmod: True for changing the permission to 400 after
             finishing writing.
-        :param int group: writer group (1-99).
-        :param int chunk_size: size of the first dimention of a chunk in
+        :param group: Writer group (1-99).
+        :param chunk_size: Size of the first dimention of a chunk in
             a dataset.
-        :param int max_events_per_file: maximum events stored in a single file.
+        :param max_events_per_file: Maximum events stored in a single file.
 
-        :raise OSError is the file already exists.
+        :raise OSError if the file already exists.
         """
         if max_events_per_file < chunk_size:
             raise ValueError(
@@ -98,11 +99,14 @@ class SimWriter(_BaseWriter):
 
     _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
 
-    def __init__(self, path, *, schema, max_events_per_file=10000, **kwargs):
+    def __init__(self, path: Union[str, pathlib.Path], *,
+                 schema: tuple,
+                 max_events_per_file: int = 10000, **kwargs):
         """Initialization.
 
-        :param str/pathlib.Path path: path of the simulation folder.
-        :param tuple schema: (control, phasespace) data schema
+        :param path: Path of the simulation folder.
+        :param schema: (control, phasespace) data schema.
+        :param max_events_per_file: Maximum events stored in a single file.
         """
         super().__init__(path,
                          max_events_per_file=max_events_per_file, **kwargs)
@@ -153,12 +157,12 @@ class SimWriter(_BaseWriter):
                     chunks=(self._chunk_size,),
                     maxshape=(self._max_events_per_file,))
 
-    def write(self, sim_id, controls, phasespaces):
+    def write(self, sim_id: int, controls: dict, phasespaces: dict):
         """Write data from one simulation into the file.
 
-        :param int sim_id: simulation ID.
-        :param dict controls: dictionary of the control data.
-        :param dict phasespaces: dictionary of the phasespace data.
+        :param sim_id: Simulation ID.
+        :param controls: Dictionary of the control data.
+        :param phasespaces: Dictionary of the phasespace data.
         """
         fp = self._fp
         chunk_size = self._chunk_size
@@ -208,11 +212,14 @@ class ExpWriter(_BaseWriter):
 
     _FILE_ROOT_NAME = Template("RAW-$run-G$group-S$seq.hdf5")
 
-    def __init__(self, path, *, schema, max_events_per_file=500, **kwargs):
+    def __init__(self, path: Union[str, pathlib.Path], *,
+                 schema: tuple,
+                 max_events_per_file: int = 500, **kwargs):
         """Initialization.
 
-        :param pathlib.Path path: path of the run folder.
-        :param tuple schema: (control, diagnostic) data schema.
+        :param path: Path of the simulation folder.
+        :param schema: (control, phasespace) data schema.
+        :param max_events_per_file: Maximum events stored in a single file.
         """
         super().__init__(path,
                          max_events_per_file=max_events_per_file, **kwargs)
@@ -271,12 +278,12 @@ class ExpWriter(_BaseWriter):
                     chunks=(self._chunk_size,),
                     maxshape=(self._max_events_per_file,))
 
-    def write(self, pulse_id, controls, diagnostics):
+    def write(self, pulse_id: int, controls: dict, diagnostics: dict):
         """Write matched data from one train into the file.
 
-        :param int pulse_id: macro-pulse ID.
-        :param dict controls: dictionary of the control data.
-        :param dict diagnostics: dictionary of the phasespace data.
+        :param pulse_id: Macro-pulse ID.
+        :param controls: Dictionary of the control data.
+        :param diagnostics: Dictionary of the phasespace data.
         """
         fp = self._fp
         chunk_size = self._chunk_size

@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import numpy as np
+from typing import Optional, Union
 
 from .file_access import _FileAccessBase
 
@@ -22,17 +23,17 @@ class _AbstractPulseTrainData:
         for id_ in self._ids:
             yield self.__getitem__(id_)
 
-    def from_id(self, id_):
+    def from_id(self, id_: int):
         """Return pulse-train data from the specified pulse ID.
 
-        :param int id_: pulse ID.
+        :param id_: pulse ID.
         """
         return self.__getitem__(id_)
 
-    def from_index(self, index):
+    def from_index(self, index: int):
         """Return pulse-train data from the nth pulse given index.
 
-        :param int index: pulse index.
+        :param index: pulse index.
         """
         return self.__getitem__(self._ids[index])
 
@@ -49,17 +50,18 @@ class ChannelData(_AbstractPulseTrainData):
 
     This class should not be created directly.
     """
-    def __init__(self, address, *, files, category, ids, columns):
+    def __init__(self, address: str, *, files: list, category: str, ids: list,
+                 columns: Optional[Union[str, list]]):
         """Initialization.
 
-        :param str address: the address of the channel. For experimental
-            data, this is the DOOCS channel name.
-        :param list files: a list of _FileAccessBase objects.
-        :param str category: category of the data, which can be CONTROL,
+        :param address: The address of the channel. For experimental data,
+            this is the DOOCS channel name.
+        :param files: A list of _FileAccessBase objects.
+        :param category: Category of the data, which can be CONTROL,
             PHASESPACE (simulation) or DIAGNOSTIC (experiment).
-        :param list ids: simulation/pulse IDs of the data.
-        :param None/str/array-like columns: columns for the phasespace data.
-            If None, all the columns are taken.
+        :param ids: Simulation/pulse IDs of the data.
+        :param columns: Columns for the phasespace data. If None, all the
+            columns are taken.
         """
         super().__init__()
 

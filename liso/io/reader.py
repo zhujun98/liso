@@ -9,12 +9,13 @@ import abc
 from collections import defaultdict
 import os
 import os.path as osp
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 
 from .channel_data import _AbstractPulseTrainData, ChannelData
-from .file_access import SimFileAccess, ExpFileAccess
+from .file_access import SimFileAccess, ExpFileAccess, _IS_H5PY_VERSION_2
 from ..proc import Phasespace
 
 
@@ -23,10 +24,10 @@ class _DataCollectionBase(_AbstractPulseTrainData):
 
     _FileAccess = None
 
-    def __init__(self, files):
+    def __init__(self, files: list):
         """Initialization
 
-        :param list files: a list of FileAccess instances.
+        :param files: A list of FileAccess instances.
         """
         super().__init__()
 
@@ -41,10 +42,10 @@ class _DataCollectionBase(_AbstractPulseTrainData):
         raise NotImplementedError
 
     @classmethod
-    def from_path(cls, path):
+    def from_path(cls, path: str):
         """Construct a data collection from a single file.
 
-        :param str path: file path.
+        :param path: File path.
         """
         files = [cls._FileAccess(path)]
         return cls(files)
@@ -59,10 +60,10 @@ class _DataCollectionBase(_AbstractPulseTrainData):
             return osp.basename(path), fa
 
     @classmethod
-    def from_paths(cls, paths):
+    def from_paths(cls, paths: list):
         """Construct a data collection from a list of files.
 
-        :param list paths: a list of file paths.
+        :param paths: A list of file paths.
         """
         files = []
         for path in paths:
@@ -74,26 +75,21 @@ class _DataCollectionBase(_AbstractPulseTrainData):
 
         return cls(files)
 
-    def get_controls(self, *, sorted=False):
+    def get_controls(self, *, sorted: bool = False):
         """Return control data in a Pandas.DataFrame.
 
-        :param bool sorted: sort the index, which is indeed the ID, of the
+        :param sorted: Sort the index, which is indeed the ID, of the
             returned dataframe. This is sometime needed because the simulation
             data are not stored with the simulation IDs monotonically
             increasing.
         """
         data = []
         for fa in self._files:
-            if 'METADATA/controlChannels' in fa.file:
-                # backward compatibility
-                control_channel_path = 'METADATA/controlChannels'
-            else:
-                control_channel_path = 'METADATA/controlChannel'
-
             ids = fa._ids
+
             df = pd.DataFrame.from_dict({
                 ch: fa.file[f"CONTROL/{ch}"][:len(ids)]
-                for ch in fa.file[control_channel_path]
+                for ch in fa.control_channels
             })
             df.set_index(ids, inplace=True)
             data.append(df)
@@ -106,12 +102,12 @@ class _DataCollectionBase(_AbstractPulseTrainData):
     def _get_channel_category(self, ch):
         raise NotImplementedError
 
-    def channel(self, address, columns=None):
+    def channel(self, address: str, columns: Optional[Union[str, list]] = None):
         """Return an array for a particular data field.
 
-        :param str address: address of the channel.
-        :param None/str/array-like columns: columns for the phasespace data.
-            If None, all the columns are taken.
+        :param address: Address of the channel.
+        :param columns: Columns for the phasespace data. If None, all the
+            columns are taken.
         """
         files = self._channel_files[address]
         if not files:
@@ -175,10 +171,10 @@ class SimDataCollection(_DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'PHASESPACE'
 
 
-def open_sim(path):
+def open_sim(path: str):
     """Open simulation data from a single file or a directory.
 
-    :param str path: file or directory path.
+    :param path: file or directory path.
     """
     if osp.isfile(path):
         return SimDataCollection.from_path(path)
@@ -237,10 +233,10 @@ class ExpDataCollection(_DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'DIAGNOSTIC'
 
 
-def open_run(path):
+def open_run(path: str):
     """Open experimental data from a single file or a directory.
 
-    :param str path: file or directory path.
+    :param path: File or directory path.
     """
     if osp.isfile(path):
         return ExpDataCollection.from_path(path)
