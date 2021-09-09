@@ -1,5 +1,5 @@
-Parameter Scan (experiment)
-===========================
+Parameter Scan
+==============
 
 Run a parameter scan
 --------------------
@@ -41,14 +41,8 @@ An example script of running a parameter scan is given below:
     sc.scan(1000, tasks=8)
 
 
+Check how to define different :ref:`scan parameters`.
+
+
 By default, the scan output will be stored in the current directory. For how to
 read out the result, please refer to `Reading Experimental Data Files <./exp_reading_files.ipynb>`_.
-
-
-Scan parameters
----------------
-
-.. autofunction:: liso.scan.machine_scan.MachineScan.add_param
-    :noindex:
-
-For available scan parameter types, please refer to :ref:`scan parameters`.

@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
+from typing import Optional
 
 import numpy as np
 
@@ -18,12 +19,12 @@ class ScanParam(OperationalElement):
         super().__init__(name)
 
     @abc.abstractmethod
-    def generate(self, repeats=1, cycles=1):
+    def generate(self, repeats: int = 1, cycles: int = 1):
         """Generate a sequence of parameters.
 
-        :param int repeats: number of repeats of each element in the parameter
+        :param repeats: Number of repeats of each element in the parameter
             space.
-        :param int cycles: number of cycles of the sequence.
+        :param cycles: Number of cycles of the sequence.
 
         For examples, generate(2, 3) = [1 1 2 2 1 1 2 2 1 1 2 2] with parameter
         space being [1 2].
@@ -33,15 +34,16 @@ class ScanParam(OperationalElement):
 
 class StepParam(ScanParam):
     """Generate parameters that change from start to end values stepwise."""
-    def __init__(self, name, *, start, stop, num, sigma=0.):
+    def __init__(self, name: str, *, start: float, stop: float, num: int,
+                 sigma: Optional[float] = 0.):
         """Initialization.
 
-        :param float start: the starting value of the scan.
-        :param float stop: the end value of the scan (included).
-        :param int num: number of scanning points.
-        :param float sigma: standard deviation of the jitter of the
-            parameter if given. Positive for absolute jitter and negative
-            for relative jitter.
+        :param start: The starting value of the scan.
+        :param stop: The end value of the scan (included).
+        :param num: Number of scanning points.
+        :param sigma: Standard deviation of the jitter of the parameter if
+            given. Positive for absolute jitter and negative for
+            relative jitter.
         """
         super().__init__(name)
 
@@ -91,11 +93,11 @@ class StepParam(ScanParam):
 
 class SampleParam(ScanParam):
     """Generate parameters that are sampled uniformly within a given range."""
-    def __init__(self, name, *, lb, ub):
+    def __init__(self, name: str, *, lb: float, ub: float):
         """Initialization.
 
-        :param float lb: the lower boundary of the sample.
-        :param float ub: the upper boundary of the sample (not included).
+        :param lb: The lower boundary of the sample.
+        :param ub: The upper boundary of the sample (not included).
         """
         super().__init__(name)
 
@@ -123,13 +125,13 @@ class SampleParam(ScanParam):
 
 class JitterParam(ScanParam):
     """Generate parameters that are randomly sampled around a given value."""
-    def __init__(self, name, *, value, sigma=0.):
+    def __init__(self, name: str, *, value: float, sigma: Optional[float] = 0.):
         """Initialization.
 
-        :param float value: the reference value.
-        :param float sigma: standard deviation of the jitter of the
-            parameter if given. Positive for absolute jitter and negative
-            for relative jitter.
+        :param value: The reference value.
+        :param sigma: Standard deviation of the jitter of the parameter if
+            given. Positive for absolute jitter and negative for
+            relative jitter.
         """
         super().__init__(name)
 
