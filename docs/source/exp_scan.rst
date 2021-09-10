@@ -1,10 +1,10 @@
-Parameter Scan
-==============
+Scanning Machine Parameters
+===========================
 
-Run a parameter scan
---------------------
+.. _injector scan EuXFEL:
 
-An example script of running a parameter scan is given below:
+Performing parameter scan for the injector of EuXFEL
+----------------------------------------------------
 
 .. code-block:: py
 
@@ -43,6 +43,5 @@ An example script of running a parameter scan is given below:
 
 Check how to define different :ref:`scan parameters`.
 
-
 By default, the scan output will be stored in the current directory. For how to
-read out the result, please refer to `Reading Experimental Data Files <./exp_reading_files.ipynb>`_.
+read out the result, please refer to :ref:`reading hdf5 exp`.
