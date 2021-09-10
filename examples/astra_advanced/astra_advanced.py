@@ -56,5 +56,5 @@ opt.add_var('gun_phase', value=0.0, lb=-10, ub=10)
 opt.add_var('tws_phase', value=0.0, lb=-90, ub=0)
 
 optimizer = ALPSO()
-optimizer.swarm_size = 40  # configure the optimizer
+optimizer.swarm_size = 40
 opt.solve(optimizer)

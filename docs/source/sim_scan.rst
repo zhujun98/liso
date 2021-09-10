@@ -1,11 +1,14 @@
-Parameter Scan
-==============
+Scanning Linac Parameters
+=========================
 
+.. _injector scan ASTRA:
 
-Run a parameter scan
---------------------
+Performing parameter scan for an injector using ASTRA
+-----------------------------------------------------
 
-An example script of running a parameter scan is given below:
+In this section, we will be performing parameter scan for an injector
+simulated using ASTRA. For how to run a basic simulation with ASTRA, please
+refer to :ref:`injector simulation ASTRA`.
 
 .. code-block:: py
 
@@ -34,4 +37,6 @@ An example script of running a parameter scan is given below:
 Check how to define different :ref:`scan parameters`.
 
 By default, the scan output will be stored in the current directory. For how to
-read out the result, please refer to `Reading Simulated Scan Data Files <./sim_reading_scan_files.ipynb>`_.
+read out the result, please refer to :ref:`reading hdf5 sim`.
+
+For more details, check the `examples <https://github.com/zhujun98/liso/tree/master/examples/astra_scan>`_.

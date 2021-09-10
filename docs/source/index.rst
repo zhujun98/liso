@@ -27,10 +27,10 @@ it is live again but aims at:
    :maxdepth: 1
    :caption: SIMULATION:
 
-   sim_building_a_linac
+   sim_simulation
    sim_optimization
    sim_scan
-   sim_reading_scan_files
+   sim_reading_data
 
 .. toctree::
    :maxdepth: 1
@@ -38,7 +38,7 @@ it is live again but aims at:
 
    exp_data_recording
    exp_scan
-   exp_reading_files
+   exp_reading_data
 
 .. toctree::
    :maxdepth: 1
@@ -52,3 +52,10 @@ it is live again but aims at:
    api_scan
    api_simulation
    api_visualization
+
+.. toctree::
+   :maxdepth: 1
+   :caption: TUTORIALS:
+
+   notebooks/sim_reading_data_in_hdf5
+   notebooks/exp_reading_data_in_hdf5

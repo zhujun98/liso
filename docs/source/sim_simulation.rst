@@ -1,12 +1,12 @@
-Building a Linac
-================
+Simulating a Linac
+==================
 
 In this section, we will be building various beamlines for simulation using
 one or more beam dynamics codes and running the simulation. Although running
 a simulation with a single beam dynamics code can be done easily without
 Python, this is required to run further parameter scan and optimization in LISO.
 
-.. _building an Injector using ASTRA:
+.. _injector simulation ASTRA:
 
 Building an injector using ASTRA
 --------------------------------
@@ -40,3 +40,7 @@ Prerequisite: `ASTRA <https://www.desy.de/~mpyflo/>`_.
     linac.run(params)
 
 For more details, check the `examples <https://github.com/zhujun98/liso/tree/master/examples/astra_basic>`_.
+
+Read more about :ref:`injector optimization ASTRA`.
+
+Read more about :ref:`injector scan ASTRA`.
