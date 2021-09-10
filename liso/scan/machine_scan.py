@@ -22,20 +22,20 @@ from .base_scan import BaseScan
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter
 from ..logging import logger
-from ..experiment.machine import BaseMachine
+from ..experiment.machine import MachineInterface
 
 
 class MachineScan(BaseScan):
     """Class for performing scans with a real machine."""
 
-    def __init__(self, machine: BaseMachine):
+    def __init__(self, interface: MachineInterface):
         """Initialization.
 
-        :param machine: Machine instance.
+        :param interface: Machine instance.
         """
         super().__init__()
 
-        self._machine = machine
+        self._interface = interface
 
         self._param_readouts = dict()
 
@@ -84,7 +84,7 @@ class MachineScan(BaseScan):
         executor = ThreadPoolExecutor(max_workers=tasks)
 
         try:
-            ret = self._machine.take_snapshot(self._params)
+            ret = self._interface.take_snapshot(self._params)
             logger.info(f"Current values of the scanned parameters: "
                         f"{str(ret)[1:-1].replace(': ', ' = ')}")
         except LisoRuntimeError:
@@ -101,7 +101,7 @@ class MachineScan(BaseScan):
         sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence) if sequence else cycles
         with ExpWriter(output_dir,
-                       schema=self._machine.schema,
+                       schema=self._interface.schema,
                        chmod=chmod,
                        group=group) as writer:
             count = 0
@@ -118,7 +118,7 @@ class MachineScan(BaseScan):
                             [1:-1].replace(': ', ' = '))
 
                 try:
-                    idx, controls, diagnostics = self._machine.write_and_read(
+                    idx, controls, diagnostics = self._interface.write_and_read(
                         executor=executor,
                         mapping=mapping,
                         timeout=timeout,

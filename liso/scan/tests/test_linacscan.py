@@ -14,8 +14,8 @@ from liso import (
     open_run, open_sim, Phasespace
 )
 from liso import doocs_channels as dc
-from liso.experiment import machine
-from liso.experiment.machine import _DoocsReader
+from liso.experiment import doocs
+from liso.experiment.doocs import DoocsReader
 from liso.io import ExpWriter
 from liso.logging import logger
 logger.setLevel('ERROR')
@@ -207,15 +207,15 @@ class TestMachineScan(unittest.TestCase):
 
             self._sc = MachineScan(m)
 
-            DELAY_NO_EVENT = _DoocsReader._DELAY_NO_EVENT
-            DELAY_STALE = _DoocsReader._DELAY_STALE
+            DELAY_NO_EVENT = DoocsReader._DELAY_NO_EVENT
+            DELAY_STALE = DoocsReader._DELAY_STALE
             try:
-                _DoocsReader._DELAY_NO_EVENT = 1e-3
-                _DoocsReader._DELAY_STALE = 1e-4
+                DoocsReader._DELAY_NO_EVENT = 1e-3
+                DoocsReader._DELAY_STALE = 1e-4
                 super().run(result)
             finally:
-                _DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
-                _DoocsReader._DELAY_STALE = DELAY_STALE
+                DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
+                DoocsReader._DELAY_STALE = DELAY_STALE
 
     def testSampleDistance(self):
         n = 1
@@ -250,7 +250,7 @@ class TestMachineScan(unittest.TestCase):
                 m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=_PID0),
         }
 
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testScanWithoutParameter(self, patched_read):
         sc = self._sc
         dataset = self._prepare_dataset()
@@ -262,7 +262,7 @@ class TestMachineScan(unittest.TestCase):
 
             patched_read.assert_called()
 
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testRunFolderCreation(self, patched_read):
         sc = self._sc
         dataset = self._prepare_dataset()
@@ -280,7 +280,7 @@ class TestMachineScan(unittest.TestCase):
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                  sorted((path.iterdir())))
 
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testChmod(self, patched_read):
         sc = self._sc
         dataset = self._prepare_dataset()
@@ -298,8 +298,8 @@ class TestMachineScan(unittest.TestCase):
             for file in path.iterdir():
                 self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testScanWithParameters(self, patched_read, patched_write):
         sc = self._sc
         dataset = self._prepare_dataset()
@@ -333,8 +333,8 @@ class TestMachineScan(unittest.TestCase):
             self.assertTrue(np.all(img_data[1] == pids[1] - _PID0 + 1))
             self.assertTrue(np.all(img_data[-1] == pids[-1] - _PID0 + 1))
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testLogInitialParameters(self, patched_read, patched_write):
         sc = self._sc
         dataset = self._prepare_dataset()
@@ -347,7 +347,7 @@ class TestMachineScan(unittest.TestCase):
             sc.scan(10, output_dir=tmp_dir, timeout=0.01)
 
             def _side_effect_raise(x):
-                raise machine.DoocsException
+                raise doocs.DoocsException
             patched_read.side_effect = _side_effect_raise
             with self.assertRaisesRegex(RuntimeError,
                                         "Failed to read all the initial values"):

@@ -5,262 +5,23 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
 from pydantic import ValidationError
 
-try:
-    from pydoocs import read as pydoocs_read
-    from pydoocs import write as pydoocs_write
-    from pydoocs import DoocsException, PyDoocsException
-except ModuleNotFoundError:
-    __pydoocs_error_msg = "pydoocs is required to communicate with a real " \
-                          "machine using DOOCS control system!"
-    def pydoocs_read(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
-    def pydoocs_write(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
-    class DoocsException(Exception):
-        pass
-    class PyDoocsException(Exception):
-        pass
-
 from ..exceptions import LisoRuntimeError
-from ..logging import logger
 from ..utils import profiler
-
-_machine_event_loop = asyncio.get_event_loop()
-
-
-class _DoocsWriter:
-
-    _DELAY_EXCEPTION = 0.1
-
-    def __init__(self):
-        super().__init__()
-
-    async def _write_channel(self, address, value, *, delay=0., executor=None):
-        if delay > 0.:
-            await asyncio.sleep(delay)
-        return await _machine_event_loop.run_in_executor(
-            executor, pydoocs_write, address, value)
-
-    def _get_result(self, address, task):
-        try:
-            task.result()
-            return True
-        except ModuleNotFoundError as e:
-            logger.error(repr(e))
-            raise
-        except (DoocsException, PyDoocsException) as e:
-            logger.warning(f"Failed to write to {address}: {repr(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected exception when writing to"
-                         f" {address}: {repr(e)}")
-            # FIXME: here should raise
-
-        return False
-
-    async def write_channels(self, executor, writein, *, attempts=5):
-        if not writein:
-            return True
-
-        _DELAY_EXCEPTION = self._DELAY_EXCEPTION
-
-        future_ret = {asyncio.create_task(
-            self._write_channel(addr, v, executor=executor)): (addr, v)
-                      for addr, v in writein.items()}
-
-        for i in range(attempts):
-            done, _ = await asyncio.wait(
-                future_ret, return_when=asyncio.FIRST_COMPLETED)
-
-            for task in done:
-                address, value = future_ret[task]
-
-                if not self._get_result(address, task):
-                    future_ret[asyncio.create_task(self._write_channel(
-                        address, value,
-                        executor=executor,
-                        delay=_DELAY_EXCEPTION))] = (address, value)
-
-                del future_ret[task]
-                if not future_ret:
-                    return
-
-        raise LisoRuntimeError(
-            "Failed to write new values to all channels!")
+from .doocs import DoocsReader, DoocsWriter, _machine_event_loop
 
 
-class _DoocsReader:
-
-    _NO_EVENT = 0
-    _DELAY_NO_EVENT = 1.
-    _DELAY_STALE = 0.2
-    _DELAY_EXCEPTION = 0.1
-
-    def __init__(self):
-        super().__init__()
-
-        self._channels = set()
-        self._no_event = set()
-
-        self._last_correlated = 0
-
-    def _compare_readout(self, data, expected):
-        for address, (v, tol) in expected.items():
-            if abs(data[address] - v) > tol:
-                return False, \
-                       f"{address} - expected: {v}, actual: {data[address]}"
-        return True, ""
-
-    async def _read_channel(self, address, *, delay=0., executor=None):
-        if delay > 0.:
-            await asyncio.sleep(delay)
-        return await _machine_event_loop.run_in_executor(
-            executor, pydoocs_read, address)
-
-    async def read_channels(self, addresses, *, executor=None, attempts=3):
-        future_ret = {asyncio.create_task(
-            self._read_channel(address, executor=executor)): address
-            for address in addresses}
-
-        ret = dict()
-        for i in range(attempts):
-            done, _ = await asyncio.wait(future_ret)
-
-            for task in done:
-                address = future_ret[task]
-                data = self._get_result(address, task)
-                if data is not None:
-                    ret[address] = data
-                else:
-                    future_ret[asyncio.create_task(self._read_channel(
-                        address, executor=executor))] = address
-                del future_ret[task]
-
-            if not future_ret:
-                return ret
-
-        raise LisoRuntimeError(f"Failed to read data from "
-                               f"{list(future_ret.values())}")
-
-    def _get_result(self, address, task):
-        try:
-            return task.result()
-        except ModuleNotFoundError as e:
-            logger.error(repr(e))
-            raise
-        except (DoocsException, PyDoocsException) as e:
-            logger.warning(f"Failed to read data from {address}: {repr(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected exception when writing to "
-                         f"{address}: {repr(e)}")
-
-    async def correlate(self, executor, readout, *, timeout):
-        n_events = len(self._channels) - len(self._no_event)
-        cached = OrderedDict()
-
-        _NO_EVENT = self._NO_EVENT
-        _DELAY_NO_EVENT = self._DELAY_NO_EVENT
-        _DELAY_STALE = self._DELAY_STALE
-        _DELAY_EXCEPTION = self._DELAY_EXCEPTION
-        _SENTINEL = object()
-        correlated = dict()
-
-        future_ret = {asyncio.create_task(
-            self._read_channel(address, executor=executor)): address
-                 for address in self._channels if address not in self._no_event}
-        future_ret[asyncio.create_task(asyncio.sleep(timeout))] = _SENTINEL
-
-        running = True
-        while running:
-            done, _ = await asyncio.wait(
-                future_ret, return_when=asyncio.FIRST_COMPLETED)
-
-            for task in done:
-                address = future_ret[task]
-                ch_data = self._get_result(address, task)
-
-                if address is _SENTINEL:
-                    running = False
-                    continue
-
-                delay = 0.
-                # exception not raised in _get_result
-                if ch_data is not None:
-                    pid = ch_data['macropulse']
-                    if pid > self._last_correlated:
-                        if pid not in cached:
-                            cached[pid] = dict()
-                        cached[pid][address] = ch_data['data']
-
-                        if len(cached[pid]) == n_events:
-                            compare_ret, msg = self._compare_readout(
-                                cached[pid], readout)
-                            if not compare_ret:
-                                logger.debug(
-                                    f"The newly written channels have not "
-                                    f"all taken effect: {msg}")
-                                # remove old data
-                                for key in list(cached.keys()):
-                                    if key > pid:
-                                        break
-                                    del cached[key]
-                                continue
-
-                            no_event_data = await self.read_channels(
-                                self._no_event)
-                            for ne_addr, ne_item in no_event_data.items():
-                                correlated[ne_addr] = ne_item['data']
-
-                            logger.info(
-                                f"Correlated {len(self._channels)}"
-                                f"({n_events}) channels with "
-                                f"macropulse ID: {pid}")
-
-                            self._last_correlated = pid
-                            correlated.update(cached[pid])
-
-                            return pid, correlated
-                    elif pid == _NO_EVENT:
-                        if address not in correlated:
-                            n_events -= 1
-                        correlated[address] = ch_data['data']
-
-                        delay = _DELAY_NO_EVENT
-                    else:
-                        if pid < 0:
-                            # TODO: document when a macropulse ID is -1
-                            logger.warning(
-                                f"Received data from channel {address} "
-                                f"with invalid macropulse ID: {pid}")
-
-                        delay = _DELAY_STALE
-                else:
-                    delay = _DELAY_EXCEPTION
-
-                del future_ret[task]
-                future_ret[asyncio.create_task(self._read_channel(
-                    address, executor=executor, delay=delay))] = address
-
-        raise LisoRuntimeError("Unable to match all data!")
-
-    def add_channel(self, address, no_event=False):
-        self._channels.add(address)
-        if no_event:
-            self._no_event.add(address)
-
-
-class BaseMachine:
+class MachineInterface:
     # TODO: Improve when there are more than one machine types.
     def __init__(self) -> None:
         pass
 
 
-class DoocsMachine(BaseMachine):
+class DoocsInterface(MachineInterface):
     """Base class for machine interface using DOOCS control system."""
 
     _facility_name = None
@@ -270,8 +31,8 @@ class DoocsMachine(BaseMachine):
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
 
-        self._reader = _DoocsReader()
-        self._writer = _DoocsWriter()
+        self._reader = DoocsReader()
+        self._writer = DoocsWriter()
 
     @property
     def channels(self):
@@ -418,9 +179,9 @@ class DoocsMachine(BaseMachine):
                 self._reader.read_channels(channels)).items()}
 
 
-class EuXFELInterface(DoocsMachine):
+class EuXFELInterface(DoocsInterface):
     _facility_name = 'XFEL'
 
 
-class FLASHInterface(DoocsMachine):
+class FLASHInterface(DoocsInterface):
     _facility_name = 'FLASH'

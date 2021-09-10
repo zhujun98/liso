@@ -6,8 +6,8 @@ import numpy as np
 from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
-from liso.experiment import machine
-from liso.experiment.machine import _DoocsReader, _DoocsWriter
+from liso.experiment import doocs
+from liso.experiment.doocs import DoocsReader, DoocsWriter
 from liso.logging import logger
 logger.setLevel("ERROR")
 
@@ -29,25 +29,25 @@ def _side_effect_read(dataset, address, error=0):
 
 class TestDoocsMachine(unittest.TestCase):
     def run(self, result=None):
-        DELAY_NO_EVENT = _DoocsReader._DELAY_NO_EVENT
-        DELAY_STALE = _DoocsReader._DELAY_STALE
-        DELAY_EXCEPTION = _DoocsReader._DELAY_EXCEPTION
+        DELAY_NO_EVENT = DoocsReader._DELAY_NO_EVENT
+        DELAY_STALE = DoocsReader._DELAY_STALE
+        DELAY_EXCEPTION = DoocsReader._DELAY_EXCEPTION
 
-        WRITE_DELAY_EXCEPTION = _DoocsWriter._DELAY_EXCEPTION
+        WRITE_DELAY_EXCEPTION = DoocsWriter._DELAY_EXCEPTION
 
         try:
-            _DoocsReader._DELAY_NO_EVENT = 1e-3
-            _DoocsReader._DELAY_STALE = 1e-4
-            _DoocsReader._DELAY_EXCEPTION = 5e-4
+            DoocsReader._DELAY_NO_EVENT = 1e-3
+            DoocsReader._DELAY_STALE = 1e-4
+            DoocsReader._DELAY_EXCEPTION = 5e-4
 
-            _DoocsWriter._DELAY_EXCEPTION = 5e-4
+            DoocsWriter._DELAY_EXCEPTION = 5e-4
             super().run(result)
         finally:
-            _DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
-            _DoocsReader._DELAY_STALE = DELAY_STALE
-            _DoocsReader._DELAY_EXCEPTION = DELAY_EXCEPTION
+            DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
+            DoocsReader._DELAY_STALE = DELAY_STALE
+            DoocsReader._DELAY_EXCEPTION = DELAY_EXCEPTION
 
-            _DoocsWriter._DELAY_EXCEPTION = WRITE_DELAY_EXCEPTION
+            DoocsWriter._DELAY_EXCEPTION = WRITE_DELAY_EXCEPTION
 
     def setUp(self):
         m = EuXFELInterface()
@@ -112,8 +112,8 @@ class TestDoocsMachine(unittest.TestCase):
                 diagnostic_schema
             )
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testRun(self, patched_read, patched_write):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -159,8 +159,8 @@ class TestDoocsMachine(unittest.TestCase):
             # raise happens to an event-based channel
             def _side_effect_read2(dataset, address):
                 if address != "XFEL.H/I/J/K":
-                    raise np.random.choice([machine.PyDoocsException,
-                                            machine.DoocsException])
+                    raise np.random.choice([doocs.PyDoocsException,
+                                            doocs.DoocsException])
                 return dataset[address]
             patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match all data'):
@@ -169,8 +169,8 @@ class TestDoocsMachine(unittest.TestCase):
             # raise happens to a no-event channel
             def _side_effect_read3(dataset, address):
                 if address == "XFEL.H/I/J/K":
-                    raise np.random.choice([machine.PyDoocsException,
-                                            machine.DoocsException])
+                    raise np.random.choice([doocs.PyDoocsException,
+                                            doocs.DoocsException])
                 data = dataset[address]
                 if data['macropulse'] >= _PID0:
                     if np.random.rand() > 0.5:
@@ -186,8 +186,8 @@ class TestDoocsMachine(unittest.TestCase):
                                         "Failed to write new values to all channels"):
                 def _side_effect_write(address, v):
                     if address == 'XFEL.A/B/C/E':
-                        raise np.random.choice([machine.PyDoocsException,
-                                                machine.DoocsException])
+                        raise np.random.choice([doocs.PyDoocsException,
+                                                doocs.DoocsException])
                 patched_write.side_effect = _side_effect_write
                 self._machine.write_and_read(mapping={
                     'XFEL.A/B/C/D': {
@@ -198,8 +198,8 @@ class TestDoocsMachine(unittest.TestCase):
                     },
                 })
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testCorrelation(self, patched_read, patched_write):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x, error=1)
@@ -227,8 +227,8 @@ class TestDoocsMachine(unittest.TestCase):
             with self.assertRaisesRegex(LisoRuntimeError, 'Unable to match'):
                 self._machine.write_and_read(timeout=0.1)
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testCorrelationWithOldPulseId(self, patched_read, patched_write):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -247,8 +247,8 @@ class TestDoocsMachine(unittest.TestCase):
         self._machine.write_and_read(timeout=0.02)
         self.assertLess(last_correlated_gt, reader._last_correlated)
 
-    @patch("liso.experiment.machine.pydoocs_write")
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_write")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testCheckReadoutAfterWriting(self, patched_read, patched_write):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x, error=1)
@@ -268,7 +268,7 @@ class TestDoocsMachine(unittest.TestCase):
                 },
             }, timeout=0.02)
 
-    @patch("liso.experiment.machine.pydoocs_read")
+    @patch("liso.experiment.doocs.pydoocs_read")
     def testTakeSnapshot(self, patched_read):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
