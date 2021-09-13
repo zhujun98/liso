@@ -1,5 +1,5 @@
-from .doocs import doocs_channels
-from .machine import EuXFELInterface, FLASHInterface
+from .doocs_channels import doocs_channels
+from .doocs_interface import DoocsInterface, EuXFELInterface, FLASHInterface
 
 
 __all__ = [

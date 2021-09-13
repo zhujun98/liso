@@ -5,35 +5,41 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import abc
+from __future__ import annotations
+
 import asyncio
-from collections import namedtuple, OrderedDict
-from typing import Optional, Tuple
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
+from typing import Optional, Type
 
-import numpy as np
-
-from pydantic import (
-    BaseModel, StrictBool, StrictFloat, StrictInt, conint, confloat, validator
-)
+from pydantic import ValidationError
 
 try:
     from pydoocs import read as pydoocs_read
     from pydoocs import write as pydoocs_write
     from pydoocs import DoocsException, PyDoocsException
 except ModuleNotFoundError:
-    __pydoocs_error_msg = "pydoocs is required to communicate with a real " \
-                          "machine using DOOCS control system!"
+    pydoocs_err = "pydoocs is required to communicate with a real " \
+                  "machine using DOOCS control system!"
+
     def pydoocs_read(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
+        raise ModuleNotFoundError(pydoocs_err)
+
     def pydoocs_write(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
+        raise ModuleNotFoundError(pydoocs_err)
+
     class DoocsException(Exception):
         pass
+
     class PyDoocsException(Exception):
         pass
 
 from ..exceptions import LisoRuntimeError
 from ..logging import logger
+from ..utils import profiler
+from .machine_interface import MachineInterface
+from .doocs_channels import DoocsChannel
+
 
 _machine_event_loop = asyncio.get_event_loop()
 
@@ -258,218 +264,180 @@ class DoocsReader:
             self._no_event.add(address)
 
 
-class NDArrayMeta(type):
-    def __getitem__(self):
-        return type('NDArray', (NDArray,))
+class DoocsInterface(MachineInterface):
+    """Base class for machine interface using DOOCS control system."""
 
+    def __init__(self, facility_name):
+        super().__init__()
 
-class NDArray(np.ndarray, metaclass=NDArrayMeta):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate_type
+        self._facility_name = facility_name
 
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        # __modify_schema__ should mutate the dict it receives in place,
-        # the returned value will be ignored
-        field_schema.update(
-            type='NDArray',
-        )
+        self._controls = OrderedDict()
+        self._diagnostics = OrderedDict()
 
-    @classmethod
-    def validate_type(cls, v):
-        if not isinstance(v, np.ndarray):
-            raise TypeError('Input must be a numpy.ndarray')
-        return v
+        self._reader = DoocsReader()
+        self._writer = DoocsWriter()
 
+    @property
+    def channels(self) -> list[str]:
+        """Return a list of all DOOCS channels."""
+        return list(self._controls) + list(self._diagnostics)
 
-class DoocsChannel(BaseModel, metaclass=abc.ABCMeta):
-    address: str
+    @property
+    def controls(self) -> list[str]:
+        """Return a list of DOOCS channels for control data."""
+        return list(self._controls)
 
-    @validator('address')
-    def doocs_address(cls, v):
-        # An address must contain four fields:
-        #
-        fields = [field.strip() for field in v.split('/')]
-        if len(fields) != 4 or not all(fields):
-            raise ValueError("An address must have the form: "
-                             "facility/device/location/property")
-        return v
+    @property
+    def diagnostics(self) -> list[str]:
+        """Return a list of DOOCS channels for diagnostic data."""
+        return list(self._diagnostics)
 
-    def value_schema(self):
-        """Return the value schema of the instance."""
-        schema = self.__class__.schema()['properties']['value'].copy()
-        schema.pop('title')
-        return schema
+    @property
+    def schema(self):
+        """Return the schema of all DOOCS channels."""
+        return ({k: v.value_schema() for k, v in self._controls.items()},
+                {k: v.value_schema() for k, v in self._diagnostics.items()})
 
-    class Config:
-        validate_assignment = True
+    def _check_address(self, address: str) -> None:
+        if address in self._controls or address in self._diagnostics:
+            raise ValueError(f"{address} already exists!")
 
+        if not address.startswith(self._facility_name):
+            raise ValueError(f"{address} must start with {self._facility_name}")
 
-class BoolDoocsChannel(DoocsChannel):
-    value: StrictBool = False
+    def add_control_channel(self, kls: Type[DoocsChannel], address: str, *,
+                            no_event: bool = False, **kwargs) -> None:
+        """Add a DOOCS channel for control data.
 
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '|b1'
+        :param kls: A concrete DoocsChannel class.
+        :param address: DOOCS address.
+        :param no_event: True for a non-event-based channel.
+        :param kwargs: Keyword arguments which will be passed to the
+            constructor of kls after address.
 
+        Examples:
+            >>> from liso import doocs_channels as dc
+            >>> from liso import EuXFELInterface
 
-class Int64DoocsChannel(DoocsChannel):
-    value: StrictInt = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<i8'
-
-
-class UInt64DoocsChannel(DoocsChannel):
-    value: conint(strict=True, ge=0) = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<u8'
-
-
-class Int32DoocsChannel(DoocsChannel):
-    value: conint(strict=True,
-                  ge=np.iinfo(np.int32).min,
-                  le=np.iinfo(np.int32).max) = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<i4'
-
-
-class UInt32DoocsChannel(DoocsChannel):
-    value: conint(strict=True,
-                  ge=0,
-                  le=np.iinfo(np.uint32).max) = 0
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<u4'
-
-
-class Int16DoocsChannel(DoocsChannel):
-    value: conint(strict=True,
-                  ge=np.iinfo(np.int16).min,
-                  le=np.iinfo(np.int16).max) = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<i2'
-
-
-class UInt16DoocsChannel(DoocsChannel):
-    value: conint(strict=True,
-                  ge=0,
-                  le=np.iinfo(np.uint16).max) = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<u2'
-
-
-class Float64DoocsChannel(DoocsChannel):
-    value: StrictFloat = 0.0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<f8'
-
-
-class Float32DoocsChannel(DoocsChannel):
-    value: confloat(strict=True,
-                    ge=np.finfo(np.float32).min,
-                    le=np.finfo(np.float32).max) = 0
-
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model):
-            schema['properties']['value']['type'] = '<f4'
-
-
-class ImageDoocsChannel(DoocsChannel):
-    shape: Tuple[int, int]
-    # The array-protocol typestring, e.g. <i8, <f8, etc.
-    dtype: str
-    value: Optional[NDArray] = None
-
-    @validator("dtype")
-    def check_dtype(cls, v):
-        """Check whether the input can be converted to a valid numpy.dtype.
-
-        :param str v: dtype string. Must be valid to construct a data type
-            object. For more details, check
-            https://numpy.org/doc/stable/reference/arrays.dtypes.html.
+            >>> m = EuXFELInterface()
+            >>> m.add_control_channel(
+            >>>     dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
         """
-        # raise: TypeError
-        dtype = np.dtype(v)
-        return dtype.str
+        self._check_address(address)
+        self._controls[address] = kls(address=address, **kwargs)
+        self._reader.add_channel(address, no_event)
 
-    @validator("value", always=True)
-    def check_value(cls, v, values):
-        if 'shape' not in values or 'dtype' not in values:
-            # ValidationError will be raised later
-            return v
+    def add_diagnostic_channel(self, kls: Type[DoocsChannel], address: str, *,
+                               no_event: bool = False, **kwargs) -> None:
+        """Add a DOOCS channel to diagnostic data.
 
-        shape, dtype = values['shape'], values['dtype']
+        :param kls: A concrete DoocsChannel class.
+        :param address: DOOCS address.
+        :param no_event: True for a non-event-based channel.
+        :param kwargs: Keyword arguments which will be passed to the
+            constructor of kls after address.
 
-        if v is None:
-            return np.zeros(shape=shape, dtype=dtype)
+        Examples:
+            >>> from liso import doocs_channels as dc
+            >>> from liso import EuXFELInterface
 
-        if v.dtype.str != dtype:
-            raise TypeError(
-                f'Array dtypes do not match: {dtype} and {v.dtype.name}')
+            >>> m = EuXFELInterface()
+            >>> m.add_diagnostic_channel(
+            >>>     dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
+            >>>     shape=(1750, 2330), dtype='uint16')
 
-        if v.shape != shape:
-            raise ValueError(
-                f"Data shapes do not match: {shape} and {v.shape}")
+        """
+        self._check_address(address)
+        self._diagnostics[address] = kls(address=address, **kwargs)
+        self._reader.add_channel(address, no_event)
 
-        return v
+    def _compile(self, mapping):
+        writein = dict()
+        readout = dict()
+        if mapping is not None:
+            for address, item in mapping.items():
+                writein[address] = item['value']
+                if item.get('readout', None) is not None:
+                    readout_address = item['readout']
+                    if readout_address not in self._controls \
+                            and readout_address not in self._diagnostics:
+                        raise ValueError(f"Channel {readout_address} has not "
+                                         f"been registered!")
 
-    def value_schema(self):
-        """Override."""
-        schema = self.__class__.schema()['properties']['value'].copy()
-        schema.pop('title')
-        data = self.dict()
-        schema['shape'] = data['shape']
-        schema['dtype'] = data['dtype']
-        return schema
+                    readout[readout_address] = (item['value'], item['tol'])
+
+        return writein, readout
+
+    def _update_channels(self, correlated):
+        control_data = dict()
+        for address, ch in self._controls.items():
+            ch.value = correlated[address]  # validate
+            control_data[address] = ch.value
+
+        diagnostic_data = dict()
+        for address, ch in self._diagnostics.items():
+            ch.value = correlated[address]  # validate
+            diagnostic_data[address] = ch.value
+
+        return control_data, diagnostic_data
+
+    async def _write_read_once(self, mapping, *, executor, timeout):
+        writein, readout = self._compile(mapping)
+        await self._writer.write_channels(executor, writein)
+        return await self._reader.correlate(executor, readout, timeout=timeout)
+
+    @profiler("machine write and read")
+    def write_and_read(self, *,
+                       mapping: Optional[dict] = None,
+                       executor: Optional[ThreadPoolExecutor] = None,
+                       timeout: Optional[float] = None) -> tuple:
+        """Write and read the machine once.
+
+        :param mapping: a dictionary with keys being the DOOCS channel
+            addresses and values being the numbers to be written into the
+            corresponding address.
+        :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
+        :param timeout: timeout when correlating data by macropulse
+            ID, in seconds. If None, it is set to the default value 2.0.
+
+        :raises:
+            LisoRuntimeError: if validation fails or it is unable to
+                correlate data.
+        """
+        if executor is None:
+            executor = ThreadPoolExecutor()
+        if timeout is None:
+            timeout = 2.0
+
+        pid, correlated = _machine_event_loop.run_until_complete(
+            self._write_read_once(mapping, executor=executor, timeout=timeout))
+
+        try:
+            control_data, diagnostic_data = self._update_channels(correlated)
+        except ValidationError as e:
+            raise LisoRuntimeError(repr(e))
+
+        return pid, control_data, diagnostic_data
+
+    def take_snapshot(self, channels: list[str]) -> dict:
+        """Return readout value(s) of the given channel(s).
+
+        :param channels: A list of DOOCS channels.
+        """
+        if not channels:
+            return dict()
+
+        return {address: data['data']
+                for address, data in _machine_event_loop.run_until_complete(
+                self._reader.read_channels(channels)).items()}
 
 
-_DoocsChannelFactory = namedtuple(
-    "DoocsChannelFactory",
-    ["BOOL",
-     "INT64", "LONG", "UINT64", "ULONG",
-     "INT32", "INT", "UINT32", "UINT",
-     "INT16", "UINT16",
-     "FLOAT64", "DOUBLE", "FLOAT32", "FLOAT",
-     "IMAGE"]
-)
+class EuXFELInterface(DoocsInterface):
+    def __init__(self):
+        super().__init__('XFEL')
 
-doocs_channels = _DoocsChannelFactory(
-    BOOL=BoolDoocsChannel,
-    INT64=Int64DoocsChannel,
-    LONG=Int64DoocsChannel,
-    UINT64=UInt64DoocsChannel,
-    ULONG=UInt64DoocsChannel,
-    INT32=Int32DoocsChannel,
-    INT=Int32DoocsChannel,
-    UINT32=UInt32DoocsChannel,
-    UINT=UInt32DoocsChannel,
-    INT16=Int16DoocsChannel,
-    UINT16=UInt16DoocsChannel,
-    FLOAT64=Float64DoocsChannel,
-    DOUBLE=Float64DoocsChannel,
-    FLOAT32=Float32DoocsChannel,
-    FLOAT=Float32DoocsChannel,
-    IMAGE=ImageDoocsChannel,
-)
+
+class FLASHInterface(DoocsInterface):
+    def __init__(self):
+        super().__init__('FLASH')

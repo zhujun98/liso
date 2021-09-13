@@ -4,7 +4,7 @@ import numpy as np
 
 from pydantic import ValidationError
 
-from liso.experiment.doocs import (
+from liso.experiment.doocs_channels import (
     doocs_channels, DoocsChannel,
     BoolDoocsChannel,
     Int64DoocsChannel, UInt64DoocsChannel,

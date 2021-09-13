@@ -5,9 +5,6 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import abc
-import asyncio
-from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import pathlib
@@ -22,7 +19,7 @@ from .base_scan import BaseScan
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter
 from ..logging import logger
-from ..experiment.machine import MachineInterface
+from ..experiment.machine_interface import MachineInterface
 
 
 class MachineScan(BaseScan):
@@ -31,13 +28,35 @@ class MachineScan(BaseScan):
     def __init__(self, interface: MachineInterface):
         """Initialization.
 
-        :param interface: Machine instance.
+        :param interface: MachineInterface instance.
         """
         super().__init__()
 
         self._interface = interface
 
         self._param_readouts = dict()
+
+    def add_param(self,
+                  name: str,
+                  readout: Optional[str] = None,
+                  tol: float = 1e-6, **kwargs):
+        """Add a parameter for scan.
+
+        The kwargs will be passed to the construct of a ScanParam subclass.
+
+        :param name: The DOOCS address.
+        :param readout: The DOOCS address for validating the value being
+            written. If None, the written value will not be validated.
+        :param tol: Tolerance for the validation. Positive value for
+            absolute error and negative value for relative error.
+        :param kwargs: Keyword arguments will be passed to the constructor
+            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
+        """
+        self._add_scan_param(name, **kwargs)
+
+        self._param_readouts[name] = {'readout': readout}
+
+        self._param_readouts[name]['tol'] = tol
 
     def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
@@ -138,20 +157,3 @@ class MachineScan(BaseScan):
                     raise
 
         logger.info(f"Scan finished!")
-
-    def add_param(self, name, readout=None, tol=1e-6, **kwargs):
-        """Add a parameter for scan.
-
-        The kwargs will be passed to the construct of a ScanParam subclass.
-
-        :param str name: the DOOCS address.
-        :param str/None readout: the DOOCS address for validating the value
-            being written. If None, the written value will not be validated.
-        :param float tol: tolerance for the validation. Positive value for
-            absolute error and negative value for relative error.
-        """
-        self._add_scan_param(name, **kwargs)
-
-        self._param_readouts[name] = {'readout': readout}
-
-        self._param_readouts[name]['tol'] = tol
