@@ -5,9 +5,12 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from __future__ import annotations
+
 import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from typing import Optional, Type
 
 from pydantic import ValidationError
 
@@ -16,25 +19,32 @@ try:
     from pydoocs import write as pydoocs_write
     from pydoocs import DoocsException, PyDoocsException
 except ModuleNotFoundError:
-    __pydoocs_error_msg = "pydoocs is required to communicate with a real " \
-                          "machine using DOOCS control system!"
+    pydoocs_err = "pydoocs is required to communicate with a real " \
+                  "machine using DOOCS control system!"
+
     def pydoocs_read(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
+        raise ModuleNotFoundError(pydoocs_err)
+
     def pydoocs_write(*args):
-        raise ModuleNotFoundError(__pydoocs_error_msg)
+        raise ModuleNotFoundError(pydoocs_err)
+
     class DoocsException(Exception):
         pass
+
     class PyDoocsException(Exception):
         pass
 
 from ..exceptions import LisoRuntimeError
 from ..logging import logger
 from ..utils import profiler
+from .machine_interface import MachineInterface
+from .doocs_channels import DoocsChannel
+
 
 _machine_event_loop = asyncio.get_event_loop()
 
 
-class _DoocsWriter:
+class DoocsWriter:
 
     _DELAY_EXCEPTION = 0.1
 
@@ -94,7 +104,7 @@ class _DoocsWriter:
             "Failed to write new values to all channels!")
 
 
-class _DoocsReader:
+class DoocsReader:
 
     _NO_EVENT = 0
     _DELAY_NO_EVENT = 1.
@@ -254,37 +264,32 @@ class _DoocsReader:
             self._no_event.add(address)
 
 
-class BaseMachine:
-    # TODO: Improve when there are more than one machine types.
-    def __init__(self) -> None:
-        pass
-
-
-class DoocsMachine(BaseMachine):
+class DoocsInterface(MachineInterface):
     """Base class for machine interface using DOOCS control system."""
 
-    _facility_name = None
-
-    def __init__(self):
+    def __init__(self, facility_name):
         super().__init__()
+
+        self._facility_name = facility_name
+
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
 
-        self._reader = _DoocsReader()
-        self._writer = _DoocsWriter()
+        self._reader = DoocsReader()
+        self._writer = DoocsWriter()
 
     @property
-    def channels(self):
+    def channels(self) -> list[str]:
         """Return a list of all DOOCS channels."""
         return list(self._controls) + list(self._diagnostics)
 
     @property
-    def controls(self):
+    def controls(self) -> list[str]:
         """Return a list of DOOCS channels for control data."""
         return list(self._controls)
 
     @property
-    def diagnostics(self):
+    def diagnostics(self) -> list[str]:
         """Return a list of DOOCS channels for diagnostic data."""
         return list(self._diagnostics)
 
@@ -294,51 +299,54 @@ class DoocsMachine(BaseMachine):
         return ({k: v.value_schema() for k, v in self._controls.items()},
                 {k: v.value_schema() for k, v in self._diagnostics.items()})
 
-    def _check_address(self, address):
+    def _check_address(self, address: str) -> None:
         if address in self._controls or address in self._diagnostics:
             raise ValueError(f"{address} already exists!")
 
         if not address.startswith(self._facility_name):
             raise ValueError(f"{address} must start with {self._facility_name}")
 
-    def add_control_channel(self, kls, address, *, no_event=False, **kwargs):
+    def add_control_channel(self, kls: Type[DoocsChannel], address: str, *,
+                            no_event: bool = False, **kwargs) -> None:
         """Add a DOOCS channel for control data.
 
-        :param DoocsChannel kls: a concrete DoocsChannel class.
-        :param str address: DOOCS address.
-        :param bool no_event: True for a non-event-based channel.
-        **kwargs: keyword arguments which will be passed to the constructor
-            of kls after address.
+        :param kls: A concrete DoocsChannel class.
+        :param address: DOOCS address.
+        :param no_event: True for a non-event-based channel.
+        :param kwargs: Keyword arguments which will be passed to the
+            constructor of kls after address.
 
         Examples:
-            from liso import doocs_channels as dc
-            from liso import EuXFELInterface
+            >>> from liso import doocs_channels as dc
+            >>> from liso import EuXFELInterface
 
-            m = EuXFELInterface()
-            m.add_control_channel(
-                dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
+            >>> m = EuXFELInterface()
+            >>> m.add_control_channel(
+            >>>     dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
         """
         self._check_address(address)
         self._controls[address] = kls(address=address, **kwargs)
         self._reader.add_channel(address, no_event)
 
-    def add_diagnostic_channel(self, kls, address, *, no_event=False, **kwargs):
+    def add_diagnostic_channel(self, kls: Type[DoocsChannel], address: str, *,
+                               no_event: bool = False, **kwargs) -> None:
         """Add a DOOCS channel to diagnostic data.
 
-        :param DoocsChannel kls: a concrete DoocsChannel class.
-        :param str address: DOOCS address.
-        :param bool no_event: True for a non-event-based channel.
-        **kwargs: keyword arguments which will be passed to the constructor
-            of kls after address.
+        :param kls: A concrete DoocsChannel class.
+        :param address: DOOCS address.
+        :param no_event: True for a non-event-based channel.
+        :param kwargs: Keyword arguments which will be passed to the
+            constructor of kls after address.
 
         Examples:
-            from liso import doocs_channels as dc
-            from liso import EuXFELInterface
+            >>> from liso import doocs_channels as dc
+            >>> from liso import EuXFELInterface
 
-            m = EuXFELInterface()
-            m.add_diagnostic_channel(
-                dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
-                shape=(1750, 2330), dtype='uint16')
+            >>> m = EuXFELInterface()
+            >>> m.add_diagnostic_channel(
+            >>>     dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
+            >>>     shape=(1750, 2330), dtype='uint16')
+
         """
         self._check_address(address)
         self._diagnostics[address] = kls(address=address, **kwargs)
@@ -380,14 +388,17 @@ class DoocsMachine(BaseMachine):
         return await self._reader.correlate(executor, readout, timeout=timeout)
 
     @profiler("machine write and read")
-    def write_and_read(self, *, mapping=None, executor=None, timeout=None):
+    def write_and_read(self, *,
+                       mapping: Optional[dict] = None,
+                       executor: Optional[ThreadPoolExecutor] = None,
+                       timeout: Optional[float] = None) -> tuple:
         """Write and read the machine once.
 
-        :param dict mapping: a dictionary with keys being the DOOCS channel
+        :param mapping: a dictionary with keys being the DOOCS channel
             addresses and values being the numbers to be written into the
             corresponding address.
         :param ThreadPoolExecutor executor: a ThreadPoolExecutor object.
-        :param float/None timeout: timeout when correlating data by macropulse
+        :param timeout: timeout when correlating data by macropulse
             ID, in seconds. If None, it is set to the default value 2.0.
 
         :raises:
@@ -409,18 +420,24 @@ class DoocsMachine(BaseMachine):
 
         return pid, control_data, diagnostic_data
 
-    def take_snapshot(self, channels):
+    def take_snapshot(self, channels: list[str]) -> dict:
+        """Return readout value(s) of the given channel(s).
+
+        :param channels: A list of DOOCS channels.
+        """
         if not channels:
-            return
+            return dict()
 
         return {address: data['data']
                 for address, data in _machine_event_loop.run_until_complete(
                 self._reader.read_channels(channels)).items()}
 
 
-class EuXFELInterface(DoocsMachine):
-    _facility_name = 'XFEL'
+class EuXFELInterface(DoocsInterface):
+    def __init__(self):
+        super().__init__('XFEL')
 
 
-class FLASHInterface(DoocsMachine):
-    _facility_name = 'FLASH'
+class FLASHInterface(DoocsInterface):
+    def __init__(self):
+        super().__init__('FLASH')

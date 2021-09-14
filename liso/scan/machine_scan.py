@@ -5,9 +5,6 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import abc
-import asyncio
-from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import pathlib
@@ -22,22 +19,44 @@ from .base_scan import BaseScan
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter
 from ..logging import logger
-from ..experiment.machine import BaseMachine
+from ..experiment.machine_interface import MachineInterface
 
 
 class MachineScan(BaseScan):
     """Class for performing scans with a real machine."""
 
-    def __init__(self, machine: BaseMachine):
+    def __init__(self, interface: MachineInterface):
         """Initialization.
 
-        :param machine: Machine instance.
+        :param interface: MachineInterface instance.
         """
         super().__init__()
 
-        self._machine = machine
+        self._interface = interface
 
         self._param_readouts = dict()
+
+    def add_param(self,
+                  name: str,
+                  readout: Optional[str] = None,
+                  tol: float = 1e-6, **kwargs):
+        """Add a parameter for scan.
+
+        The kwargs will be passed to the construct of a ScanParam subclass.
+
+        :param name: The DOOCS address.
+        :param readout: The DOOCS address for validating the value being
+            written. If None, the written value will not be validated.
+        :param tol: Tolerance for the validation. Positive value for
+            absolute error and negative value for relative error.
+        :param kwargs: Keyword arguments will be passed to the constructor
+            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
+        """
+        self._add_scan_param(name, **kwargs)
+
+        self._param_readouts[name] = {'readout': readout}
+
+        self._param_readouts[name]['tol'] = tol
 
     def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
@@ -84,7 +103,7 @@ class MachineScan(BaseScan):
         executor = ThreadPoolExecutor(max_workers=tasks)
 
         try:
-            ret = self._machine.take_snapshot(self._params)
+            ret = self._interface.take_snapshot(self._params)
             logger.info(f"Current values of the scanned parameters: "
                         f"{str(ret)[1:-1].replace(': ', ' = ')}")
         except LisoRuntimeError:
@@ -101,7 +120,7 @@ class MachineScan(BaseScan):
         sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence) if sequence else cycles
         with ExpWriter(output_dir,
-                       schema=self._machine.schema,
+                       schema=self._interface.schema,
                        chmod=chmod,
                        group=group) as writer:
             count = 0
@@ -118,7 +137,7 @@ class MachineScan(BaseScan):
                             [1:-1].replace(': ', ' = '))
 
                 try:
-                    idx, controls, diagnostics = self._machine.write_and_read(
+                    idx, controls, diagnostics = self._interface.write_and_read(
                         executor=executor,
                         mapping=mapping,
                         timeout=timeout,
@@ -138,20 +157,3 @@ class MachineScan(BaseScan):
                     raise
 
         logger.info(f"Scan finished!")
-
-    def add_param(self, name, readout=None, tol=1e-6, **kwargs):
-        """Add a parameter for scan.
-
-        The kwargs will be passed to the construct of a ScanParam subclass.
-
-        :param str name: the DOOCS address.
-        :param str/None readout: the DOOCS address for validating the value
-            being written. If None, the written value will not be validated.
-        :param float tol: tolerance for the validation. Positive value for
-            absolute error and negative value for relative error.
-        """
-        self._add_scan_param(name, **kwargs)
-
-        self._param_readouts[name] = {'readout': readout}
-
-        self._param_readouts[name]['tol'] = tol

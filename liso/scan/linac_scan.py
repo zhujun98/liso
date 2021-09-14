@@ -38,6 +38,8 @@ class LinacScan(BaseScan):
         The kwargs will be passed to the construct of a ScanParam subclass.
 
         :param name: Parameter name in the simulation input file.
+        :param kwargs: Keyword arguments will be passed to the constructor
+            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
         """
         self._add_scan_param(name, **kwargs)
 
