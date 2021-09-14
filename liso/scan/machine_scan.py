@@ -34,30 +34,6 @@ class MachineScan(BaseScan):
 
         self._interface = interface
 
-        self._param_readouts = dict()
-
-    def add_param(self,
-                  name: str,
-                  readout: Optional[str] = None,
-                  tol: float = 1e-6, **kwargs):
-        """Add a parameter for scan.
-
-        The kwargs will be passed to the construct of a ScanParam subclass.
-
-        :param name: The DOOCS address.
-        :param readout: The DOOCS address for validating the value being
-            written. If None, the written value will not be validated.
-        :param tol: Tolerance for the validation. Positive value for
-            absolute error and negative value for relative error.
-        :param kwargs: Keyword arguments will be passed to the constructor
-            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
-        """
-        self._add_scan_param(name, **kwargs)
-
-        self._param_readouts[name] = {'readout': readout}
-
-        self._param_readouts[name]['tol'] = tol
-
     def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
         # It is allowed to use an existing parent directory,
@@ -98,12 +74,15 @@ class MachineScan(BaseScan):
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
         """
+        if not self._params:
+            raise ValueError("No scan parameters specified!")
+
         if tasks is None:
             tasks = multiprocessing.cpu_count()
         executor = ThreadPoolExecutor(max_workers=tasks)
 
         try:
-            ret = self._interface.take_snapshot(self._params)
+            ret = self._interface.read()
             logger.info(f"Current values of the scanned parameters: "
                         f"{str(ret)[1:-1].replace(': ', ' = ')}")
         except LisoRuntimeError:
@@ -129,7 +108,6 @@ class MachineScan(BaseScan):
                 if sequence:
                     for i, k in enumerate(self._params):
                         mapping[k] = {'value': sequence[count][i]}
-                        mapping[k].update(self._param_readouts[k])
                 count += 1
                 logger.info(f"Scan {count:06d}: "
                             + str({address: item['value']
@@ -137,12 +115,14 @@ class MachineScan(BaseScan):
                             [1:-1].replace(': ', ' = '))
 
                 try:
-                    idx, controls, diagnostics = self._interface.write_and_read(
-                        executor=executor,
-                        mapping=mapping,
-                        timeout=timeout,
-                    )
-                    writer.write(idx, controls, diagnostics)
+                    self._interface.write(mapping, executor=executor)
+                    idx, controls, diagnostics = self._interface.read(
+                        executor=executor)
+
+                    c_data = {k: v['data'] for k, v in controls.items()}
+                    d_data = {k: v['data'] for k, v in diagnostics.items()}
+
+                    writer.write(idx, c_data, d_data)
                 except LisoRuntimeError as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     logger.debug(repr(traceback.format_tb(exc_traceback))

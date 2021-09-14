@@ -19,9 +19,9 @@ class MachineInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def take_snapshot(self, items) -> dict:
+    def write(self, *args, **kwargs) -> None:
         pass
 
     @abc.abstractmethod
-    def write_and_read(self, *args, **kwargs) -> tuple:
+    def read(self, *args, **kwargs) -> tuple:
         pass
