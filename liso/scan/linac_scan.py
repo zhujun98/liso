@@ -32,17 +32,6 @@ class LinacScan(BaseScan):
 
         self._linac = linac
 
-    def add_param(self, name: str, **kwargs):
-        """Add a parameter for scan.
-
-        The kwargs will be passed to the construct of a ScanParam subclass.
-
-        :param name: Parameter name in the simulation input file.
-        :param kwargs: Keyword arguments will be passed to the constructor
-            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
-        """
-        self._add_scan_param(name, **kwargs)
-
     def _check_param_name(self, name: str):
         """Override."""
         splitted = name.split('/', 1)

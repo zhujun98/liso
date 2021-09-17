@@ -22,7 +22,15 @@ class BaseScan(abc.ABC):
     def _check_param_name(self, name):
         return name
 
-    def _add_scan_param(self, name, *, dist=-1., **kwargs):
+    def add_param(self, name: str, *, dist=-1., **kwargs):
+        """Add a parameter for scan.
+
+        The kwargs will be passed to the construct of a ScanParam subclass.
+
+        :param name: Parameter name in the simulation input file.
+        :param kwargs: Keyword arguments will be passed to the constructor
+            of the appropriate :class:`liso.scan.scan_param.ScanParam`.
+        """
         name = self._check_param_name(name)
 
         if name in self._params:

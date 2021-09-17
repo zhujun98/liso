@@ -8,7 +8,7 @@ import numpy as np
 from liso import EuXFELInterface, MachineScan, open_run
 from liso import doocs_channels as dc
 from liso.experiment import doocs_channels
-from liso.experiment.doocs_interface import DoocsReader
+from liso.experiment.doocs_interface import DoocsException
 from liso.io import ExpWriter
 from liso.logging import logger
 logger.setLevel('ERROR')
@@ -16,16 +16,14 @@ logger.setLevel('ERROR')
 from ...experiment.tests import DoocsDataGenerator as ddgen
 
 
-_PID0 = 1000
+_INITIAL_PID = 1000
 
 
 def _side_effect_read(dataset, address):
     data = dataset[address]
-    if data['macropulse'] >= _PID0:
-        if np.random.rand() > 0.5:
-            # do not mutate
-            data['data'] = data['data'] + 1
-            data['macropulse'] += 1
+    if data['macropulse'] >= _INITIAL_PID:
+        data['data'] = data['data'] + 1  # do not mutate
+        data['macropulse'] += 1
     return data
 
 
@@ -41,23 +39,25 @@ class TestMachineScan(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
 
-            m = EuXFELInterface()
+            cfg = {
+                "timeout.correlation": 0.2,
+                "interval.read.non_event_date": 0.02,
+                "interval.read.retry": 0.01
+            }
+            m = EuXFELInterface(cfg)
             m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/D')
             m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/E', no_event=True)
             m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
-            self._sc = MachineScan(m)
+            self._sc = MachineScan(m, read_delay=0.)
 
-            DELAY_NO_EVENT = DoocsReader._DELAY_NO_EVENT
-            DELAY_STALE = DoocsReader._DELAY_STALE
-            try:
-                DoocsReader._DELAY_NO_EVENT = 1e-3
-                DoocsReader._DELAY_STALE = 1e-4
-                super().run(result)
-            finally:
-                DoocsReader._DELAY_NO_EVENT = DELAY_NO_EVENT
-                DoocsReader._DELAY_STALE = DELAY_STALE
+            super().run(result)
+
+    def testInitialization(self):
+        m = EuXFELInterface()
+        with self.assertRaisesRegex(ValueError, "not a valid scan policy"):
+            MachineScan(m, policy='A')
 
     def testSampleDistance(self):
         n = 1
@@ -85,30 +85,21 @@ class TestMachineScan(unittest.TestCase):
         m = self._machine
         return {
             "XFEL.A/B/C/D": ddgen.scalar(
-                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=_PID0),
+                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
-                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=_PID0),
+                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
             "XFEL.H/I/J/K": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=_PID0),
+                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=_INITIAL_PID),
         }
 
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testScanWithoutParameter(self, patched_read):
+    def testRunFolderCreation(self, patched_read, patched_write):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            n_pulses = 40
-            sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.005)
-
-            patched_read.assert_called()
-
-    @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testRunFolderCreation(self, patched_read):
-        sc = self._sc
-        dataset = self._prepare_dataset()
-        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+        sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.scan(2, output_dir=tmp_dir, timeout=0.001)
@@ -122,11 +113,14 @@ class TestMachineScan(unittest.TestCase):
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                  sorted((path.iterdir())))
 
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testChmod(self, patched_read):
+    def testChmod(self, patched_read, patched_write):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.scan(10, output_dir=tmp_dir, timeout=0.001)
@@ -142,10 +136,13 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testScanWithParameters(self, patched_read, patched_write):
+    def testScan(self, patched_read, patched_write):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        with self.assertRaisesRegex(ValueError, "No scan parameters specified"):
+            sc.scan(10)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
@@ -155,7 +152,6 @@ class TestMachineScan(unittest.TestCase):
 
             n_pulses = 40
             sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.01)
-
             run = open_run(path.joinpath('r0001'))
             run.info()
 
@@ -164,16 +160,16 @@ class TestMachineScan(unittest.TestCase):
             pids = control_data.index
             self.assertEqual(len(np.unique(pids)), len(pids))
             np.testing.assert_array_equal(
-                control_data['XFEL.A/B/C/D'], pids - _PID0 + 1)
+                control_data['XFEL.A/B/C/D'], pids - _INITIAL_PID + 1)
             if len(pids) != 1:
-                self.assertLess(len(np.unique(control_data['XFEL.A/B/C/E'])),
-                                len(control_data['XFEL.A/B/C/E']))
+                self.assertEqual(len(np.unique(control_data['XFEL.A/B/C/E'])),
+                                 len(control_data['XFEL.A/B/C/E']))
 
             img_data = run.channel("XFEL.H/I/J/K").numpy()
 
             self.assertTupleEqual((len(pids), 3, 4), img_data.shape)
-            self.assertTrue(np.all(img_data[1] == pids[1] - _PID0 + 1))
-            self.assertTrue(np.all(img_data[-1] == pids[-1] - _PID0 + 1))
+            self.assertTrue(np.all(img_data[1] == pids[1] - _INITIAL_PID + 1))
+            self.assertTrue(np.all(img_data[-1] == pids[-1] - _INITIAL_PID + 1))
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -189,7 +185,7 @@ class TestMachineScan(unittest.TestCase):
             sc.scan(10, output_dir=tmp_dir, timeout=0.01)
 
             def _side_effect_raise(x):
-                raise doocs_channels.DoocsException
+                raise DoocsException
             patched_read.side_effect = _side_effect_raise
             with self.assertRaisesRegex(RuntimeError,
                                         "Failed to read all the initial values"):
