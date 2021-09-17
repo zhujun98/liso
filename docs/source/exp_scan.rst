@@ -1,42 +1,42 @@
 Scanning Machine Parameters
 ===========================
 
-.. _injector scan EuXFEL:
+.. _parameter scan with DOOCS:
 
-Performing parameter scan for the injector of EuXFEL
-----------------------------------------------------
+Parameter scan with DOOCS
+-------------------------
+
+In this section, we will performing parameter scan for the Injector of the
+European XFEL. For how to build a machine interface which uses the DOOCS
+control system, please refer to :ref:`interface with doocs`.
 
 .. code-block:: py
 
     from liso import EuXFELInterface, MachineScan
     from liso import doocs_channels as dc
 
-    m = EuXFELInterface()
 
-    m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE')
+    m.add_control_channel(dc.FLOAT,
+                          'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE',
+                          'XFEL.RF/LLRF.CONTROLLER/CTRL.GUN.I1/SP.PHASE')
     m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/AMPL.SAMPLE')
-    m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE')
+    m.add_control_channel(dc.FLOAT,
+                          'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE',
+                          'XFEL.RF/LLRF.CONTROLLER/CTRL.A1.I1/SP.PHASE')
     m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/AMPL.SAMPLE')
-
-    # non-event based data
-    m.add_control_channel(dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.63.I1D/KICK_MRAD.SP')
-    m.add_control_channel(dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.64.I1D/KICK_MRAD.SP')
-
-    m.add_diagnostic_channel(dc.FLOAT, 'XFEL.DIAG/CHARGE.ML/TORA.25.I1/CHARGE.ALL')
-
-    m.add_diagnostic_channel(dc.IMAGE, 'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ',
-                             shape=(1750, 2330), dtype='uint16', no_event=True)
+    m.add_control_channel(dc.FLOAT,
+                          'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE',
+                          'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
+    m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
     sc = MachineScan(m)
 
-    sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.GUN.I1/SP.PHASE',
-                 readout='XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE',
-                 tol=0.02,
-                 lb=-3, ub=3)
-    sc.add_param('XFEL.RF/LLRF.CONTROLLER/CTRL.A1.I1/SP.PHASE',
-                 readout='XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE',
-                 tol=0.02,
-                 lb=-3, ub=3)
+    sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE', lb=-3, ub=3)
+    sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE', lb=-3, ub=3)
+    sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE', lb=182, ub=186)
+
+    m.add_diagnostic_channel(
+        dc.FLOAT, 'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE_SINGLEBUNCH_ARRIVAL_TIME.1')
 
     sc.scan(1000, tasks=8)
 
@@ -45,3 +45,5 @@ Check how to define different :ref:`scan parameters`.
 
 By default, the scan output will be stored in the current directory. For how to
 read out the result, please refer to :ref:`reading hdf5 exp`.
+
+For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/xfel_experiment>`_.
