@@ -33,7 +33,7 @@ class TestDoocsInterface(unittest.TestCase):
             "interval.read.retry": 0.01
         }
         m = EuXFELInterface(cfg)
-        m.add_control_channel(dc.FLOAT, "XFEL.A/B/C/D")
+        m.add_control_channel(dc.FLOAT, "XFEL.A/B/C/D", "XFEL.A/B/C/d")
         m.add_control_channel(dc.DOUBLE, "XFEL.A/B/C/E")
         m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K",
                                  shape=(4, 4), dtype="uint16", non_event=True)
@@ -56,20 +56,21 @@ class TestDoocsInterface(unittest.TestCase):
         m = self._machine
 
         self.assertListEqual(["XFEL.A/B/C/D", 'XFEL.A/B/C/E'], m.controls)
+        self.assertListEqual(["XFEL.A/B/C/d", 'XFEL.A/B/C/E'], list(m._controls_write.values()))
         self.assertListEqual(["XFEL.H/I/J/K", 'XFEL.H/I/J/L'], m.diagnostics)
         self.assertListEqual(m.controls + m.diagnostics, m.channels)
         self.assertSetEqual({"XFEL.H/I/J/K"}, m._non_event)
 
         with self.subTest("Add an existing channel"):
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "control"):
                 m.add_control_channel(dc.IMAGE, "XFEL.A/B/C/D",
                                       shape=(2, 2), dtype="uint16")
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "diagnostics"):
                 m.add_control_channel(dc.IMAGE, "XFEL.H/I/J/K",
                                       shape=(2, 2), dtype="uint16")
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "control"):
                 m.add_diagnostic_channel(dc.FLOAT, "XFEL.A/B/C/D")
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "diagnostics"):
                 m.add_diagnostic_channel(dc.FLOAT, "XFEL.H/I/J/K")
 
         with self.subTest("Invalid address"):
@@ -94,13 +95,18 @@ class TestDoocsInterface(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     def testWrite(self, patched_write):
+        m = self._machine
+
+        with self.assertRaisesRegex(KeyError, "not found in the control channels"):
+            m.write(mapping={'XFEL.A/B/C/C': 1})
+
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
                 def _side_effect_write1(address, v):
                     if address == 'XFEL.A/B/C/E':
                         raise np.random.choice([PyDoocsException, DoocsException])
                 patched_write.side_effect = _side_effect_write1
-                self._machine.write(mapping={
+                m.write(mapping={
                     'XFEL.A/B/C/D': 10,
                     'XFEL.A/B/C/E': 100,
                 })
@@ -109,10 +115,10 @@ class TestDoocsInterface(unittest.TestCase):
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
                 def _side_effect_write2(address, v):
-                    if address == 'XFEL.A/B/C/D':
+                    if address == 'XFEL.A/B/C/d':
                         raise np.random.choice([ValueError, KeyError])
                 patched_write.side_effect = _side_effect_write2
-                self._machine.write(mapping={
+                m.write(mapping={
                     'XFEL.A/B/C/D': 10,
                     'XFEL.A/B/C/E': 100,
                 })

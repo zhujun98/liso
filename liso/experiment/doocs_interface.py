@@ -57,6 +57,7 @@ class DoocsInterface(MachineInterface):
 
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
+        self._controls_write = dict()
         self._non_event = set()
 
         self._last_correlated = 0
@@ -98,18 +99,25 @@ class DoocsInterface(MachineInterface):
                 {k: v.value_schema() for k, v in self._diagnostics.items()})
 
     def _check_address(self, address: str) -> None:
-        if address in self._controls or address in self._diagnostics:
-            raise ValueError(f"{address} already exists!")
+        if address in self._controls:
+            raise ValueError(f"{address} is an existing control channel!")
+
+        if address in self._diagnostics:
+            raise ValueError(f"{address} is an existing diagnostics channel!")
 
         if not address.startswith(self._facility_name):
             raise ValueError(f"{address} must start with {self._facility_name}")
 
-    def add_control_channel(self, kls: Type[DoocsChannel], address: str, *,
+    def add_control_channel(self, kls: Type[DoocsChannel],
+                            read_address: str,
+                            write_address: Optional[str] = None, *,
                             non_event: bool = False, **kwargs) -> None:
         """Add a DOOCS channel for control data.
 
         :param kls: A concrete DoocsChannel class.
-        :param address: DOOCS address.
+        :param read_address: DOOCS read address.
+        :param write_address: DOOCS write address. It will be set to the same
+            as the read address if not given.
         :param non_event: True for a non-event-based channel (slow collector).
         :param kwargs: Keyword arguments which will be passed to the
             constructor of kls after address.
@@ -120,12 +128,17 @@ class DoocsInterface(MachineInterface):
 
             >>> m = EuXFELInterface()
             >>> m.add_control_channel(
-            >>>     dc.FLOAT32, 'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
+            >>>     dc.FLOAT32,
+            >>>     'XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE',
+            >>>     'XFEL.RF/LLRF.CONTROLLER/CTRL.GUN.I1/SP.PHASE')
         """
-        self._check_address(address)
-        self._controls[address] = kls(address=address, **kwargs)
+        self._check_address(read_address)
+        self._controls[read_address] = kls(address=read_address, **kwargs)
+        if write_address is None:
+            write_address = read_address
+        self._controls_write[read_address] = write_address
         if non_event:
-            self._non_event.add(address)
+            self._non_event.add(read_address)
 
     def add_diagnostic_channel(self, kls: Type[DoocsChannel], address: str, *,
                                non_event: bool = False, **kwargs) -> None:
@@ -213,6 +226,13 @@ class DoocsInterface(MachineInterface):
         if not mapping:
             return
 
+        mapping_write = OrderedDict()
+        for k, v in mapping.items():
+            try:
+                mapping_write[self._controls_write[k]] = v
+            except KeyError:
+                raise KeyError(f"Channel {k} is not found in the "
+                               f"control channels.")
         # TODO: Validate the values to be written
 
         if executor is None:
@@ -221,10 +241,11 @@ class DoocsInterface(MachineInterface):
             loop = asyncio.get_event_loop()
 
         failure_count = loop.run_until_complete(
-            self._write(mapping, loop, executor))
+            self._write(mapping_write, loop, executor))
         if failure_count > 0:
             raise LisoRuntimeError(
-                f"Failed to update {failure_count}/{len(mapping)} channels ")
+                f"Failed to update {failure_count}/{len(mapping_write)} "
+                f"channels ")
 
     def _validate_readout(self,
                           channels: dict[str, DoocsChannel],
