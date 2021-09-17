@@ -98,7 +98,10 @@ class TestDoocsInterface(unittest.TestCase):
         m = self._machine
 
         with self.assertRaisesRegex(KeyError, "not found in the control channels"):
-            m.write(mapping={'XFEL.A/B/C/C': 1})
+            m.write(mapping={'XFEL.A/B/C/C': 1.})
+
+        with self.assertRaisesRegex(LisoRuntimeError, "ValidationError"):
+            m.write(mapping={'XFEL.A/B/C/D': 1})
 
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
@@ -107,8 +110,8 @@ class TestDoocsInterface(unittest.TestCase):
                         raise np.random.choice([PyDoocsException, DoocsException])
                 patched_write.side_effect = _side_effect_write1
                 m.write(mapping={
-                    'XFEL.A/B/C/D': 10,
-                    'XFEL.A/B/C/E': 100,
+                    'XFEL.A/B/C/D': 1.,
+                    'XFEL.A/B/C/E': 10.,
                 })
         assert "Failed to write" in cm.output[0]
 
@@ -116,11 +119,11 @@ class TestDoocsInterface(unittest.TestCase):
             with self.assertLogs(level="ERROR") as cm:
                 def _side_effect_write2(address, v):
                     if address == 'XFEL.A/B/C/d':
-                        raise np.random.choice([ValueError, KeyError])
+                        raise np.random.choice([ValueError, RuntimeError])
                 patched_write.side_effect = _side_effect_write2
                 m.write(mapping={
-                    'XFEL.A/B/C/D': 10,
-                    'XFEL.A/B/C/E': 100,
+                    'XFEL.A/B/C/D': 1.,
+                    'XFEL.A/B/C/E': 10.,
                 })
         assert "Unexpected exception" in cm.output[0]
 
