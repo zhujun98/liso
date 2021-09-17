@@ -1,6 +1,6 @@
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 
@@ -182,6 +182,8 @@ class TestDoocsInterface(unittest.TestCase):
         with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
             dataset["XFEL.H/I/J/K"]['data'] = np.ones((2, 2))
             m.read()
+        # turn validation off
+        m.read(validate=False)
         dataset["XFEL.H/I/J/K"]['data'] = orig_v
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -262,3 +264,15 @@ class TestDoocsInterface(unittest.TestCase):
             dataset[address]['macropulse'] = last_correlated_gt
         m.read()
         self.assertLess(last_correlated_gt, m._last_correlated)
+
+    @patch("time.sleep", side_effect=KeyboardInterrupt)
+    def testMonitor(self, patched_sleep):
+
+        mocked_read = MagicMock(return_value=(None, dict(), dict()))
+        self._machine.read = mocked_read
+
+        self._machine.monitor()
+        self.assertDictEqual({'correlate': False, 'validate': True},
+                             mocked_read.call_args_list[0][1])
+        patched_sleep.assert_called_with(1.0)
+        patched_sleep.reset_mock()
