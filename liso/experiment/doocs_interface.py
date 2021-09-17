@@ -54,6 +54,7 @@ class DoocsInterface(MachineInterface):
         super().__init__()
 
         self._facility_name = facility_name
+        self._pulse_interval = 0.1
 
         self._controls = OrderedDict()
         self._diagnostics = OrderedDict()
@@ -75,7 +76,7 @@ class DoocsInterface(MachineInterface):
         self._interval_read_non_event_data = 1.0 if irn is None else irn
 
         irr = config.get("interval.read.retry")
-        self._interval_read_retry = 0.1 if irr is None else irr
+        self._interval_read_retry = self._pulse_interval if irr is None else irr
 
     @property
     def channels(self) -> list[str]:
@@ -104,9 +105,6 @@ class DoocsInterface(MachineInterface):
 
         if address in self._diagnostics:
             raise ValueError(f"{address} is an existing diagnostics channel!")
-
-        if not address.startswith(self._facility_name):
-            raise ValueError(f"{address} must start with {self._facility_name}")
 
     def add_control_channel(self, kls: Type[DoocsChannel],
                             read_address: str,
@@ -246,18 +244,19 @@ class DoocsInterface(MachineInterface):
                 f"Failed to update {failure_count}/{len(mapping_write)} "
                 f"channels ")
 
-    def _validate_readout(self,
-                          channels: dict[str, DoocsChannel],
-                          readout: dict) -> dict[str, Any]:
+    def _extract_readout(self,
+                         channels: dict[str, DoocsChannel],
+                         readout: dict, *,
+                         validate: bool) -> dict[str, Any]:
         """Validate readout for given channels.
         
-        :raises LisoRuntimeError
+        :raises LisoRuntimeError: If validation fails.
         """
         ret = dict()
         for address, ch in channels.items():
             ch_data = readout[address]
             ret[address] = ch_data
-            if ch_data is not None:
+            if validate and ch_data is not None:
                 try:
                     ch.value = ch_data['data']  # validate
                 except ValidationError as e:
@@ -404,15 +403,18 @@ class DoocsInterface(MachineInterface):
     def read(self,
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlated: bool = True) -> dict:
+             correlate: bool = True,
+             validate: bool = True) -> dict:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
         :param executor: ThreadPoolExecutor instance.
-        :param correlated: True for returning the latest group of data with
+        :param correlate: True for returning the latest group of data with
             the same train ID.
+        :param validate: True for validate the readout values.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
+        :raises LisoRuntimeError: If validation fails.
 
         The returned data from each channel contains the following keys:
             data, macropulse, timestamp, type, miscellaneous
@@ -422,7 +424,7 @@ class DoocsInterface(MachineInterface):
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        if correlated:
+        if correlate:
             pid, data =  loop.run_until_complete(
                 self._read_correlated(self.channels, loop, executor))
             if pid is None:
@@ -431,8 +433,10 @@ class DoocsInterface(MachineInterface):
             pid, data =  loop.run_until_complete(
                 self._read(self.channels, loop, executor))
 
-        control_data = self._validate_readout(self._controls, data)
-        diagnostic_data = self._validate_readout(self._diagnostics, data)
+        control_data = self._extract_readout(
+            self._controls, data, validate=validate)
+        diagnostic_data = self._extract_readout(
+            self._diagnostics, data, validate=validate)
 
         return pid, control_data, diagnostic_data
 
@@ -442,16 +446,19 @@ class DoocsInterface(MachineInterface):
 
     def monitor(self,
                 executor: Optional[ThreadPoolExecutor] = None,
-                validation: bool = True) -> None:
+                correlate: bool = False,
+                validate: bool = True) -> None:
         """Continuously monitoring the diagnostic channels.
 
         :param executor: ThreadPoolExecutor instance.
-        :param validation: True for validating the readout data.
+        :param correlate: True for correlating all channel data.
+        :param validate: True for validating the readout data.
         """
         loop = asyncio.get_event_loop()
         try:
             while True:
-                pid, controls, diagnostics = self.read(executor, loop=loop)
+                pid, controls, diagnostics = self.read(
+                    loop, executor, correlate=correlate, validate=validate)
 
                 print("-" * 80)
                 print("Macropulse ID:", pid)
@@ -459,7 +466,10 @@ class DoocsInterface(MachineInterface):
                 self._print_channel_data("\nDiagnostics data", diagnostics)
                 print("-" * 80)
 
-                time.sleep(0.001)
+                if correlate:
+                    time.sleep(0.001)
+                else:
+                    time.sleep(1.0)
         except KeyboardInterrupt:
             logger.info("Stopping monitoring ...")
 

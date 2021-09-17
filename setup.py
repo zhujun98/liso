@@ -35,6 +35,9 @@ setup(
         'pydantic>=1.7.2',
     ],
     entry_points={
+        'console_scripts': [
+            'liso-doocs-monitor=liso.experiment.doocs_app:monitor'
+        ]
     },
     extras_require={
         'test': [

@@ -203,6 +203,14 @@ class ImageDoocsChannel(DoocsChannel):
         return schema
 
 
+class AnyDoocsChannel(DoocsChannel):
+    """Used as a dummy DoocsChannel.
+
+    It cannot be validated since it has no value attribute.
+    """
+    pass
+
+
 _DoocsChannelFactory = namedtuple(
     "DoocsChannelFactory",
     ["BOOL",
@@ -210,7 +218,8 @@ _DoocsChannelFactory = namedtuple(
      "INT32", "INT", "UINT32", "UINT",
      "INT16", "UINT16",
      "FLOAT64", "DOUBLE", "FLOAT32", "FLOAT",
-     "IMAGE"]
+     "IMAGE",
+     "ANY"]
 )
 
 doocs_channels = _DoocsChannelFactory(
@@ -230,4 +239,5 @@ doocs_channels = _DoocsChannelFactory(
     FLOAT32=Float32DoocsChannel,
     FLOAT=Float32DoocsChannel,
     IMAGE=ImageDoocsChannel,
+    ANY=AnyDoocsChannel
 )
