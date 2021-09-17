@@ -105,9 +105,6 @@ class DoocsInterface(MachineInterface):
         if address in self._diagnostics:
             raise ValueError(f"{address} is an existing diagnostics channel!")
 
-        if not address.startswith(self._facility_name):
-            raise ValueError(f"{address} must start with {self._facility_name}")
-
     def add_control_channel(self, kls: Type[DoocsChannel],
                             read_address: str,
                             write_address: Optional[str] = None, *,

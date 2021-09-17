@@ -74,10 +74,6 @@ class TestDoocsInterface(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "diagnostics"):
                 m.add_diagnostic_channel(dc.FLOAT, "XFEL.H/I/J/K")
 
-        with self.subTest("Invalid address"):
-            with self.assertRaisesRegex(ValueError, "must start with XFEL"):
-                m.add_control_channel(dc.FLOAT, "A/B/C/D")
-
         with self.subTest("Test schema"):
             m = self._machine
             control_schema, diagnostic_schema = m.schema
