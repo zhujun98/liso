@@ -221,24 +221,18 @@ class DoocsInterface(MachineInterface):
         :param loop: The event loop.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
-        :raises LisoRuntimeError: If there is error when writing any channels
-            or if there is error when validating the written values.
+        :raises LisoRuntimeError: If there is error when writing any channels.
         """
         if not mapping:
             return
 
-        mapping_write = OrderedDict()
-        for k, v in mapping.items():
-            if k not in self._controls:
-                raise KeyError(f"Channel {k} is not found in the "
-                               f"control channels.")
-            # FIXME: how to do the validation properly?
-            try:
-                self._controls[k].copy().value = v
-            except ValidationError as e:
-                raise LisoRuntimeError(repr(e))
-
-            mapping_write[self._controls_write[k]] = v
+        # Validate should be done in DOOCS.
+        try:
+            mapping_write = {self._controls_write[k]: v
+                             for k, v in mapping.items()}
+        except KeyError as e:
+            raise KeyError(
+                f"Channel not found in the control channels: {repr(e)}")
 
         if executor is None:
             executor = ThreadPoolExecutor()

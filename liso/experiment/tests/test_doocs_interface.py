@@ -100,9 +100,6 @@ class TestDoocsInterface(unittest.TestCase):
         with self.assertRaisesRegex(KeyError, "not found in the control channels"):
             m.write(mapping={'XFEL.A/B/C/C': 1.})
 
-        with self.assertRaisesRegex(LisoRuntimeError, "ValidationError"):
-            m.write(mapping={'XFEL.A/B/C/D': 1})
-
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
                 def _side_effect_write1(address, v):

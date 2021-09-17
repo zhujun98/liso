@@ -132,6 +132,8 @@ class TestMachineScan(unittest.TestCase):
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testScan(self, patched_read, patched_write):
+        logger.setLevel('DEBUG')
+
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -147,7 +149,6 @@ class TestMachineScan(unittest.TestCase):
 
             n_pulses = 40
             sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.01)
-
             run = open_run(path.joinpath('r0001'))
             run.info()
 
