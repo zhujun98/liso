@@ -39,4 +39,4 @@ Check how to define different :ref:`scan parameters`.
 By default, the scan output will be stored in the current directory. For how to
 read out the result, please refer to :ref:`reading hdf5 sim`.
 
-For more details, check the `examples <https://github.com/zhujun98/liso/tree/master/examples/astra_scan>`_.
+For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/astra_scan>`_.

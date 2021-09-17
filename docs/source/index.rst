@@ -36,7 +36,8 @@ it is live again but aims at:
    :maxdepth: 1
    :caption: EXPERIMENT:
 
-   exp_data_recording
+   exp_interface
+   exp_monitoring
    exp_scan
    exp_reading_data
 
