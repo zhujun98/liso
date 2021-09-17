@@ -26,15 +26,15 @@ m.add_control_channel(dc.FLOAT,
                       'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
 m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
-# non-event based data
-m.add_control_channel(dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.63.I1D/KICK_MRAD.SP')
-m.add_control_channel(dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.64.I1D/KICK_MRAD.SP')
+m.add_control_channel(
+    dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.63.I1D/KICK_MRAD.SP', non_event=True)
+m.add_control_channel(
+    dc.FLOAT, 'XFEL.MAGNETS/MAGNET.ML/QI.64.I1D/KICK_MRAD.SP', non_event=True)
 
 m.add_diagnostic_channel(
     dc.FLOAT, 'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE.RESOLUTION', no_event=True)
 m.add_diagnostic_channel(
-    dc.INT, 'XFEL.SDIAG/BAM/47.I1/SINGLEBUNCH_NUMBER_FOR_ARRIVAL_TIME_HISTORY.1',
-    no_event=True)
+    dc.INT, 'XFEL.SDIAG/BAM/47.I1/SINGLEBUNCH_NUMBER_FOR_ARRIVAL_TIME_HISTORY.1', no_event=True)
 m.add_diagnostic_channel(
     dc.FLOAT, 'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE_SINGLEBUNCH_ARRIVAL_TIME.1')
 

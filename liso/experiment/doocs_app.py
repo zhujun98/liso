@@ -2,12 +2,27 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import time
 
 from ..logging import logger
 from .doocs_channels import AnyDoocsChannel
 from .doocs_interface import DoocsInterface
+
+
+def _parse_channel_file(filepath):
+    fast, slow = [], []
+    ret = fast
+    for line in open(filepath, 'r').readlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("---"):
+            ret = slow
+            continue
+        ret.append(line)
+    return fast, slow
 
 
 def monitor():
@@ -22,17 +37,20 @@ def monitor():
 
     args = parser.parse_args()
 
-    channels = []
+    fast_channels, slow_channels = [], []
     if args.channels is not None:
-        channels.extend(args.channels.split(","))
+        fast_channels.extend(args.channels.split(","))
     if args.file is not None:
-        channels.extend(open(args.file, 'r').readlines())
-    if not channels:
+        fast, slow_channels = _parse_channel_file(args.file)
+        fast_channels.extend(fast)
+    if not fast_channels and not slow_channels:
         raise ValueError("No DOOCS channel specified!")
 
     interface = DoocsInterface("DOOCS")
-    for ch in channels:
+    for ch in fast_channels:
         interface.add_diagnostic_channel(AnyDoocsChannel, ch)
+    for ch in slow_channels:
+        interface.add_diagnostic_channel(AnyDoocsChannel, ch, non_event=True)
 
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor()
