@@ -1,3 +1,4 @@
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -169,7 +170,6 @@ class TestDoocsInterface(unittest.TestCase):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
-
         orig_v = dataset["XFEL.A/B/C/D"]['data']
         with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
             dataset["XFEL.A/B/C/D"]['data'] = 1
@@ -193,6 +193,8 @@ class TestDoocsInterface(unittest.TestCase):
         logger.setLevel("WARNING")
 
         m = self._machine
+        if sys.platform == "darwin":
+            m._timeout_correlating = 0.2
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
