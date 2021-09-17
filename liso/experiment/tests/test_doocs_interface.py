@@ -128,7 +128,7 @@ class TestDoocsInterface(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.subTest("Test normal"):
-            pid, control_data, diagnostic_data = self._machine.read(correlated=False)
+            pid, control_data, diagnostic_data = self._machine.read(correlate=False)
             assert patched_read.call_count == 4
             assert pid is None
             assert len(control_data) == 2
@@ -145,7 +145,7 @@ class TestDoocsInterface(unittest.TestCase):
                     raise np.random.choice([PyDoocsException, DoocsException])
                 return dataset[address]
             patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
-            pid, control_data, diagnostic_data = m.read(correlated=False)
+            pid, control_data, diagnostic_data = m.read(correlate=False)
             assert len(control_data) == 2
             assert len(diagnostic_data) == 2
             assert control_data['XFEL.A/B/C/D'] is None
@@ -157,7 +157,7 @@ class TestDoocsInterface(unittest.TestCase):
             dataset["XFEL.H/I/J/K"] = ddgen.image(
                 m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=-1
             )
-            m.read(correlated=False)
+            m.read(correlate=False)
             assert diagnostic_data['XFEL.H/I/J/K'] is not None
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -175,7 +175,7 @@ class TestDoocsInterface(unittest.TestCase):
         orig_v = dataset["XFEL.A/B/C/E"]['data']
         with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
             dataset["XFEL.A/B/C/E"]['data'] = True
-            m.read(correlated=False)
+            m.read(correlate=False)
         dataset["XFEL.A/B/C/E"]['data'] = orig_v
 
         orig_v = dataset["XFEL.H/I/J/K"]['data']
