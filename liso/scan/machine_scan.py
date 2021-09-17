@@ -5,11 +5,14 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import enum
 import multiprocessing
 import pathlib
 import re
 import sys
+import time
 import traceback
 from typing import Optional
 
@@ -22,17 +25,33 @@ from ..logging import logger
 from ..experiment.machine_interface import MachineInterface
 
 
+class ScanPolicy(enum.Enum):
+    READ_AFTER_DELAY = 1
+
+
 class MachineScan(BaseScan):
     """Class for performing scans with a real machine."""
 
-    def __init__(self, interface: MachineInterface):
+    def __init__(self, interface: MachineInterface,
+                 policy: ScanPolicy = ScanPolicy.READ_AFTER_DELAY,
+                 read_delay: float = 1.0) -> None:
         """Initialization.
 
         :param interface: MachineInterface instance.
+        :param policy: Policy about how the scan is performed.
+        :param read_delay: Delay for reading channel data in seconds after
+            writing channels. Use only when
+            policy = ScanPolicy.READ_AFTER_DELAY.
         """
         super().__init__()
 
         self._interface = interface
+
+        if not isinstance(policy, ScanPolicy):
+            raise ValueError(f"{policy} is not a valid scan policy! "
+                             f"Valid values are {[str(p) for p in ScanPolicy]}")
+        self._policy = policy
+        self._read_delay = read_delay
 
     def _create_output_dir(self, parent):
         parent_path = pathlib.Path(parent)
@@ -80,6 +99,7 @@ class MachineScan(BaseScan):
         if tasks is None:
             tasks = multiprocessing.cpu_count()
         executor = ThreadPoolExecutor(max_workers=tasks)
+        loop = asyncio.get_event_loop()
 
         try:
             ret = self._interface.read()
@@ -115,9 +135,11 @@ class MachineScan(BaseScan):
                             [1:-1].replace(': ', ' = '))
 
                 try:
-                    self._interface.write(mapping, executor=executor)
+                    self._interface.write(mapping, loop=loop, executor=executor)
+                    if self._policy == ScanPolicy.READ_AFTER_DELAY:
+                        time.sleep(self._read_delay)
                     idx, controls, diagnostics = self._interface.read(
-                        executor=executor)
+                        loop=loop, executor=executor)
 
                     c_data = {k: v['data'] for k, v in controls.items()}
                     d_data = {k: v['data'] for k, v in diagnostics.items()}

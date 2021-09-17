@@ -50,9 +50,14 @@ class TestMachineScan(unittest.TestCase):
             m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
             self._machine = m
 
-            self._sc = MachineScan(m)
+            self._sc = MachineScan(m, read_delay=0.)
 
             super().run(result)
+
+    def testInitialization(self):
+        m = EuXFELInterface()
+        with self.assertRaisesRegex(ValueError, "not a valid scan policy"):
+            MachineScan(m, policy='A')
 
     def testSampleDistance(self):
         n = 1
@@ -132,8 +137,6 @@ class TestMachineScan(unittest.TestCase):
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testScan(self, patched_read, patched_write):
-        logger.setLevel('DEBUG')
-
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)

@@ -212,13 +212,13 @@ class DoocsInterface(MachineInterface):
 
     @profiler("DOOCS interface write")
     def write(self, mapping: dict[str, Any], *,
-              executor: Optional[ThreadPoolExecutor] = None,
-              loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+              loop: Optional[asyncio.AbstractEventLoop] = None,
+              executor: Optional[ThreadPoolExecutor] = None) -> None:
         """Write new value(s) to the given control channel(s).
 
         :param mapping: A mapping between DOOCS channel(s) and value(s).
-        :param executor: ThreadPoolExecutor instance.
         :param loop: The event loop.
+        :param executor: ThreadPoolExecutor instance.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         :raises LisoRuntimeError: If there is error when writing any channels.
@@ -402,13 +402,13 @@ class DoocsInterface(MachineInterface):
 
     @profiler("DOOCS interface read")
     def read(self,
-             executor: Optional[ThreadPoolExecutor] = None,
              loop: Optional[asyncio.AbstractEventLoop] = None,
+             executor: Optional[ThreadPoolExecutor] = None,
              correlated: bool = True) -> dict:
         """Return readout value(s) of the diagnostics channel(s).
 
-        :param executor: ThreadPoolExecutor instance.
         :param loop: The event loop.
+        :param executor: ThreadPoolExecutor instance.
         :param correlated: True for returning the latest group of data with
             the same train ID.
 
@@ -440,10 +440,13 @@ class DoocsInterface(MachineInterface):
     def _print_channel_data(title, data):
         print(f"{title}:\n" + "\n".join([f"- {k}: {v}" for k, v in data.items()]))
 
-    def monitor(self, executor: Optional[ThreadPoolExecutor] = None) -> None:
+    def monitor(self,
+                executor: Optional[ThreadPoolExecutor] = None,
+                validation: bool = True) -> None:
         """Continuously monitoring the diagnostic channels.
 
         :param executor: ThreadPoolExecutor instance.
+        :param validation: True for validating the readout data.
         """
         loop = asyncio.get_event_loop()
         try:
