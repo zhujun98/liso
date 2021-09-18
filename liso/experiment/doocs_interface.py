@@ -246,17 +246,16 @@ class DoocsInterface(MachineInterface):
 
     def _extract_readout(self,
                          channels: dict[str, DoocsChannel],
-                         readout: dict, *,
-                         validate: bool) -> dict[str, Any]:
+                         readout: dict) -> dict[str, Any]:
         """Validate readout for given channels.
-        
+
         :raises LisoRuntimeError: If validation fails.
         """
         ret = dict()
         for address, ch in channels.items():
             ch_data = readout[address]
             ret[address] = ch_data
-            if validate and ch_data is not None:
+            if ch_data is not None:
                 try:
                     ch.value = ch_data['data']  # validate
                 except ValidationError as e:
@@ -403,15 +402,13 @@ class DoocsInterface(MachineInterface):
     def read(self,
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlate: bool = True,
-             validate: bool = True) -> dict:
+             correlate: bool = True) -> dict:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
         :param executor: ThreadPoolExecutor instance.
         :param correlate: True for returning the latest group of data with
             the same train ID.
-        :param validate: True for validate the readout values.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         :raises LisoRuntimeError: If validation fails.
@@ -433,10 +430,8 @@ class DoocsInterface(MachineInterface):
             pid, data =  loop.run_until_complete(
                 self._read(self.channels, loop, executor))
 
-        control_data = self._extract_readout(
-            self._controls, data, validate=validate)
-        diagnostic_data = self._extract_readout(
-            self._diagnostics, data, validate=validate)
+        control_data = self._extract_readout(self._controls, data)
+        diagnostic_data = self._extract_readout(self._diagnostics, data)
 
         return pid, control_data, diagnostic_data
 

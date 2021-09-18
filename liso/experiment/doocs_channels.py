@@ -7,12 +7,13 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import namedtuple
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
 from pydantic import (
-    BaseModel, StrictBool, StrictFloat, StrictInt, conint, confloat, validator
+    BaseModel, Field, StrictBool, StrictFloat, StrictInt, conint, confloat,
+    validator
 )
 
 
@@ -161,10 +162,10 @@ class ImageDoocsChannel(DoocsChannel):
     value: Optional[NDArray] = None
 
     @validator("dtype")
-    def check_dtype(cls, v):
+    def check_dtype(cls, v: str):
         """Check whether the input can be converted to a valid numpy.dtype.
 
-        :param str v: dtype string. Must be valid to construct a data type
+        :param v: dtype string. Must be valid to construct a data type
             object. For more details, check
             https://numpy.org/doc/stable/reference/arrays.dtypes.html.
         """
@@ -208,7 +209,14 @@ class AnyDoocsChannel(DoocsChannel):
 
     It cannot be validated since it has no value attribute.
     """
-    pass
+    # If the default value is not specified, it is None. Also, the schema
+    # will not have an entry {'default': None}.
+    value: Any
+
+    class Config:
+        @staticmethod
+        def schema_extra(schema, model):
+            schema['properties']['value']['type'] = 'any'
 
 
 _DoocsChannelFactory = namedtuple(

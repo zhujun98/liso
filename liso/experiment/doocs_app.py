@@ -58,7 +58,7 @@ def monitor():
     try:
         while True:
             pid, controls, diagnostics = interface.read(
-                loop, executor, correlate=correlate, validate=False)
+                loop, executor, correlate=correlate)
 
             print("-" * 80)
             print("Macropulse ID:", pid)

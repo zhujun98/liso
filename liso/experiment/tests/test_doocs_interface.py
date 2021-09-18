@@ -182,9 +182,6 @@ class TestDoocsInterface(unittest.TestCase):
         with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
             dataset["XFEL.H/I/J/K"]['data'] = np.ones((2, 2))
             m.read()
-        # turn validation off
-        m.read(validate=False)
-        dataset["XFEL.H/I/J/K"]['data'] = orig_v
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testCorrelatedRead(self, patched_read):
