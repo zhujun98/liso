@@ -32,7 +32,7 @@ class LinacScan(BaseScan):
 
         self._linac = linac
 
-    def _check_param_name(self, name: str):
+    def _check_param_name(self, name: str) -> str:
         """Override."""
         splitted = name.split('/', 1)
         first_bl = next(iter(self._linac))
@@ -40,14 +40,15 @@ class LinacScan(BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    def _create_output_dir(self, parent):
+    def _create_output_dir(self, parent: str):
         parent_path = pathlib.Path(parent)
         # It is allowed to use an existing directory, but not an existing file.
         parent_path.mkdir(exist_ok=True)
         return parent_path
 
-    async def _async_scan(self, cycles, output_dir, *,
-                          start_id, n_tasks, group, chmod, **kwargs):
+    async def _scan_imp(self, cycles: int, output_dir: str, *,
+                        start_id: int, n_tasks: int, group: int, chmod: bool,
+                        **kwargs) -> None:
         tasks = set()
         sequence = self._generate_param_sequence(cycles)
         n_pulses = len(sequence)
@@ -144,7 +145,7 @@ class LinacScan(BaseScan):
         np.random.seed(seed)
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._async_scan(
+        loop.run_until_complete(self._scan_imp(
             cycles, output_dir,
             start_id=start_id,
             n_tasks=n_tasks,

@@ -5,8 +5,6 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from __future__ import annotations
-
 import abc
 
 
