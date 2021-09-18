@@ -5,13 +5,11 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from __future__ import annotations
-
 import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import time
-from typing import Any, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import ValidationError
 
@@ -72,29 +70,26 @@ class DoocsInterface(MachineInterface):
         tc = config.get("timeout.correlation")
         self._timeout_correlating = 2.0 if tc is None else tc
 
-        irn = config.get("interval.read.non_event_data")
-        self._interval_read_non_event_data = 1.0 if irn is None else irn
-
         irr = config.get("interval.read.retry")
         self._interval_read_retry = self._pulse_interval if irr is None else irr
 
     @property
-    def channels(self) -> list[str]:
+    def channels(self) -> List[str]:
         """Return a list of all DOOCS addresses."""
         return list(self._controls) + list(self._diagnostics)
 
     @property
-    def controls(self) -> list[str]:
+    def controls(self) -> List[str]:
         """Return a list of DOOCS addresses for control data."""
         return list(self._controls)
 
     @property
-    def diagnostics(self) -> list[str]:
+    def diagnostics(self) -> List[str]:
         """Return a list of DOOCS addresses for diagnostic data."""
         return list(self._diagnostics)
 
     @property
-    def schema(self) -> tuple[dict, dict]:
+    def schema(self) -> Tuple[dict, dict]:
         """Return the schema of all DOOCS addresses."""
         return ({k: v.value_schema() for k, v in self._controls.items()},
                 {k: v.value_schema() for k, v in self._diagnostics.items()})
@@ -193,7 +188,7 @@ class DoocsInterface(MachineInterface):
         return False
 
     async def _write(self,
-                     mapping: dict[str, Any],
+                     mapping: Dict[str, Any],
                      loop: asyncio.AbstractEventLoop,
                      executor: ThreadPoolExecutor) -> int:
         """Implementation of write."""
@@ -209,7 +204,7 @@ class DoocsInterface(MachineInterface):
         return failure_count
 
     @profiler("DOOCS interface write")
-    def write(self, mapping: dict[str, Any], *,
+    def write(self, mapping: Dict[str, Any], *,
               loop: Optional[asyncio.AbstractEventLoop] = None,
               executor: Optional[ThreadPoolExecutor] = None) -> None:
         """Write new value(s) to the given control channel(s).
@@ -245,8 +240,8 @@ class DoocsInterface(MachineInterface):
                 f"channels ")
 
     def _extract_readout(self,
-                         channels: dict[str, DoocsChannel],
-                         readout: dict) -> dict[str, Any]:
+                         channels: Dict[str, DoocsChannel],
+                         readout: dict) -> Dict[str, Any]:
         """Validate readout for given channels.
 
         :raises LisoRuntimeError: If validation fails.
@@ -266,7 +261,7 @@ class DoocsInterface(MachineInterface):
                             address: str,
                             loop: asyncio.AbstractEventLoop,
                             executor: ThreadPoolExecutor,
-                            delay: float = 0) -> tuple(str, Any):
+                            delay: float = 0) -> Tuple[str, Optional[dict]]:
         """Read a single channel and parse the result.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
@@ -288,17 +283,14 @@ class DoocsInterface(MachineInterface):
         return address, None
 
     async def _read_correlated(self,
-                               channels: list[str],
+                               channels: List[str],
                                loop: asyncio.AbstractEventLoop,
                                executor: ThreadPoolExecutor) \
-            -> tuple[int, dict[str, dict]]:
+            -> Tuple[Optional[int], Dict[str, dict]]:
         """Read the first available correlated data from channels.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         """
-        n_events = len(self.channels) - len(self._non_event)
-        cached = OrderedDict()
-
         tasks = dict()
 
         SENTINEL = object()
@@ -306,15 +298,21 @@ class DoocsInterface(MachineInterface):
             tasks[asyncio.create_task(
                 asyncio.sleep(self._timeout_correlating))] = SENTINEL
 
-        tasks.update(
-            {asyncio.create_task(
+        tasks.update({
+            asyncio.create_task(
                 self._read_channel(address, loop, executor)): address
-                 for address in self.channels
-             if address not in self._non_event}
-        )
+            for address in channels
+        })
 
-        correlated = dict()
-        delay = self._interval_read_retry
+        n_channels = len(self.channels)
+        n_nonevents = len(self._non_event)
+        n_events = n_channels - n_nonevents
+
+        ret = dict()
+        cached = OrderedDict()
+        latest_nonevent = dict()
+        candidate_pids = set()
+        correlated_pid = None
         running = True
         while running:
             done, _ = await asyncio.wait(
@@ -323,34 +321,37 @@ class DoocsInterface(MachineInterface):
             for fut in done:
                 if tasks[fut] is SENTINEL:
                     running = False
-                    continue
+                    break
 
                 address, ch_data = fut.result()
                 if ch_data is not None:
                     pid = ch_data['macropulse']
-                    if pid > self._last_correlated:
-                        if pid not in cached:
-                            cached[pid] = dict()
-                        cached[pid][address] = ch_data
+                    # Caveat: non-event data could have a normal macropulse ID.
+                    if address in self._non_event or pid > self._last_correlated:
+                        if address in self._non_event:
+                            latest_nonevent[address] = ch_data
+                        else:
+                            if pid not in cached:
+                                cached[pid] = dict()
+                            cached[pid][address] = ch_data
 
-                        if len(cached[pid]) == n_events:
-                            await self._cancel_all(tasks)
+                            if len(cached[pid]) == n_events:
+                                candidate_pids.add(pid)
 
-                            _, non_event_data = await self._read(
-                                self._non_event, loop, executor)
-
-                            for ne_addr, ne_data in non_event_data.items():
-                                correlated[ne_addr] = ne_data
+                        if candidate_pids and len(latest_nonevent) == n_nonevents:
+                            correlated_pid = min(candidate_pids)
+                            candidate_pids.remove(correlated_pid)
 
                             logger.info(
-                                f"Correlated {len(self.channels)}"
+                                f"Correlated {n_channels}"
                                 f"({n_events}) channels with "
-                                f"macropulse ID: {pid}")
+                                f"macropulse ID: {correlated_pid}")
 
-                            self._last_correlated = pid
-                            correlated.update(cached[pid])
-
-                            return pid, correlated
+                            ret.update(cached[correlated_pid])
+                            ret.update(latest_nonevent)
+                            self._last_correlated = correlated_pid
+                            running = False
+                            break
                     elif pid == 0:
                         # FIXME: It is not 100% sure that data with
                         #        macropulse ID equal to 0 is from a
@@ -359,7 +360,6 @@ class DoocsInterface(MachineInterface):
                             f"Received data from channel {address} "
                             f"with macropulse == 0. It is recommended to "
                             f"add this channel as 'non_event'.")
-                        delay = self._interval_read_non_event_data
                     elif pid < 0:
                         # TODO: document when a macropulse ID is -1
                         logger.warning(
@@ -373,23 +373,24 @@ class DoocsInterface(MachineInterface):
 
                 del tasks[fut]
                 tasks[asyncio.create_task(self._read_channel(
-                    address, loop, executor, delay))] = address
+                    address, loop, executor,
+                    delay=self._interval_read_retry))] = address
 
         await self._cancel_all(tasks)
-        return None, correlated
+        return correlated_pid, ret
 
     async def _read(self,
-                    channels: list[str],
+                    channels: List[str],
                     loop: asyncio.AbstractEventLoop,
                     executor: ThreadPoolExecutor) \
-            -> tuple[None, dict[key, dict]]:
+            -> Tuple[None, Dict[str, dict]]:
         """Read data from channels without correlating them.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         """
         tasks = [
-            asyncio.create_task(self._read_channel(addr, loop, executor))
-            for addr in channels
+            asyncio.create_task(self._read_channel(address, loop, executor))
+            for address in channels
         ]
 
         rets = dict()
@@ -402,7 +403,7 @@ class DoocsInterface(MachineInterface):
     def read(self,
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlate: bool = True) -> dict:
+             correlate: bool = True) -> Tuple[Optional[int], dict, dict]:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
@@ -422,12 +423,12 @@ class DoocsInterface(MachineInterface):
             loop = asyncio.get_event_loop()
 
         if correlate:
-            pid, data =  loop.run_until_complete(
+            pid, data = loop.run_until_complete(
                 self._read_correlated(self.channels, loop, executor))
             if pid is None:
                 raise LisoRuntimeError("Failed to correlate all channel data!")
         else:
-            pid, data =  loop.run_until_complete(
+            pid, data = loop.run_until_complete(
                 self._read(self.channels, loop, executor))
 
         control_data = self._extract_readout(self._controls, data)
@@ -436,7 +437,7 @@ class DoocsInterface(MachineInterface):
         return pid, control_data, diagnostic_data
 
     @staticmethod
-    def _print_channel_data(title, data):
+    def _print_channel_data(title: str, data: Dict[str, dict]) -> None:
         print(f"{title}:\n" + "\n".join([f"- {k}: {v}"
                                          for k, v in data.items()]))
 
