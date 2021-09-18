@@ -125,6 +125,9 @@ class LinacScan(BaseScan):
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
         """
+        if not self._params:
+            raise ValueError("No scan parameters specified!")
+
         if not isinstance(start_id, int) or start_id < 1:
             raise ValueError(
                 f"start_id must a positive integer. Actual: {start_id}")
