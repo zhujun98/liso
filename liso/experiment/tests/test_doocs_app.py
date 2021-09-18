@@ -22,7 +22,7 @@ def test_monitor(patched_read, patched_sleep):
                return_value=Namespace(channels="A/B/C/D", file=None, correlate=False)):
         monitor()
         patched_read.assert_called_once()
-        assert patched_read.call_args_list[0][1] == {'correlate': False, 'validate': False}
+        assert patched_read.call_args_list[0][1] == {'correlate': False}
         patched_read.reset_mock()
 
     ch_gt = ["A/B/C/D", "A/B/C/E", "A/B/C/F", "A/B/C/G"]

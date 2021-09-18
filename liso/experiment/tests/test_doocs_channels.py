@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from liso.experiment.doocs_channels import (
     doocs_channels, DoocsChannel,
+    AnyDoocsChannel,
     BoolDoocsChannel,
     Int64DoocsChannel, UInt64DoocsChannel,
     Int32DoocsChannel, UInt32DoocsChannel,
@@ -19,6 +20,21 @@ from liso.experiment.doocs_channels import (
 class TestDoocs(unittest.TestCase):
     def testDoocsChannel(self):
         ch = DoocsChannel(address="A/B/C/D")
+
+    def testAnyDoocsChannel(self):
+        self.assertEqual(doocs_channels.ANY, AnyDoocsChannel)
+
+        ch = AnyDoocsChannel(address="A/B/C/D", value=None)
+        assert ch.value is None
+        with self.subTest("Test validation is on for assignment"):
+            ch.value = -1
+            ch.value = True
+            ch.value = "abc"
+
+        with self.subTest("Test schema"):
+            schema = ch.schema()['properties']
+            self.assertDictEqual(
+                {'title': 'Value', 'type': 'any'}, schema['value'])
 
     def testInt64DoocsChannel(self):
         self.assertEqual(doocs_channels.LONG, Int64DoocsChannel)
@@ -141,8 +157,9 @@ class TestDoocs(unittest.TestCase):
 
         with self.subTest("Test schema"):
             schema = ch.schema()['properties']
+            print(schema)
             self.assertDictEqual(
-                {'title': 'Value', 'default': 0, 'type': '|b1'}, schema['value'])
+                {'title': 'Value', 'default': False, 'type': '|b1'}, schema['value'])
 
     def testFloat64DoocsChannel(self):
         self.assertEqual(doocs_channels.DOUBLE, Float64DoocsChannel)
