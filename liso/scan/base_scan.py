@@ -19,7 +19,7 @@ class BaseScan(abc.ABC):
         self._params = OrderedDict()
         self._param_dists = OrderedDict()
 
-    def _check_param_name(self, name):
+    def _check_param_name(self, name: str) -> str:
         return name
 
     def add_param(self, name: str, *, dist=-1., **kwargs):

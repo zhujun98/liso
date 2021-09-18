@@ -114,10 +114,13 @@ class TestLinacScan(unittest.TestCase):
                 patched_run.return_value = future
 
             with tempfile.TemporaryDirectory() as tmp_dir:
-                with self.assertRaises(KeyError):
+                with self.assertRaisesRegex(ValueError, "No scan parameters"):
                     self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
 
                 self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
+                with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
+                    self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
+
                 self._sc.add_param('gun_phase', start=10., stop=30., num=3)
                 # Note: use n_tasks > 1 here to track bugs
                 self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)

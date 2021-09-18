@@ -53,7 +53,7 @@ class MachineScan(BaseScan):
         self._policy = policy
         self._read_delay = read_delay
 
-    def _create_output_dir(self, parent):
+    def _create_output_dir(self, parent: str):
         parent_path = pathlib.Path(parent)
         # It is allowed to use an existing parent directory,
         # but not a run folder.
