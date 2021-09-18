@@ -7,7 +7,6 @@ import numpy as np
 from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
-from liso.experiment import doocs_channels
 from liso.experiment.doocs_interface import DoocsException, PyDoocsException
 from liso.logging import logger
 
@@ -30,7 +29,6 @@ class TestDoocsInterface(unittest.TestCase):
 
         cfg = {
             "timeout.correlation": 0.1,
-            "interval.read.non_event_date": 0.02,
             "interval.read.retry": 0.01
         }
         m = EuXFELInterface(cfg)
@@ -249,18 +247,19 @@ class TestDoocsInterface(unittest.TestCase):
         dataset = self._dataset
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
-        last_correlated_gt = 1000
-        m._last_correlated = 1000
-        for address in dataset:
-            dataset[address]['macropulse'] = last_correlated_gt - 500
-        with self.assertRaisesRegex(LisoRuntimeError, 'Failed to correlate'):
-            m.read()
-        self.assertEqual(last_correlated_gt, m._last_correlated)
+        with self.subTest("One event channel has old macropulse ID"):
+            last_correlated_gt = _INITIAL_PID
+            m._last_correlated = _INITIAL_PID
+            dataset["XFEL.A/B/C/D"]['macropulse'] = last_correlated_gt - 500
+            with self.assertRaisesRegex(LisoRuntimeError, 'Failed to correlate'):
+                m.read()
+            self.assertEqual(last_correlated_gt, m._last_correlated)
 
-        for address in dataset:
-            dataset[address]['macropulse'] = last_correlated_gt
-        m.read()
-        self.assertLess(last_correlated_gt, m._last_correlated)
+        with self.subTest("Non-event channel has normal macropulse ID"):
+            for address in dataset:
+                dataset[address]['macropulse'] = last_correlated_gt
+            m.read()
+            self.assertLess(last_correlated_gt, m._last_correlated)
 
     @patch("time.sleep", side_effect=KeyboardInterrupt)
     def testMonitor(self, patched_sleep):
