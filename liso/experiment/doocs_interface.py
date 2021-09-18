@@ -282,7 +282,7 @@ class DoocsInterface(MachineInterface):
             logger.error(repr(e))
             raise
         except (DoocsException, PyDoocsException) as e:
-            logger.warning(f"Failed to read data from {address}: {repr(e)}")
+            logger.error(f"Failed to read data from {address}: {repr(e)}")
         except Exception as e:
             logger.error(f"Unexpected exception when reading from "
                          f"{address}: {repr(e)}")
@@ -442,23 +442,24 @@ class DoocsInterface(MachineInterface):
 
     @staticmethod
     def _print_channel_data(title, data):
-        print(f"{title}:\n" + "\n".join([f"- {k}: {v}" for k, v in data.items()]))
+        print(f"{title}:\n" + "\n".join([f"- {k}: {v}"
+                                         for k, v in data.items()]))
 
     def monitor(self,
                 executor: Optional[ThreadPoolExecutor] = None,
-                correlate: bool = False,
-                validate: bool = True) -> None:
+                correlate: bool = False) -> None:
         """Continuously monitoring the diagnostic channels.
 
         :param executor: ThreadPoolExecutor instance.
         :param correlate: True for correlating all channel data.
-        :param validate: True for validating the readout data.
         """
         loop = asyncio.get_event_loop()
         try:
             while True:
+                # The readout must be validated and this is rational of
+                # having the schema for each channel.
                 pid, controls, diagnostics = self.read(
-                    loop, executor, correlate=correlate, validate=validate)
+                    loop, executor, correlate=correlate)
 
                 print("-" * 80)
                 print("Macropulse ID:", pid)

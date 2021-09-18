@@ -272,7 +272,6 @@ class TestDoocsInterface(unittest.TestCase):
         self._machine.read = mocked_read
 
         self._machine.monitor()
-        self.assertDictEqual({'correlate': False, 'validate': True},
-                             mocked_read.call_args_list[0][1])
+        self.assertDictEqual({'correlate': False}, mocked_read.call_args_list[0][1])
         patched_sleep.assert_called_with(1.0)
         patched_sleep.reset_mock()

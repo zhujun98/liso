@@ -29,14 +29,14 @@ control system, please refer to :ref:`interface with doocs`.
                           'XFEL.RF/LLRF.CONTROLLER/CTRL.AH1.I1/SP.PHASE')
     m.add_control_channel(dc.FLOAT, 'XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/AMPL.SAMPLE')
 
+    m.add_diagnostic_channel(
+        dc.FLOAT, 'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE_SINGLEBUNCH_ARRIVAL_TIME.1')
+
     sc = MachineScan(m)
 
     sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.GUN.I1/PHASE.SAMPLE', lb=-3, ub=3)
     sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE', lb=-3, ub=3)
     sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE', lb=182, ub=186)
-
-    m.add_diagnostic_channel(
-        dc.FLOAT, 'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE_SINGLEBUNCH_ARRIVAL_TIME.1')
 
     sc.scan(1000, tasks=8)
 
