@@ -214,32 +214,30 @@ class TestDoocsInterface(unittest.TestCase):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                     10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=0)
             with self.assertRaisesRegex(LisoRuntimeError, 'Failed to correlate'):
-                with self.assertLogs("WARNING") as cm:
+                with self.assertLogs(level="WARNING") as cm:
                     m.read()
-                assert "macropuse == 0" in cm.output[0]
+            assert "macropulse == 0" in cm.output[0]
 
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                     10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=-1)
             with self.assertRaisesRegex(LisoRuntimeError, 'Failed to correlate'):
-                with self.assertLogs("WARNING") as cm:
+                with self.assertLogs(level="WARNING") as cm:
                     m.read()
-                assert "macropuse == -1" in cm.output[0]
+            assert "macropulse == -1" in cm.output[0]
 
-        # # raise happens to a no-event channel
-        # def _side_effect_read3(dataset, address):
-        #     if address == "XFEL.H/I/J/K":
-        #         raise np.random.choice([PyDoocsException, DoocsException])
-        #     data = dataset[address]
-        #     if data['macropulse'] >= _INITIAL_PID and np.random.rand() > 0.5:
-        #             data['macropulse'] += 1
-        #     return dataset[address]
-        #
-        # patched_read.side_effect = lambda x: _side_effect_read3(dataset, x)
-        # self._machine.read()
-
-        #
-        # with self.subTest("Test monitor"):
-        #     pass
+        with self.subTest("Test exception when reading non-event channel"):
+            dataset["XFEL.A/B/C/D"] = ddgen.scalar(
+                    10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=m._last_correlated)
+            assert "XFEL.H/I/J/K" in m._non_event
+            def _side_effect_read2(dataset, address):
+                if address == "XFEL.H/I/J/K":
+                    raise np.random.choice([PyDoocsException, DoocsException])
+                return dataset[address]
+            patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
+            with self.assertRaisesRegex(LisoRuntimeError, 'Failed to correlate'):
+                with self.assertLogs(level="ERROR") as cm:
+                    self._machine.read()
+            assert "Failed to read data from XFEL.H/I/J/K" in cm.output[0]
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testCorrelationWithOldPulseId(self, patched_read):
