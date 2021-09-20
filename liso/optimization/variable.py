@@ -12,7 +12,7 @@ from ..elements import OperationalElement
 
 class Variable(OperationalElement):
     """Variable Class. Inherited from OperationalElement."""
-    def __init__(self, name, type_='c', *, value=0.0, **kwargs):
+    def __init__(self, name, type_='c', *, value=0.0, **kwargs):  # pylint: disable=too-many-branches
         """Variable Class Initialization
 
         :param type_: string
@@ -32,7 +32,7 @@ class Variable(OperationalElement):
             self.value = float(value)
             self.lb = -math.inf
             self.ub = math.inf
-            for key in kwargs.keys():
+            for key in kwargs:
                 if key.lower() == 'lb':
                     self.lb = float(kwargs[key])
                 if key.lower() == 'ub':
@@ -42,7 +42,7 @@ class Variable(OperationalElement):
             self.value = int(value)
             self.lb = None
             self.ub = None
-            for key in kwargs.keys():
+            for key in kwargs:
                 if key.lower() == 'lb':
                     self.lb = int(kwargs[key])
                 if key.lower() == 'ub':
@@ -54,7 +54,7 @@ class Variable(OperationalElement):
 
         elif type_[0].lower() == 'd':
             self.choices = None
-            for key in kwargs.keys():
+            for key in kwargs:
                 if key.lower() == 'choices':
                     self.choices = kwargs[key]
                     break
@@ -66,8 +66,7 @@ class Variable(OperationalElement):
             if not isinstance(value, int):
                 raise TypeError("A discrete variable requires the 'value' "
                                 "to be a valid index the choices array")
-            else:
-                self.value = self.choices[int(value)]
+            self.value = self.choices[int(value)]
 
             self.lb = 0
             self.ub = len(self.choices) - 1

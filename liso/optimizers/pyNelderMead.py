@@ -51,7 +51,7 @@ class NelderMead(Optimizer):
         # Absolution change of position at initialization when it is zero
         self._absolute_delta = 0.00025
 
-    def __call__(self, opt_prob, workers=1):
+    def __call__(self, opt_prob, workers=1):  # pylint: disable=too-many-locals
         """Run Optimizer (Optimize Routine)
 
         Override.

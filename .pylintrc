@@ -62,6 +62,7 @@ confidence=
 # --disable=W".
 disable=consider-using-dict-items,
         consider-using-f-string,
+        duplicate-code,
         fixme,
         invalid-name,
         missing-class-docstring,

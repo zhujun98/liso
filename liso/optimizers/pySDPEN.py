@@ -7,13 +7,13 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import time
 
-from pyOpt import SDPEN as pyoptSDPEN
+from pyOpt import SDPEN as pyoptSDPEN  # pylint: disable=import-error
 
 from .pyopt_optimizer import PyoptOptimizer
 from ..exceptions import OptimizationConstraintSupportError
 
 
-class SDPENOption(object):
+class SDPENOption:
     """An interface for setting the SDPEN options."""
     def __init__(self, name):
         """Initialization.

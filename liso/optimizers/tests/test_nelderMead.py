@@ -71,7 +71,7 @@ class TestNelderMead(unittest.TestCase):
         opt_prob = Optimization(cls.name, opt_func=cls())
 
         opt_prob.add_obj('f')
-        for i in range(len(cls.x_min)):
+        for i in range(len(cls.x_min)):  # pylint: disable=consider-using-enumerate
             opt_prob.add_var('x' + str(i + 1), value=x_init[i],
                              lb=cls.x_min[i], ub=cls.x_max[i])
         for i in range(cls.n_eq_cons):
