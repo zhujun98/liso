@@ -2,8 +2,7 @@ import unittest
 
 
 from liso.visualization.vis_utils import (
-    get_default_unit, get_label, get_html_label, get_line_column_by_name,
-    get_unit_label_and_scale
+    get_default_unit, get_label, get_html_label, get_unit_label_and_scale
 )
 
 

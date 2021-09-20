@@ -6,9 +6,12 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+from matplotlib import ticker
 
-from .vis_utils import *
+from .vis_utils import (
+    get_default_unit, get_label, get_line_column_by_name,
+    get_unit_label_and_scale
+)
 
 
 class LinePlot:
@@ -46,8 +49,9 @@ class LinePlot:
 
         self._ax_margin = ax_margin
 
-    def plot(self, var1, var2=None, *,
-             ax=None, x_unit=None, y_unit=None, xlim=None, ylim=None):
+    def plot(self, var1, var2=None, *,  # pylint: disable=too-many-locals
+             ax=None, x_unit=None, y_unit=None,
+             xlim=None, ylim=None):
         """Plot parameters' evolution along the beamline.
 
         :param string var1: name of 1st variable (case insensitive).
@@ -85,8 +89,8 @@ class LinePlot:
 
         colors = ['dodgerblue', 'firebrick']
         styles = ['-', '--']
-        vars = [var1, var2]
-        for i, var in enumerate(vars):
+        variables = [var1, var2]
+        for i, var in enumerate(variables):
             if var is not None:
                 x = get_line_column_by_name(self._data, 'z')
                 y = get_line_column_by_name(self._data, var)
@@ -95,7 +99,7 @@ class LinePlot:
 
         ax.set_xlabel("$z$ " + x_unit_label,
                       fontsize=self._label_fontsize, labelpad=self._label_pad)
-        ax.set_ylabel("$,$ ".join([get_label(var) for var in vars
+        ax.set_ylabel("$,$ ".join([get_label(var) for var in variables
                                    if var is not None])
                       + " " + y_unit_label,
                       fontsize=self._label_fontsize, labelpad=self._label_pad)
