@@ -12,7 +12,7 @@ from liso.exceptions import LisoRuntimeError
 
 SKIP_TEST = False
 try:
-    import sdds
+    import sdds  # pylint: disable=unused-import
 except ImportError:
     SKIP_TEST = True
 
@@ -55,7 +55,7 @@ class TestPhasespaceAstra(unittest.TestCase):
             self.assertEqual(500, len(self.data[item]))
 
         with self.assertRaises(KeyError):
-            self.data['aa']
+            _ = self.data['aa']
 
     def testSlice(self):
         sliced = self.data.slice(stop=200)

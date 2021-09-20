@@ -69,7 +69,10 @@ disable=consider-using-dict-items,
         missing-module-docstring,
         protected-access,
         too-few-public-methods,
+        too-many-arguments,
         too-many-instance-attributes,
+        unsubscriptable-object,
+        unsupported-assignment-operation,
         use-dict-literal
 
 # Enable the message, report, category or checker with the given id(s). You can

@@ -25,8 +25,8 @@ class TestAnalyzeLine(unittest.TestCase):
         with self.assertRaises(LisoRuntimeError):
             analyze_line([1, 2], max)
 
-        params = analyze_line(astra_data, np.max)
-        params = analyze_line(astra_data, np.std)
+        analyze_line(astra_data, np.max)
+        analyze_line(astra_data, np.std)
 
     def testImpact(self):
         impactt_data = parse_impactt_line(osp.join(_ROOT_DIR, "impactt_output/fort"))
@@ -34,6 +34,5 @@ class TestAnalyzeLine(unittest.TestCase):
         with self.assertRaises(LisoRuntimeError):
             analyze_line([1, 2], max)
 
-        params = analyze_line(impactt_data, np.min)
-        params = analyze_line(impactt_data, np.var)
-
+        analyze_line(impactt_data, np.min)
+        analyze_line(impactt_data, np.var)

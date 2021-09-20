@@ -8,11 +8,11 @@ Copyright (C) Jun Zhu. All rights reserved.
 from scipy import constants
 import numpy as np
 import pandas as pd
-pd.options.mode.chained_assignment = None
 
 from .phasespace import Phasespace
 from .proc_utils import check_data_file
 
+pd.options.mode.chained_assignment = None
 
 V_LIGHT = constants.c
 MC2_E = constants.m_e * constants.c**2 / constants.e
@@ -54,7 +54,7 @@ def parse_astra_phasespace(particle_file, *, cathode=False):
     # before removing lost particles since the reference particle
     # could be removed.
     z_ref = data['z'].iloc[0]
-    data.loc[0, 'z'] = 0.0
+    data.loc[0, 'z'] = 0.0  # pylint: disable=no-member
     data['z'] += z_ref
 
     # remove lost particles
@@ -109,7 +109,7 @@ def parse_impactt_phasespace(particle_file):
 
 
 def parse_elegant_phasespace(particle_file):
-    from sdds import SDDS
+    from sdds import SDDS  # pylint: disable=import-error,import-outside-toplevel
 
     sd = SDDS(0)
     sd.load(particle_file)

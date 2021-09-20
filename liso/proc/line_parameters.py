@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 
 
-class LineParameters(object):
+class LineParameters:
     """Store a certain statistic of beam parameters."""
     def __init__(self):
         """Initialization."""
