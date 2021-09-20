@@ -12,7 +12,7 @@ from .config import config
 
 def create_logger():
     """General logger."""
-    logger = logging.getLogger("LISO")
+    lg = logging.getLogger("LISO")
 
     fh = logging.FileHandler(config['DEFAULT']['LOG_FILE'],
                              mode='w', delay=True)
@@ -23,10 +23,10 @@ def create_logger():
     formatter = logging.Formatter('%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
 
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    lg.addHandler(fh)
+    lg.addHandler(ch)
 
-    return logger
+    return lg
 
 
 logger = create_logger()
@@ -35,17 +35,17 @@ logger.setLevel(logging.INFO)
 
 def create_opt_logger():
     """Logger for optimization information."""
-    logger = logging.getLogger("LISO-Opt")
-    logger.setLevel(logging.DEBUG)
+    lg = logging.getLogger("LISO-Opt")
+    lg.setLevel(logging.DEBUG)
 
     fh = logging.FileHandler(config['DEFAULT']['OPT_LOG_FILE'],
                              mode="w", delay=True)
     formatter = logging.Formatter('%(asctime)s - %(message)s')
     fh.setFormatter(formatter)
 
-    logger.addHandler(fh)
+    lg.addHandler(fh)
 
-    return logger
+    return lg
 
 
 opt_logger = create_opt_logger()

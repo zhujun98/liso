@@ -44,7 +44,7 @@ from ..exceptions import LisoRuntimeError
 from ..logging import logger, opt_logger
 
 
-class Optimization(object):
+class Optimization:
     """Inherited from Operation.
 
     Attributes:
@@ -89,8 +89,8 @@ class Optimization(object):
         try:
             del self.variables[name]
             del self._x_map[name]
-        except KeyError:
-            raise KeyError("{} is not a variable!".format(name))
+        except KeyError as e:
+            raise KeyError(f"{name} is not a variable!") from e
 
     def add_covar(self, name, *args, **kwargs):
         """Add a covariable."""
@@ -102,9 +102,9 @@ class Optimization(object):
             b = self.covariables[name].shift
             try:
                 self._x_map[name] = a * self._x_map[var] + b
-            except KeyError:
-                raise ValueError(
-                    "The dependent variable '%s' does not exist!" % var)
+            except KeyError as e:
+                raise ValueError(f"The dependent variable '{var}' "
+                                 f"does not exist!") from e
         except (TypeError, ValueError):
             print("Input is not valid for a Covariable class instance!")
             raise
@@ -114,8 +114,8 @@ class Optimization(object):
         try:
             del self.covariables[name]
             del self._x_map[name]
-        except KeyError:
-            raise KeyError("{} is not a covariable!".format(name))
+        except KeyError as e:
+            raise KeyError(f"{name} is not a covariable!") from e
 
     def add_obj(self, name, *args, **kwargs):
         """Add an objective."""
@@ -129,8 +129,8 @@ class Optimization(object):
         """Delete an objective by name"""
         try:
             del self.objectives[name]
-        except KeyError:
-            raise KeyError("{} is not an objective!".format(name))
+        except KeyError as e:
+            raise KeyError(f"{name} is not an objective!") from e
 
     def add_icon(self, name, *args, **kwargs):
         """Add an inequality constraint."""
@@ -144,8 +144,8 @@ class Optimization(object):
         """Delete an inequality constraint by name."""
         try:
             del self.i_constraints[name]
-        except KeyError:
-            raise KeyError("{} is not an inequality constraint!".format(name))
+        except KeyError as e:
+            raise KeyError(f"{name} is not an inequality constraint!") from e
 
     def add_econ(self, name, *args, **kwargs):
         """Add an equality constraint."""
@@ -159,8 +159,8 @@ class Optimization(object):
         """Delete an equality constraint by name."""
         try:
             del self.e_constraints[name]
-        except KeyError:
-            raise KeyError("{} is not an equality constraint!".format(name))
+        except KeyError as e:
+            raise KeyError(f"{name} is not an equality constraint!") from e
 
     def _update_x_map(self, x):
         """Update values in x_map.
@@ -181,7 +181,7 @@ class Optimization(object):
                 b = self.covariables[key].shift
                 self._x_map[key] = a * self._x_map[var] + b
 
-    def eval_objs_cons(self, x, *args, **kwargs):
+    def eval_objs_cons(self, x, *args, **kwargs):  # pylint: disable=unused-argument
         """Objective-constraint function.
 
         This method will be called in the f_obj_con function defined within
@@ -326,7 +326,7 @@ class LinacOptimization(Optimization):
         logger.info(str(self._linac))
         return super().solve(optimizer, *args, **kwargs)
 
-    def eval_objs_cons(self, x, *args, **kwargs):
+    def eval_objs_cons(self, x, *args, **kwargs):  # pylint: disable=too-many-locals
         """Objective-constraint function.
 
         Override the method in the parent class.
@@ -344,16 +344,18 @@ class LinacOptimization(Optimization):
             self._nf = 0
         except LisoRuntimeError as e:
             self._nf += 1
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.debug(f"{self._nfeval:05d}: " +
-                         repr(traceback.format_tb(exc_traceback)) +
+            _, _, exc_traceback = sys.exc_info()
+            logger.debug("%05d: %s, %s",
+                         self._nfeval,
+                         repr(traceback.format_tb(exc_traceback)),
                          str(e))
             logger.warning(str(e))
         except Exception as e:
             self._nf += 1
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            logger.error(f"{self._nfeval:05d} (Unexpected exceptions): " +
-                         repr(traceback.format_tb(exc_traceback)) +
+            _, _, exc_traceback = sys.exc_info()
+            logger.error("%05d (Unexpected exceptions): %s, %s",
+                         self._nfeval,
+                         repr(traceback.format_tb(exc_traceback)),
                          str(e))
             raise
         finally:

@@ -136,10 +136,10 @@ class TestLinacScan(unittest.TestCase):
                 np.testing.assert_array_equal(np.arange(1, 19), sorted(sim.sim_ids))
                 np.testing.assert_array_equal(
                     [1., 1., 1., 2., 2., 2., 3., 3., 3.] * 2,
-                    sim.get_controls(sorted=True)['gun/gun_gradient'])
+                    sim.get_controls(ordered=True)['gun/gun_gradient'])
                 np.testing.assert_array_equal(
                     [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
-                    sim.get_controls(sorted=True)['gun/gun_phase'])
+                    sim.get_controls(ordered=True)['gun/gun_phase'])
 
                 # test when folder does not exist
                 self._sc.scan(2, output_dir=f"{tmp_dir}/tmp", n_tasks=2)

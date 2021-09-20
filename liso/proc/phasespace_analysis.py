@@ -26,7 +26,7 @@ def compute_canonical_emit(x, px):
     return np.sqrt(x2 * px2 - xpx ** 2)
 
 
-def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
+def compute_twiss(x, dz, px, pz, gamma):  # pylint: disable=too-many-locals
     """Calculate the Twiss parameters
 
     Note: In the calculation (except the canonical emittance), the
@@ -38,8 +38,6 @@ def compute_twiss(x, dz, px, pz, gamma, backtracking=True):
     :param pandas.Series px: momentum coordinates
     :param pandas.Series pz: longitudinal momentum.
     :param float gamma: average Lorentz factor of the bunch.
-    :param bool backtracking: True for drifting the particles back to
-        the longitudinal centroid of the bunch.
 
     :return float sigma_x: RMS transverse beam size.
     :return float betax: beta function.

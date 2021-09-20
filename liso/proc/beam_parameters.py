@@ -5,10 +5,10 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-from ..exceptions import *
+from ..exceptions import BeamParametersInconsistentError
 
 
-class BeamParameters(object):
+class BeamParameters:
     """Beam parameters for a given distribution.
 
     This class serves as a structure only used to store data.
@@ -85,10 +85,9 @@ class BeamParameters(object):
             if value != 0.0:
                 raise BeamParametersInconsistentError(
                     "Zero particle with non-zero charge!")
-            else:
-                self._charge = 0.0
-                self._q = 0.0
-                return
+            self._charge = 0.0
+            self._q = 0.0
+            return
 
         self._charge = value
         self._q = value / self.n

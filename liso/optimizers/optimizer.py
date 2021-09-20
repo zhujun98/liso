@@ -52,7 +52,6 @@ class Optimizer(ABC):
                   miscellaneous information ready for printout).
         :rtype: (float, array-like, str)
         """
-        pass
 
     @abstractmethod
     def __str__(self):

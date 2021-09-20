@@ -43,9 +43,9 @@ def test_phasespace_density1(x, y):
     z, x_sample, y_sample = phasespace_density(
         x, y, samples=25000, x_bins=10, y_bins=20, sigma=0.1)
 
-    assert 1.0 == pytest.approx(z.sum())
-    assert 25000 == len(x_sample)
-    assert 25000 == len(y_sample)
+    assert pytest.approx(z.sum()) == 1.0
+    assert len(x_sample) == 25000
+    assert len(y_sample) == 25000
 
 
 def test_phasespace_density2():

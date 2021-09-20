@@ -6,9 +6,9 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections.abc import Mapping
+from collections import defaultdict, OrderedDict
 from typing import Optional
 
-from collections import defaultdict, OrderedDict
 from .beamline import create_beamline
 
 
@@ -69,8 +69,8 @@ class Linac(Mapping):
         """
         try:
             bl = self._beamlines[name]
-        except KeyError:
-            raise KeyError(f"Beamline {name} does not exist!")
+        except KeyError as e:
+            raise KeyError(f"Beamline {name} does not exist!") from e
 
         bl.add_watch(*args, **kwargs)
 
@@ -129,7 +129,7 @@ class Linac(Mapping):
         self.compile(params)
 
         out = None
-        for i, bl in enumerate(self._beamlines.values()):
+        for bl in self._beamlines.values():
             out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
     async def async_run(self, sim_id, mapping, *, timeout=None):

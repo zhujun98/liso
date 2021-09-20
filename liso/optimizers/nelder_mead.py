@@ -41,11 +41,14 @@ def _compute_shrink(simplex, sigma):
     return [pivot + sigma*(ele[0] - pivot) for ele in simplex]
 
 
-def nelder_mead(x0, rtol, atol, max_stag, max_iter, alpha, gamma, beta, sigma, f_obj):
+def nelder_mead(x0,  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+                rtol,
+                atol, max_stag, max_iter, alpha, gamma, beta, sigma, f_obj):
     """Nelder Mead optimizer
-    
+
     :param x0: numpy.ndarray
-        Initial vertices of the simplex. It has the shape (num_vertices, num_vars).
+        Initial vertices of the simplex. It has the shape
+        (num_vertices, num_vars).
     :param rtol: float
         Relative tolerance for objective function.
     :param atol: float
@@ -92,7 +95,7 @@ def nelder_mead(x0, rtol, atol, max_stag, max_iter, alpha, gamma, beta, sigma, f
 
     simplex.sort(key=lambda x: x[1])
     best_x, best_f = simplex[0]
-    best_x_old, best_f_old = best_x, best_f
+    best_x_old, best_f_old = best_x, best_f  # pylint: disable=unused-variable
 
     stop_info = ""
 

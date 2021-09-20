@@ -10,7 +10,7 @@ import shutil
 import weakref
 
 
-class TempSimulationDirectory(object):
+class TempSimulationDirectory:
     """Create temporary directories to hold simulation files."""
 
     def __init__(self, folder, *, delete_old=False):

@@ -5,6 +5,7 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+#pylint: disable=unspecified-encoding
 import asyncio
 import os.path as osp
 from abc import ABC, abstractmethod
@@ -23,10 +24,10 @@ from ..proc import (
     analyze_line,
     parse_astra_phasespace, parse_astra_line,
     parse_impactt_phasespace, parse_impactt_line,
-    parse_elegant_phasespace, parse_elegant_line,
+    parse_elegant_phasespace,
 )
-from ..simulation import ParticleFileGenerator
 from ..io import TempSimulationDirectory
+from .input import ParticleFileGenerator
 
 
 class Beamline(ABC):
@@ -184,7 +185,8 @@ class Beamline(ABC):
     def _get_executable(self, parallel):
         raise NotImplementedError
 
-    def _check_file(self, filepath, title=''):
+    @staticmethod
+    def _check_file(filepath, title=''):
         if not osp.isfile(filepath):
             raise LisoRuntimeError(f"{title} file {filepath} does not exist!")
         if not osp.getsize(filepath):
@@ -242,13 +244,13 @@ class Beamline(ABC):
             # We do not want to generate a full history of the simulation
             # log. The current one is good enough for debugging.
             with open('simulation.log', "w") as out_file:
-                subprocess.run(command,
+                subprocess.run(command,  # pylint: disable=subprocess-run-check
                                stdout=out_file,
                                universal_newlines=True,
                                shell=True,
                                cwd=self._swd)
         except subprocess.CalledProcessError as e:
-            raise LisoRuntimeError(repr(e))
+            raise LisoRuntimeError from e
 
     def run(self, phasespace, *, timeout, n_workers):
         """Run simulation for the beamline."""
@@ -285,7 +287,7 @@ class Beamline(ABC):
         # log. The current one is good enough for debugging. It is not
         # a problem even if different processes write the file
         # interleavingly.
-        with open(f'simulation.log', "w") as out_file:
+        with open('simulation.log', "w") as out_file:
             # It does not raise even if command
             proc = await asyncio.create_subprocess_shell(
                 command,
@@ -294,7 +296,7 @@ class Beamline(ABC):
                 cwd=swd
             )
 
-            _, err = await proc.communicate()
+            _, _ = await proc.communicate()
 
     async def async_run(self, phasespace, tmp_dir, *, timeout):
         """Run simulation asynchronously for the beamline."""

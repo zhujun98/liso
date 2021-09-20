@@ -9,7 +9,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 
 class SimulationError(Exception):
     """Raised when a simulation fails."""
-    pass
 
 
 class SimulationSuccessiveFailureError(SimulationError):
@@ -18,12 +17,10 @@ class SimulationSuccessiveFailureError(SimulationError):
     Raised No. of successive failures exceeds the maximum allowed
     number.
     """
-    pass
 
 
 class BeamAnalysisError(Exception):
     """Raised when there is error in beam analysis."""
-    pass
 
 
 class BeamParametersInconsistentError(BeamAnalysisError):
@@ -31,18 +28,15 @@ class BeamParametersInconsistentError(BeamAnalysisError):
 
     Raised when there is inconsistency in beam parameters.
     """
-    pass
 
 
 class OptimizationError(Exception):
     """Raise if there is error in optimization."""
-    pass
 
 
 class OptimizationConstraintSupportError(OptimizationError):
     """Raise if an optimizer does not support certain constraint."""
-    pass
 
 
 class LisoRuntimeError(RuntimeError):
-    pass
+    """RuntimeError for LISO."""

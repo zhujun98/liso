@@ -5,6 +5,7 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+# pylint: disable=unspecified-encoding
 from abc import abstractmethod
 import os
 import re
@@ -19,7 +20,7 @@ MC2_E = constants.m_e * constants.c**2 / constants.e
 
 class ParticleFileGenerator:
     """Simulation particle file generator."""
-    def __init__(self, n, q=1.e-9, *,
+    def __init__(self, n, q=1.e-9, *,  # pylint: disable=too-many-locals
                  cathode=True, seed=None,
                  dist_x='uniform', sig_x=1e-3,
                  dist_z='gaussian', sig_z=None, z_ref=0.0,
@@ -181,7 +182,7 @@ class ParticleFileGenerator:
 
     def to_elegant(self, filepath):
         """Generate an Elegant particle file."""
-        from sdds import SDDS
+        from sdds import SDDS  # pylint: disable=import-error,import-outside-toplevel
 
         sd = SDDS(0)
         sd.mode = sd.SDDS_BINARY
@@ -247,7 +248,7 @@ class ParticleFileGenerator:
         return instance
 
 
-class InputGenerator(object):
+class InputGenerator:
     def __init__(self, filepath):
         """Initialization."""
         self._template = self._parse(filepath)
@@ -268,7 +269,7 @@ class InputGenerator(object):
         """
         found = set()
         self._input = list(self._template)
-        for i in range(len(self._input)):
+        for i in range(len(self._input)):  # pylint: disable=consider-using-enumerate
             while True:
                 line = self._input[i]
 
@@ -296,9 +297,9 @@ class InputGenerator(object):
                 try:
                     self._input[i] = line.replace(
                         '<' + ptn + '>', str(mapping[ptn]), 1)
-                except KeyError:
-                    raise KeyError(
-                        "No mapping for <{}> in the template file!".format(ptn))
+                except KeyError as e:
+                    raise KeyError(f"No mapping for <{ptn}> in the "
+                                   f"template file!") from e
 
                 found.add(ptn)
 

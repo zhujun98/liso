@@ -9,20 +9,18 @@ import abc
 from collections import defaultdict
 import os
 import os.path as osp
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from .channel_data import _AbstractPulseTrainData, ChannelData
-from .file_access import SimFileAccess, ExpFileAccess, _IS_H5PY_VERSION_2
+from .channel_data import AbstractPulseTrainData, ChannelData
+from .file_access import FileAccessBase, SimFileAccess, ExpFileAccess
 from ..proc import Phasespace
 
 
-class _DataCollectionBase(_AbstractPulseTrainData):
+class DataCollectionBase(AbstractPulseTrainData):
     """A collection of simulated or experimental data."""
-
-    _FileAccess = None
 
     def __init__(self, files: list):
         """Initialization
@@ -36,10 +34,14 @@ class _DataCollectionBase(_AbstractPulseTrainData):
         # channels are not ubiquitous in each file
         self._channel_files = defaultdict(list)
 
+    @classmethod
+    @abc.abstractmethod
+    def _create_fileaccess(cls, path: str):
+        """Create a file access object."""
+
     @abc.abstractmethod
     def info(self):
         """Print out the information of this data collection."""
-        raise NotImplementedError
 
     @classmethod
     def from_path(cls, path: str):
@@ -47,14 +49,14 @@ class _DataCollectionBase(_AbstractPulseTrainData):
 
         :param path: File path.
         """
-        files = [cls._FileAccess(path)]
+        files = [cls._create_fileaccess(path)]
         return cls(files)
 
     @classmethod
-    def _open_file(cls, path):
+    def _open_file(cls, path: str) -> Tuple[str, Union[FileAccessBase, str]]:
         try:
-            fa = cls._FileAccess(path)
-        except Exception as e:
+            fa = cls._create_fileaccess(path)
+        except Exception as e:  # pylint: disable=broad-except
             return osp.basename(path), str(e)
         else:
             return osp.basename(path), fa
@@ -68,20 +70,20 @@ class _DataCollectionBase(_AbstractPulseTrainData):
         files = []
         for path in paths:
             fname, ret = cls._open_file(path)
-            if isinstance(ret, cls._FileAccess):
+            if isinstance(ret, FileAccessBase):
                 files.append(ret)
             else:
                 print(f"Skipping path {fname}: {ret}")
 
         return cls(files)
 
-    def get_controls(self, *, sorted: bool = False):
+    def get_controls(self, *, ordered: bool = False):
         """Return control data in a Pandas.DataFrame.
 
-        :param sorted: Sort the index, which is indeed the ID, of the
-            returned dataframe. This is sometime needed because the simulation
-            data are not stored with the simulation IDs monotonically
-            increasing.
+        :param ordered: True for sorting the index, which is indeed the ID,
+            of the returned dataframe. This is sometime needed because the
+            simulation data are not stored with the simulation IDs
+            monotonically increasing.
         """
         data = []
         for fa in self._files:
@@ -94,7 +96,7 @@ class _DataCollectionBase(_AbstractPulseTrainData):
             df.set_index(ids, inplace=True)
             data.append(df)
 
-        if sorted:
+        if ordered:
             return pd.concat(data).sort_index()
         return pd.concat(data)
 
@@ -120,7 +122,7 @@ class _DataCollectionBase(_AbstractPulseTrainData):
                            columns=columns)
 
 
-class SimDataCollection(_DataCollectionBase):
+class SimDataCollection(DataCollectionBase):
     """A collection of simulated data."""
     _FileAccess = SimFileAccess
 
@@ -140,6 +142,10 @@ class SimDataCollection(_DataCollectionBase):
 
         self.sim_ids = np.concatenate([f.sim_ids for f in files])
         self._ids = self.sim_ids
+
+    @classmethod
+    def _create_fileaccess(cls, path: str) -> SimFileAccess:
+        return SimFileAccess(path)
 
     def info(self):
         """Override."""
@@ -185,7 +191,7 @@ def open_sim(path: str):
     return SimDataCollection.from_paths(sorted(paths))
 
 
-class ExpDataCollection(_DataCollectionBase):
+class ExpDataCollection(DataCollectionBase):
     """A collection of experimental data."""
     _FileAccess = ExpFileAccess
 
@@ -205,6 +211,10 @@ class ExpDataCollection(_DataCollectionBase):
 
         self.pulse_ids = np.concatenate([f.pulse_ids for f in files])
         self._ids = self.pulse_ids
+
+    @classmethod
+    def _create_fileaccess(cls, path: str) -> ExpFileAccess:
+        return ExpFileAccess(path)
 
     def info(self):
         """Override."""

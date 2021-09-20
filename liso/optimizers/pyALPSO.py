@@ -83,7 +83,7 @@ class ALPSO(Optimizer):
         # Minimum search radius (GCPSO)
         self._rho_min = 0.0001
 
-    def __call__(self, opt_prob):
+    def __call__(self, opt_prob):  # pylint: disable=too-many-locals
         """Run Optimizer (Optimize Routine)
 
         Override.

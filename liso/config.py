@@ -38,7 +38,7 @@ if not osp.isfile(_config_file):
     except FileExistsError:
         pass
 
-    with open(_config_file, "w") as fp:
+    with open(_config_file, "w", encoding='utf-8') as fp:
         config.write(fp)
 else:
     config.read(_config_file)

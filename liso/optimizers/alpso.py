@@ -37,7 +37,7 @@ def update_inertial_weight(w0, w1, k):
     return w
 
 
-def alpso(x0,
+def alpso(x0,  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
           v0,
           n_cons,
           n_eq_cons,
@@ -413,77 +413,76 @@ def alpso(x0,
         if k_convergence_satisfied >= 2 and convergence_satisfied is True:
             # break the outer loop
             break
-        elif k_out == max_outer_iter:
+        if k_out == max_outer_iter:
             stop_info = "Maximum number of iteration reached!"
             break
-        else:
-            # update inertial weight
-            w = update_inertial_weight(w0, w1, divergence / divergence0)
+        # update inertial weight
+        w = update_inertial_weight(w0, w1, divergence / divergence0)
 
-            # Update Lagrange multiplier
+        # Update Lagrange multiplier
+        for j in range(n_cons):
+            # Equality constraints
+            if j < n_eq_cons:
+                theta = gbest_g[j]
+
+            # Inequality constraints
+            else:
+                theta = max(gbest_g[j], -lambda_[j] / (2.0 * rp[j]))
+
+            # use rp used in the last inner loop to update lambda_
+            lambda_[j] += 2.0 * rp[j] * theta
+
+        # Update penalty factor rp
+        for j in range(n_cons):
+            # Equality constraints
+            if j < n_eq_cons:
+                if abs(gbest_g[j]) > etol and abs(gbest_g[j]) > abs(gbest_g_old[j]):
+                    rp[j] *= 2.0
+                elif abs(gbest_g[j]) <= etol:
+                    rp[j] *= 0.5
+                rp[j] = max(rp[j], 0.5 * (abs(lambda_[j]) / etol) ** 0.5)
+
+            # Inequality constraints
+            else:
+                if gbest_g[j] > itol and gbest_g[j] > gbest_g_old[j]:
+                    rp[j] *= 2.0
+                elif gbest_g[j] <= itol:
+                    rp[j] *= 0.5
+                rp[j] = max(rp[j], 0.5 * (abs(lambda_[j]) / itol) ** 0.5)
+
+            # If rp is too small, it could result in a very large theta
+            # if lambda_ is negative
+            rp[j] = max(1.0, rp[j])
+
+        # update history record only updated every outer loop
+        params_history['lambda'].append(lambda_.tolist())
+        params_history['rp'].append(rp.tolist())
+        params_history['w'].append(w)
+
+        # Update the Lagrangian for the next inner run.
+        for i in range(swarm_size):
+            L[i] = f[i]
             for j in range(n_cons):
-                # Equality constraints
+                # Equality Constraints
                 if j < n_eq_cons:
-                    theta = gbest_g[j]
-
-                # Inequality constraints
+                    theta = g[i, j]
+                # Inequality Constraints
                 else:
-                    theta = max(gbest_g[j], -lambda_[j] / (2.0 * rp[j]))
+                    theta = max(g[i, j], -lambda_[j] / (2.0 * rp[j]))
 
-                # use rp used in the last inner loop to update lambda_
-                lambda_[j] += 2.0 * rp[j] * theta
+                L[i] += lambda_[j] * theta + rp[j] * theta ** 2
 
-            # Update penalty factor rp
-            for j in range(n_cons):
-                # Equality constraints
-                if j < n_eq_cons:
-                    if abs(gbest_g[j]) > etol and abs(gbest_g[j]) > abs(gbest_g_old[j]):
-                        rp[j] *= 2.0
-                    elif abs(gbest_g[j]) <= etol:
-                        rp[j] *= 0.5
-                    rp[j] = max(rp[j], 0.5 * (abs(lambda_[j]) / etol) ** 0.5)
+        # reset swarm's best for the next inner loop
+        gbest_i = L.argmin()
+        gbest_x[:] = x_k[gbest_i, :]
+        gbest_L = L[gbest_i]
+        gbest_f = f[gbest_i]
+        gbest_g[:] = g[gbest_i, :]
 
-                # Inequality constraints
-                else:
-                    if gbest_g[j] > itol and gbest_g[j] > gbest_g_old[j]:
-                        rp[j] *= 2.0
-                    elif gbest_g[j] <= itol:
-                        rp[j] *= 0.5
-                    rp[j] = max(rp[j], 0.5 * (abs(lambda_[j]) / itol) ** 0.5)
-
-                # If rp is too small, it could result in a very large theta
-                # if lambda_ is negative
-                rp[j] = max(1.0, rp[j])
-
-            # update history record only updated every outer loop
-            params_history['lambda'].append(lambda_.tolist())
-            params_history['rp'].append(rp.tolist())
-            params_history['w'].append(w)
-
-            # Update the Lagrangian for the next inner run.
-            for i in range(swarm_size):
-                L[i] = f[i]
-                for j in range(n_cons):
-                    # Equality Constraints
-                    if j < n_eq_cons:
-                        theta = g[i, j]
-                    # Inequality Constraints
-                    else:
-                        theta = max(g[i, j], -lambda_[j] / (2.0 * rp[j]))
-
-                    L[i] += lambda_[j] * theta + rp[j] * theta ** 2
-
-            # reset swarm's best for the next inner loop
-            gbest_i = L.argmin()
-            gbest_x[:] = x_k[gbest_i, :]
-            gbest_L = L[gbest_i]
-            gbest_f = f[gbest_i]
-            gbest_g[:] = g[gbest_i, :]
-
-            # reset particles' memory (i.e. particle's best for the next
-            # inner loop)
-            pbest_x[:, :] = x_k[:, :]
-            pbest_L[:] = L[:]
+        # reset particles' memory (i.e. particle's best for the next
+        # inner loop)
+        pbest_x[:, :] = x_k[:, :]
+        pbest_L[:] = L[:]
 
     # save the optimization history to an hdf5 file
     # with h5py.File('/tmp/optimization_history.hdf5', 'w') as fp:

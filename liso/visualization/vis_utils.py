@@ -5,12 +5,13 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+# pylint: disable=anomalous-backslash-in-string
 import re
 
 from scipy import constants
 
 
-def get_label(name):
+def get_label(name):  # pylint: disable=too-many-branches,too-many-return-statements
     """Get the label for a given variable.
 
     :param string name: variable name (case insensitive).
@@ -21,45 +22,44 @@ def get_label(name):
 
     if name == 'gamma':
         return r"$\gamma$"
-    elif name == 'sde':
+    if name == 'sde':
         return r"$\sigma_E$"
-    elif name == 'delta':
+    if name == 'delta':
         return r"$\delta$ (%)"
-    elif name == 'sx':
+    if name == 'sx':
         return "$\sigma_x$"
-    elif name == 'sy':
+    if name == 'sy':
         return "$\sigma_y$"
-    elif name == 'sz':
+    if name == 'sz':
         return "$\sigma_z$"
-    elif name == 'st':
+    if name == 'st':
         return "$\sigma_t$"
-    elif name == 'betax':
+    if name == 'betax':
         return r"$\beta_x$"
-    elif name == 'betay':
+    if name == 'betay':
         return r"$\beta_y$"
-    elif name == 'alphax':
+    if name == 'alphax':
         return r"$\alpha_x$"
-    elif name == 'alphay':
+    if name == 'alphay':
         return r"$\alpha_y$"
-    elif name == 'emitx':
+    if name == 'emitx':
         return r"$\varepsilon_x$"
-    elif name == 'emity':
+    if name == 'emity':
         return r"$\varepsilon_y$"
-    elif name == 'emitx_tr':
+    if name == 'emitx_tr':
         return r"$\varepsilon_{x, trace}$"
-    elif name == 'emity_tr':
+    if name == 'emity_tr':
         return r"$\varepsilon_{y, trace}$"
-    elif name == 'xp':
+    if name == 'xp':
         return r"$x^\prime$"
-    elif name == 'yp':
+    if name == 'yp':
         return r"$y^\prime$"
-    elif name == 'i':
+    if name == 'i':
         return r"$I$"
-    else:
-        return r"${}$".format(name)
+    return r"${}$".format(name)
 
 
-def get_html_label(name):
+def get_html_label(name):  # pylint: disable=too-many-branches,too-many-return-statements
     """Get the label for a given variable.
 
     :param string name: variable name (case insensitive).
@@ -70,80 +70,78 @@ def get_html_label(name):
 
     if name == 'gamma':
         return "<span>&gamma;</span>"
-    elif name == 'sde':
+    if name == 'sde':
         return "<span>&sigma;<sub>&delta;</sub></span>"
-    elif name == 'delta':
+    if name == 'delta':
         return "<span>&delta; (%)</span>"
-    elif name == 'sx':
+    if name == 'sx':
         return "<span>&sigma;<sub>x</sub></span>"
-    elif name == 'sy':
+    if name == 'sy':
         return "<span>&sigma;<sub>y</sub></span>"
-    elif name == 'sz':
+    if name == 'sz':
         return "<span>&sigma;<sub>z</sub></span>"
-    elif name == 'st':
+    if name == 'st':
         return "<span>&sigma;<sub>t</sub></span>"
-    elif name == 'betax':
+    if name == 'betax':
         return "<span>&beta;<sub>x</sub></span>"
-    elif name == 'betay':
+    if name == 'betay':
         return "<span>&beta;<sub>y</sub></span>"
-    elif name == 'alphax':
+    if name == 'alphax':
         return "<span>&alpha;<sub>x</sub></span>"
-    elif name == 'alphay':
+    if name == 'alphay':
         return "<span>&alpha;<sub>y</sub></span>"
-    elif name == 'emitx':
+    if name == 'emitx':
         return "<span>&epsilon;<sub>x</sub></span>"
-    elif name == 'emity':
+    if name == 'emity':
         return "<span>&epsilon;<sub>y</sub></span>"
-    elif name == 'emitz':
+    if name == 'emitz':
         return "<span>&epsilon;<sub>z</sub></span>"
-    elif name == 'emitx_tr':
+    if name == 'emitx_tr':
         return "<span>&epsilon;<sub>x</sub></span>"
-    elif name == 'emity_tr':
+    if name == 'emity_tr':
         return "<span>&epsilon;<sub>y</sub></span>"
-    elif name == 'xp':
+    if name == 'xp':
         return "<span>x'</span>"
-    elif name == 'yp':
+    if name == 'yp':
         return "<span>y'</span>"
-    else:
-        return "<span>{}</span>".format(name)
+    return "<span>{}</span>".format(name)
 
 
-def get_default_unit(name):
+def get_default_unit(name):  # pylint: disable=too-many-branches,too-many-return-statements
     """Get the default unit of a variable.
 
     :param string name: variable name (case insensitive).
     """
     name = name.lower()
 
-    if name == 'x' or name == 'y' or name == 'dz':
+    if name in ('x', 'y', 'dz'):
         return 'mm'
-    elif name == 'z':
+    if name == 'z':
         return 'm'
-    elif name == 'xp' or name == 'yp':
+    if name in ('xp', 'yp'):
         return 'mrad'
-    elif name == 't' or name == 'dt':
+    if name in ('t', 'dt'):
         return 'fs'
-    elif re.match('beta', name):
+    if re.match('beta', name):
         return 'm'
-    elif name == 'sde':
+    if name == 'sde':
         return 'kev'
-    elif name == 'sx' or name == 'sy':
+    if name in ('sx', 'sy'):
         return 'mm'
-    elif name == 'sz':
+    if name == 'sz':
         return 'um'
-    elif re.match('emit', name):
+    if re.match('emit', name):
         return 'um'
-    elif name == 'st':
+    if name == 'st':
         return 'fs'
-    elif name == 'p':
+    if name == 'p':
         return 'mc'
-    elif name == 'i':
+    if name == 'i':
         return 'a'  # Amper for current I
-    else:
-        return ''
+    return ''
 
 
-def get_unit_label_and_scale(unit):
+def get_unit_label_and_scale(unit):  # pylint: disable=too-many-branches
     """Obtain the label and scaling factor of the unit
 
     :param string unit: name of the unit (case insensitive).

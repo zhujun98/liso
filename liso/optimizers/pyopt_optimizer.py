@@ -5,8 +5,9 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from pyOpt import Optimization as pyoptOptimization  # pylint: disable=import-error
+
 from .optimizer import Optimizer
-from pyOpt import Optimization as pyoptOptimization
 
 
 class PyoptOptimizer(Optimizer):

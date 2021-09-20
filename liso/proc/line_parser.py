@@ -170,7 +170,7 @@ def parse_astra_line(root_name):
     # ASTRA will not output .TRemit file by default
     try:
         check_data_file(emit_tr_file)
-    
+
         emit_tr_data = pd.read_csv(
             emit_tr_file, delim_whitespace=True,
             names=['z', 't', 'emitx_tr', 'emity_tr', 'emitz_tr'])
@@ -212,5 +212,5 @@ def parse_astra_line(root_name):
     return data
 
 
-def parse_elegant_line(root_name):
+def parse_elegant_line(root_name):  # pylint: disable=unused-argument
     pass

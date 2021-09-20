@@ -38,7 +38,7 @@ class Phasespace:
         self._data = data
         self.charge = charge
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # pylint: disable=too-many-return-statements
         try:
             return self._data[item]
         except KeyError:
@@ -144,7 +144,7 @@ class Phasespace:
                 y = r[1]
                 z = r[2]
                 cx = cm[0]
-                cy = cm[1]
+                cy = cm[1]  # pylint: disable=unused-variable
                 cz = cm[2]
 
                 x_new = cx - cx*cos_theta + x*cos_theta - cz*sin_theta + z*sin_theta
@@ -163,7 +163,7 @@ class Phasespace:
             [data['x'], data['y'], data['z']] = transformation(pos, cm_pos)
             [data['px'], data['py'], data['pz']] = transformation(mom, cm_mom)
 
-    def analyze(self, *,
+    def analyze(self, *,  # pylint: disable=too-many-locals
                 current_bins='auto',
                 filter_size=1,
                 slice_percent=0.1,
@@ -273,7 +273,7 @@ class Phasespace:
                 params.Sdelta_slice \
                 * np.sqrt(1 - (slice_data['t'].corr(p_slice)) ** 2)
 
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
 
         return params

@@ -6,7 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+from matplotlib import ticker
 
 from ..proc import Phasespace, mesh_phasespace
 from .vis_utils import (
@@ -14,7 +14,7 @@ from .vis_utils import (
 )
 
 
-class PhasespacePlot(object):
+class PhasespacePlot:
     """Plot the beam phase-space."""
 
     def __init__(self, data, *,
@@ -66,7 +66,7 @@ class PhasespacePlot(object):
 
         self._ax_margin = ax_margin
 
-    def plot(self, var_x, var_y, *,
+    def plot(self, var_x, var_y, *,  # pylint: disable=too-many-locals
              samples=20000,
              x_unit=None,
              y_unit=None,
@@ -190,7 +190,8 @@ class PhasespacePlot(object):
 
         return ax
 
-    def _get_label_and_scale(self, var, unit):
+    @staticmethod
+    def _get_label_and_scale(var, unit):
         unit = get_default_unit(var) if unit is None else unit
         unit_label, scale = get_unit_label_and_scale(unit)
         return get_label(var), unit_label, scale
@@ -204,7 +205,7 @@ class PhasespacePlot(object):
                       labelpad=self._label_pad)
         ax.tick_params(labelsize=self._tick_fontsize, pad=self._tick_pad)
 
-    def imshow(self, var_x, var_y, *,
+    def imshow(self, var_x, var_y, *,  # pylint: disable=too-many-locals
                x_bins=64,
                y_bins=64,
                x_range=None,
