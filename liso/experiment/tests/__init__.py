@@ -16,6 +16,7 @@ class DoocsDataGenerator:
             return 'LONG'
         if np.dtype(dtype) == np.bool:
             return 'BOOL'
+        raise ValueError
 
     @classmethod
     def scalar(cls, v, schema, *, pid):

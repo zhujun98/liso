@@ -19,7 +19,7 @@ class BaseScan(abc.ABC):
         self._params = OrderedDict()
         self._param_dists = OrderedDict()
 
-    def _check_param_name(self, name: str) -> str:
+    def _check_param_name(self, name: str) -> str:  # pylint: disable=no-self-use
         return name
 
     def add_param(self, name: str, *, dist=-1., **kwargs):
@@ -47,24 +47,25 @@ class BaseScan(abc.ABC):
         self._params[name] = param
         self._param_dists[name] = dist
 
-    def _sort_param_sequence(self, seq):
+    @staticmethod
+    def _check_distance(a, b, tol):
+        for ia, ib, it in zip(a, b, tol):
+            if abs(ia - ib) < it:
+                return False
+        return True
+
+    def _sort_param_sequence(self, seq):  # pylint: disable=inconsistent-return-statements
         tol = tuple(self._param_dists.values())
 
-        def _check_distance(a, b):
-            for ia, ib, it in zip(a, b, tol):
-                if abs(ia - ib) < it:
-                    return False
-            return True
-
-        cache = list()
+        cache = []
         ret_queue = deque()
         for item in zip(*seq):
             if not ret_queue:
                 ret_queue.append(item)
             else:
-                if _check_distance(item, ret_queue[-1]):
+                if self._check_distance(item, ret_queue[-1], tol):
                     ret_queue.append(item)
-                elif _check_distance(item, ret_queue[0]):
+                elif self._check_distance(item, ret_queue[0], tol):
                     ret_queue.appendleft(item)
                 else:
                     cache.append(item)
@@ -73,8 +74,8 @@ class BaseScan(abc.ABC):
         for item in cache:
             length = len(ret_queue)
             for i in range(2, length-2, 2):
-                if _check_distance(item, ret_queue[i-1]) and \
-                        _check_distance(item, ret_queue[i]):
+                if self._check_distance(item, ret_queue[i-1], tol) and \
+                        self._check_distance(item, ret_queue[i], tol):
                     ret_queue.insert(i, item)
                     break
 
@@ -95,7 +96,7 @@ class BaseScan(abc.ABC):
             cycles *= len(param)
 
         for i in range(5):
-            logger.debug(f"Generating scan parameter sequence (attempt {i+1})")
+            logger.debug("Generating scan parameter sequence (attempt %s)", i+1)
             seq = self._sort_param_sequence(ret)
             if seq is not None:
                 return seq

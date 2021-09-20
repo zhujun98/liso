@@ -42,6 +42,7 @@ setup(
     extras_require={
         'test': [
             'pytest',
+            'pylint'
         ],
     },
     python_requires='>=3.7',

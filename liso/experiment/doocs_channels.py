@@ -5,6 +5,8 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+# pylint: disable=no-name-in-module
+# pylint: disable=missing-class-docstring
 import abc
 from collections import namedtuple
 from typing import Any, Optional, Tuple
@@ -12,13 +14,13 @@ from typing import Any, Optional, Tuple
 import numpy as np
 
 from pydantic import (
-    BaseModel, Field, StrictBool, StrictFloat, StrictInt, conint, confloat,
-    validator
+    BaseModel, StrictBool, StrictFloat, StrictInt, conint, confloat, validator
 )
 
 
 class NDArrayMeta(type):
-    def __getitem__(self):
+    # FIXME: why?
+    def __getitem__(cls):  # pylint: disable=unexpected-special-method-signature
         return type('NDArray', (NDArray,))
 
 
@@ -46,7 +48,7 @@ class DoocsChannel(BaseModel, metaclass=abc.ABCMeta):
     address: str
 
     @validator('address')
-    def doocs_address(cls, v):
+    def doocs_address(cls, v):  # pylint: disable=no-self-argument,no-self-use
         # An address must contain four fields:
         #
         fields = [field.strip() for field in v.split('/')]
@@ -70,7 +72,7 @@ class BoolDoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '|b1'
 
 
@@ -79,7 +81,7 @@ class Int64DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<i8'
 
 
@@ -88,7 +90,7 @@ class UInt64DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<u8'
 
 
@@ -99,7 +101,7 @@ class Int32DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<i4'
 
 
@@ -109,7 +111,7 @@ class UInt32DoocsChannel(DoocsChannel):
                   le=np.iinfo(np.uint32).max) = 0
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<u4'
 
 
@@ -120,7 +122,7 @@ class Int16DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<i2'
 
 
@@ -131,7 +133,7 @@ class UInt16DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<u2'
 
 
@@ -140,7 +142,7 @@ class Float64DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<f8'
 
 
@@ -151,7 +153,7 @@ class Float32DoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = '<f4'
 
 
@@ -162,7 +164,7 @@ class ImageDoocsChannel(DoocsChannel):
     value: Optional[NDArray] = None
 
     @validator("dtype")
-    def check_dtype(cls, v: str):
+    def check_dtype(cls, v: str):  # pylint: disable=no-self-argument,no-self-use
         """Check whether the input can be converted to a valid numpy.dtype.
 
         :param v: dtype string. Must be valid to construct a data type
@@ -174,7 +176,7 @@ class ImageDoocsChannel(DoocsChannel):
         return dtype.str
 
     @validator("value", always=True)
-    def check_value(cls, v, values):
+    def check_value(cls, v, values):  # pylint: disable=no-self-argument,no-self-use
         if 'shape' not in values or 'dtype' not in values:
             # ValidationError will be raised later
             return v
@@ -215,7 +217,7 @@ class AnyDoocsChannel(DoocsChannel):
 
     class Config:
         @staticmethod
-        def schema_extra(schema, model):
+        def schema_extra(schema, _):
             schema['properties']['value']['type'] = 'any'
 
 
