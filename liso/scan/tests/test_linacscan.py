@@ -1,11 +1,11 @@
 # pylint: disable=attribute-defined-outside-init
+import asyncio
+import os.path as osp
+from pathlib import Path
 import platform
 import unittest
 from unittest.mock import patch
-import os.path as osp
 import tempfile
-import asyncio
-import pathlib
 
 import pandas as pd
 import numpy as np
@@ -158,12 +158,12 @@ class TestLinacScan(unittest.TestCase):
             with self.subTest("Test chmod"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir)
-                    path = pathlib.Path(tmp_dir)
+                    path = Path(tmp_dir)
                     for file in path.iterdir():
                         self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir, chmod=False)
-                    path = pathlib.Path(tmp_dir)
+                    path = Path(tmp_dir)
                     for file in path.iterdir():
                         self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])

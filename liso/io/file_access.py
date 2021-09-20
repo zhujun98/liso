@@ -23,17 +23,17 @@ _file_access_registry = WeakValueDictionary()
 
 class FileOpenRegistry:
 
-    def __init__(self, n_max):
+    def __init__(self, n_max: int) -> None:
         """Initialization.
 
-        :param int n_max: maximum number of files.
+        :param n_max: maximum number of files.
         """
         self._n_max = n_max
 
         # key: filepath, value: None (not used)
         self._cache = OrderedDict()
 
-    def n_opened(self):
+    def n_opened(self) -> int:
         """Return the number of opened files."""
         # remove files which are not in the registry
         self._cache = OrderedDict.fromkeys(
@@ -41,7 +41,7 @@ class FileOpenRegistry:
         )
         return len(self._cache)
 
-    def close_old_files(self):
+    def close_old_files(self) -> None:
         """Close old files if the number of opened files exceed the maximum."""
         if len(self._cache) <= self._n_max:
             return
@@ -54,7 +54,7 @@ class FileOpenRegistry:
                 file_access.close()
             n -= 1
 
-    def touch(self, filepath):
+    def touch(self, filepath) -> None:
         """Add a new file or move the existing file to the end of the cache."""
         if filepath in self._cache:
             self._cache.move_to_end(filepath)
@@ -62,12 +62,12 @@ class FileOpenRegistry:
             self._cache[filepath] = None
             self.close_old_files()
 
-    def remove(self, filename):
+    def remove(self, filename: str) -> None:
         """Remove a closed file from the cache."""
         self._cache.pop(filename, None)
 
 
-def _init_file_open_registry():
+def _init_file_open_registry() -> FileOpenRegistry:
     if platform.system().lower() == 'windows':
         max_files = (1024, 4096)
     else:

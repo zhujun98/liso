@@ -5,11 +5,13 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+from __future__ import annotations
+
 import abc
 from collections import defaultdict
 import os
 import os.path as osp
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -22,7 +24,7 @@ from ..proc import Phasespace
 class DataCollectionBase(AbstractPulseTrainData):
     """A collection of simulated or experimental data."""
 
-    def __init__(self, files: list):
+    def __init__(self, files: List[FileAccessBase]) -> None:
         """Initialization
 
         :param files: A list of FileAccess instances.
@@ -44,13 +46,12 @@ class DataCollectionBase(AbstractPulseTrainData):
         """Print out the information of this data collection."""
 
     @classmethod
-    def from_path(cls, path: str):
+    def from_path(cls, path: str) -> DataCollectionBase:
         """Construct a data collection from a single file.
 
         :param path: File path.
         """
-        files = [cls._create_fileaccess(path)]
-        return cls(files)
+        return cls([cls._create_fileaccess(path)])
 
     @classmethod
     def _open_file(cls, path: str) -> Tuple[str, Union[FileAccessBase, str]]:
@@ -62,7 +63,7 @@ class DataCollectionBase(AbstractPulseTrainData):
             return osp.basename(path), fa
 
     @classmethod
-    def from_paths(cls, paths: list):
+    def from_paths(cls, paths: List[str]) -> DataCollectionBase:
         """Construct a data collection from a list of files.
 
         :param paths: A list of file paths.
@@ -77,7 +78,7 @@ class DataCollectionBase(AbstractPulseTrainData):
 
         return cls(files)
 
-    def get_controls(self, *, ordered: bool = False):
+    def get_controls(self, *, ordered: bool = False) -> pd.DataFrame:
         """Return control data in a Pandas.DataFrame.
 
         :param ordered: True for sorting the index, which is indeed the ID,
@@ -104,7 +105,9 @@ class DataCollectionBase(AbstractPulseTrainData):
     def _get_channel_category(self, ch):
         raise NotImplementedError
 
-    def channel(self, address: str, columns: Optional[Union[str, list]] = None):
+    def channel(self,
+                address: str,
+                columns: Optional[Union[str, list]] = None) -> ChannelData:
         """Return an array for a particular data field.
 
         :param address: Address of the channel.
@@ -124,9 +127,8 @@ class DataCollectionBase(AbstractPulseTrainData):
 
 class SimDataCollection(DataCollectionBase):
     """A collection of simulated data."""
-    _FileAccess = SimFileAccess
 
-    def __init__(self, files):
+    def __init__(self, files: List[SimFileAccess]) -> None:
         super().__init__(files)
 
         self.control_channels = set()
@@ -147,7 +149,7 @@ class SimDataCollection(DataCollectionBase):
     def _create_fileaccess(cls, path: str) -> SimFileAccess:
         return SimFileAccess(path)
 
-    def info(self):
+    def info(self) -> None:
         """Override."""
         print('# of simulations:     ', len(self.sim_ids))
 
@@ -159,7 +161,7 @@ class SimDataCollection(DataCollectionBase):
         for src in sorted(self.phasespace_channels):
             print('  - ', src)
 
-    def __getitem__(self, sim_id):
+    def __getitem__(self, sim_id: int):
         """Override."""
         fa, idx = self._find_data(sim_id)
         ret = dict()
@@ -173,11 +175,11 @@ class SimDataCollection(DataCollectionBase):
 
         return sim_id, ret
 
-    def _get_channel_category(self, ch):
+    def _get_channel_category(self, ch: str) -> str:
         return 'CONTROL' if ch in self.control_channels else 'PHASESPACE'
 
 
-def open_sim(path: str):
+def open_sim(path: str) -> SimDataCollection:
     """Open simulation data from a single file or a directory.
 
     :param path: file or directory path.
@@ -193,9 +195,8 @@ def open_sim(path: str):
 
 class ExpDataCollection(DataCollectionBase):
     """A collection of experimental data."""
-    _FileAccess = ExpFileAccess
 
-    def __init__(self, files):
+    def __init__(self, files: List[ExpFileAccess]) -> None:
         super().__init__(files)
 
         self.control_channels = set()
@@ -216,7 +217,7 @@ class ExpDataCollection(DataCollectionBase):
     def _create_fileaccess(cls, path: str) -> ExpFileAccess:
         return ExpFileAccess(path)
 
-    def info(self):
+    def info(self) -> None:
         """Override."""
         print('# of macro pulses:     ', len(self.pulse_ids))
 
@@ -228,7 +229,7 @@ class ExpDataCollection(DataCollectionBase):
         for ch in sorted(self.diagnostic_channels):
             print('  - ', ch)
 
-    def __getitem__(self, pulse_id):
+    def __getitem__(self, pulse_id: int):
         """Override."""
         fa, idx = self._find_data(pulse_id)
         ret = dict()
@@ -239,11 +240,11 @@ class ExpDataCollection(DataCollectionBase):
 
         return pulse_id, ret
 
-    def _get_channel_category(self, ch):
+    def _get_channel_category(self, ch: str) -> str:
         return 'CONTROL' if ch in self.control_channels else 'DIAGNOSTIC'
 
 
-def open_run(path: str):
+def open_run(path: str) -> ExpDataCollection:
     """Open experimental data from a single file or a directory.
 
     :param path: File or directory path.

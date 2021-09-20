@@ -9,7 +9,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import enum
 import multiprocessing
-import pathlib
+from pathlib import Path
 import re
 import sys
 import time
@@ -53,8 +53,8 @@ class MachineScan(BaseScan):
         self._policy = policy
         self._read_delay = read_delay
 
-    def _create_output_dir(self, parent: str):
-        parent_path = pathlib.Path(parent)
+    def _create_output_dir(self, parent: str) -> Path:
+        parent_path = Path(parent)
         # It is allowed to use an existing parent directory,
         # but not a run folder.
         parent_path.mkdir(exist_ok=True)
@@ -71,7 +71,8 @@ class MachineScan(BaseScan):
         next_output_dir.mkdir(parents=True, exist_ok=False)
         return next_output_dir
 
-    def scan(self, cycles: int = 1, output_dir: str = "./", *,  # pylint: disable=too-many-locals
+    def scan(self, cycles: int = 1,  # pylint: disable=too-many-locals
+             output_dir: str = "./", *,
              tasks: Optional[int] = None,
              chmod: bool = True,
              group: int = 1,
