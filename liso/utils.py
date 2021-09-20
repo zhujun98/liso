@@ -36,7 +36,7 @@ def profiler(info, *, process_time=False):
             t0 = timer()
             result = f(*args, **kwargs)
             dt_ms = 1000 * (timer() - t0)
-            logger.info(f"Time spent on {info}: {dt_ms:.3f} ms")
+            logger.info("Time spent on %s: %.3f ms", info, dt_ms)
             return result
         return timed_f
     return wrap
