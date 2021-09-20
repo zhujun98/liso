@@ -71,10 +71,9 @@ class MachineScan(BaseScan):
         next_output_dir.mkdir(parents=True, exist_ok=False)
         return next_output_dir
 
-    def scan(self, cycles: int = 1, output_dir: str = "./", *,
+    def scan(self, cycles: int = 1, output_dir: str = "./", *,  # pylint: disable=too-many-locals
              tasks: Optional[int] = None,
              chmod: bool = True,
-             timeout: float = None,
              group: int = 1,
              seed: Optional[int] = None):
         """Start a parameter scan.
@@ -88,8 +87,6 @@ class MachineScan(BaseScan):
             read and write.
         :param chmod: True for changing the permission to 400 after
             finishing writing.
-        :param timeout: Timeout when correlating data by macropulse
-            ID, in seconds.
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
         """
@@ -103,13 +100,13 @@ class MachineScan(BaseScan):
 
         try:
             ret = self._interface.read()
-            logger.info(f"Current values of the scanned parameters: "
-                        f"{str(ret)[1:-1].replace(': ', ' = ')}")
-        except LisoRuntimeError:
+            logger.info("Current values of the scanned parameters: %s",
+                        str(ret)[1:-1].replace(': ', ' = '))
+        except LisoRuntimeError as e:
             raise RuntimeError("Failed to read all the initial values of "
-                               "the scanned parameters!")
+                               "the scanned parameters!") from e
 
-        logger.info(f"Starting parameter scan with {tasks} CPUs.")
+        logger.info("Starting parameter scan with %s CPUs.", tasks)
         logger.info(self.summarize())
 
         np.random.seed(seed)
@@ -129,10 +126,11 @@ class MachineScan(BaseScan):
                     for i, k in enumerate(self._params):
                         mapping[k] = {'value': sequence[count][i]}
                 count += 1
-                logger.info(f"Scan {count:06d}: "
-                            + str({address: item['value']
-                                   for address, item in mapping.items()})
-                            [1:-1].replace(': ', ' = '))
+                logger.info(
+                    "Scan %06d: %s",
+                    count,
+                    str({address: item['value'] for address, item
+                         in mapping.items()})[1:-1].replace(': ', ' = '))
 
                 try:
                     self._interface.write(mapping, loop=loop, executor=executor)
@@ -146,16 +144,16 @@ class MachineScan(BaseScan):
 
                     writer.write(idx, c_data, d_data)
                 except LisoRuntimeError as e:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    logger.debug(repr(traceback.format_tb(exc_traceback))
-                                 + str(e))
+                    _, _, exc_traceback = sys.exc_info()
+                    logger.debug("%s, %s",
+                                 repr(traceback.format_tb(exc_traceback)),
+                                 str(e))
                     logger.warning(str(e))
                 except Exception as e:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    logger.error(
-                        f"(Unexpected exceptions): "
-                        + repr(traceback.format_tb(exc_traceback))
-                        + str(e))
+                    _, _, exc_traceback = sys.exc_info()
+                    logger.error("(Unexpected exceptions): %s, %s",
+                                 repr(traceback.format_tb(exc_traceback)),
+                                 str(e))
                     raise
 
-        logger.info(f"Scan finished!")
+        logger.info("Scan finished!")

@@ -1,3 +1,4 @@
+# pylint: disable=attribute-defined-outside-init
 import platform
 import unittest
 from unittest.mock import patch

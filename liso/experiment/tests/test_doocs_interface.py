@@ -97,7 +97,7 @@ class TestDoocsInterface(unittest.TestCase):
 
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
-                def _side_effect_write1(address, v):
+                def _side_effect_write1(address, _):
                     if address == 'XFEL.A/B/C/E':
                         raise np.random.choice([PyDoocsException, DoocsException])
                 patched_write.side_effect = _side_effect_write1
@@ -109,7 +109,7 @@ class TestDoocsInterface(unittest.TestCase):
 
         with self.assertRaisesRegex(LisoRuntimeError, "Failed to update 1/2 channels"):
             with self.assertLogs(level="ERROR") as cm:
-                def _side_effect_write2(address, v):
+                def _side_effect_write2(address, _):
                     if address == 'XFEL.A/B/C/d':
                         raise np.random.choice([ValueError, RuntimeError])
                 patched_write.side_effect = _side_effect_write2
@@ -165,19 +165,19 @@ class TestDoocsInterface(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         orig_v = dataset["XFEL.A/B/C/D"]['data']
-        with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
+        with self.assertRaisesRegex(LisoRuntimeError, 'Validation error'):
             dataset["XFEL.A/B/C/D"]['data'] = 1
             m.read()
         dataset["XFEL.A/B/C/D"]['data'] = orig_v
 
         orig_v = dataset["XFEL.A/B/C/E"]['data']
-        with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
+        with self.assertRaisesRegex(LisoRuntimeError, 'Validation error'):
             dataset["XFEL.A/B/C/E"]['data'] = True
             m.read(correlate=False)
         dataset["XFEL.A/B/C/E"]['data'] = orig_v
 
         orig_v = dataset["XFEL.H/I/J/K"]['data']
-        with self.assertRaisesRegex(LisoRuntimeError, 'ValidationError'):
+        with self.assertRaisesRegex(LisoRuntimeError, 'Validation error'):
             dataset["XFEL.H/I/J/K"]['data'] = np.ones((2, 2))
             m.read()
 

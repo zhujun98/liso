@@ -1,3 +1,4 @@
+# pylint: disable=attribute-defined-outside-init
 import unittest
 from unittest.mock import patch
 import tempfile
@@ -7,14 +8,12 @@ import numpy as np
 
 from liso import EuXFELInterface, MachineScan, open_run
 from liso import doocs_channels as dc
-from liso.experiment import doocs_channels
 from liso.experiment.doocs_interface import DoocsException
 from liso.io import ExpWriter
 from liso.logging import logger
-logger.setLevel('ERROR')
-
 from ...experiment.tests import DoocsDataGenerator as ddgen
 
+logger.setLevel('ERROR')
 
 _INITIAL_PID = 1000
 
@@ -94,7 +93,7 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testRunFolderCreation(self, patched_read, patched_write):
+    def testRunFolderCreation(self, patched_read, _):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -102,20 +101,20 @@ class TestMachineScan(unittest.TestCase):
         sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
-            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
+            sc.scan(2, output_dir=tmp_dir)
+            sc.scan(2, output_dir=tmp_dir)
             path = pathlib.Path(tmp_dir)
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
                                  sorted((path.iterdir())))
 
             path.joinpath("r0006").mkdir()
-            sc.scan(2, output_dir=tmp_dir, timeout=0.001)
+            sc.scan(2, output_dir=tmp_dir)
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2, 6, 7]],
                                  sorted((path.iterdir())))
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testChmod(self, patched_read, patched_write):
+    def testChmod(self, patched_read, _):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -123,20 +122,20 @@ class TestMachineScan(unittest.TestCase):
         sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, output_dir=tmp_dir, timeout=0.001)
+            sc.scan(10, output_dir=tmp_dir)
             path = pathlib.Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, output_dir=tmp_dir, chmod=False, timeout=0.001)
+            sc.scan(10, output_dir=tmp_dir, chmod=False)
             path = pathlib.Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testScan(self, patched_read, patched_write):
+    def testScan(self, patched_read, _):
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -151,7 +150,7 @@ class TestMachineScan(unittest.TestCase):
             path = pathlib.Path(tmp_dir)
 
             n_pulses = 40
-            sc.scan(n_pulses, output_dir=tmp_dir, timeout=0.01)
+            sc.scan(n_pulses, output_dir=tmp_dir)
             run = open_run(path.joinpath('r0001'))
             run.info()
 
@@ -173,7 +172,7 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testLogInitialParameters(self, patched_read, patched_write):
+    def testLogInitialParameters(self, patched_read, _):
         sc = self._sc
         dataset = self._prepare_dataset()
 
@@ -182,11 +181,11 @@ class TestMachineScan(unittest.TestCase):
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
             patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
-            sc.scan(10, output_dir=tmp_dir, timeout=0.01)
+            sc.scan(10, output_dir=tmp_dir)
 
             def _side_effect_raise(x):
                 raise DoocsException
             patched_read.side_effect = _side_effect_raise
             with self.assertRaisesRegex(RuntimeError,
                                         "Failed to read all the initial values"):
-                sc.scan(10, output_dir=tmp_dir, timeout=0.01)
+                sc.scan(10, output_dir=tmp_dir)

@@ -14,9 +14,9 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from pydantic import ValidationError
 
 try:
-    from pydoocs import read as pydoocs_read
-    from pydoocs import write as pydoocs_write
-    from pydoocs import DoocsException, PyDoocsException
+    from pydoocs import read as pydoocs_read  # pylint: disable=import-error
+    from pydoocs import write as pydoocs_write  # pylint: disable=import-error
+    from pydoocs import DoocsException, PyDoocsException  # pylint: disable=import-error
 except ModuleNotFoundError:
     pydoocs_err = "pydoocs is required to communicate with a real " \
                   "machine using DOOCS control system!"
@@ -167,8 +167,8 @@ class DoocsInterface(MachineInterface):
             except asyncio.CancelledError:
                 pass
 
-    async def _write_channel(self,
-                             address: str,
+    @staticmethod
+    async def _write_channel(address: str,
                              value: Any,
                              loop: asyncio.AbstractEventLoop,
                              executor: ThreadPoolExecutor) -> bool:
@@ -181,10 +181,11 @@ class DoocsInterface(MachineInterface):
             logger.error(repr(e))
             raise
         except (DoocsException, PyDoocsException) as e:
-            logger.error(f"Failed to write {value} to {address}: {repr(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected exception when writing {value} to "
-                         f"{address}: {repr(e)}")
+            logger.error("Failed to write %s to %s: %s",
+                         value, address, repr(e))
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Unexpected exception when writing %s to %s: %s",
+                         value, address, repr(e))
         return False
 
     async def _write(self,
@@ -199,12 +200,12 @@ class DoocsInterface(MachineInterface):
 
         failure_count = 0
         for fut in asyncio.as_completed(tasks, timeout=self._timeout_write):
-            if not (await fut):
+            if not await fut:
                 failure_count += 1
         return failure_count
 
     @profiler("DOOCS interface write")
-    def write(self, mapping: Dict[str, Any], *,
+    def write(self, mapping: Dict[str, Any], *,  # pylint: disable=arguments-differ
               loop: Optional[asyncio.AbstractEventLoop] = None,
               executor: Optional[ThreadPoolExecutor] = None) -> None:
         """Write new value(s) to the given control channel(s).
@@ -224,8 +225,7 @@ class DoocsInterface(MachineInterface):
             mapping_write = {self._controls_write[k]: v
                              for k, v in mapping.items()}
         except KeyError as e:
-            raise KeyError(
-                f"Channel not found in the control channels: {repr(e)}")
+            raise KeyError("Channel not found in the control channels") from e
 
         if executor is None:
             executor = ThreadPoolExecutor()
@@ -239,8 +239,8 @@ class DoocsInterface(MachineInterface):
                 f"Failed to update {failure_count}/{len(mapping_write)} "
                 f"channels ")
 
-    def _extract_readout(self,
-                         channels: Dict[str, DoocsChannel],
+    @staticmethod
+    def _extract_readout(channels: Dict[str, DoocsChannel],
                          readout: dict) -> Dict[str, Any]:
         """Validate readout for given channels.
 
@@ -254,11 +254,11 @@ class DoocsInterface(MachineInterface):
                 try:
                     ch.value = ch_data['data']  # validate
                 except ValidationError as e:
-                    raise LisoRuntimeError(repr(e))
+                    raise LisoRuntimeError("Validation error") from e
         return ret
 
-    async def _read_channel(self,
-                            address: str,
+    @staticmethod
+    async def _read_channel(address: str,
                             loop: asyncio.AbstractEventLoop,
                             executor: ThreadPoolExecutor,
                             delay: float = 0) -> Tuple[str, Optional[dict]]:
@@ -276,13 +276,13 @@ class DoocsInterface(MachineInterface):
             logger.error(repr(e))
             raise
         except (DoocsException, PyDoocsException) as e:
-            logger.error(f"Failed to read data from {address}: {repr(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected exception when reading from "
-                         f"{address}: {repr(e)}")
+            logger.error("Failed to read data from %s: {%s}", address, repr(e))
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Unexpected exception when reading from "
+                         "{%s}: {%s}", address, repr(e))
         return address, None
 
-    async def _read_correlated(self,
+    async def _read_correlated(self,  # pylint: disable=too-many-locals,too-many-branches
                                channels: List[str],
                                loop: asyncio.AbstractEventLoop,
                                executor: ThreadPoolExecutor) \
@@ -314,7 +314,7 @@ class DoocsInterface(MachineInterface):
         candidate_pids = set()
         correlated_pid = None
         running = True
-        while running:
+        while running:  # pylint: disable=too-many-nested-blocks
             done, _ = await asyncio.wait(
                 tasks, return_when=asyncio.FIRST_COMPLETED)
 
@@ -343,9 +343,8 @@ class DoocsInterface(MachineInterface):
                             candidate_pids.remove(correlated_pid)
 
                             logger.info(
-                                f"Correlated {n_channels}"
-                                f"({n_events}) channels with "
-                                f"macropulse ID: {correlated_pid}")
+                                "Correlated %s (%s) channels with macropulse "
+                                "ID: %s", n_channels, n_events, correlated_pid)
 
                             ret.update(cached[correlated_pid])
                             ret.update(latest_nonevent)
@@ -357,18 +356,18 @@ class DoocsInterface(MachineInterface):
                         #        macropulse ID equal to 0 is from a
                         #        slow collector.
                         logger.warning(
-                            f"Received data from channel {address} "
-                            f"with macropulse == 0. It is recommended to "
-                            f"add this channel as 'non_event'.")
+                            "Received data from channel %s "
+                            "with macropulse == 0. It is recommended to "
+                            "add this channel as 'non_event'.", address)
                     elif pid < 0:
                         # TODO: document when a macropulse ID is -1
                         logger.warning(
-                            f"Received data from channel {address} "
-                            f"with illegal macropulse == {pid}.")
+                            "Received data from channel %s "
+                            "with illegal macropulse == %s.", address, pid)
                     else:
                         logger.debug(
-                            f"Received data from channel {address} "
-                            f"with outdated macropulse ID: {pid}."
+                            "Received data from channel %s "
+                            "with outdated macropulse ID: %s.", address, pid
                         )
 
                 del tasks[fut]
@@ -400,7 +399,7 @@ class DoocsInterface(MachineInterface):
         return None, rets
 
     @profiler("DOOCS interface read")
-    def read(self,
+    def read(self,  # pylint: disable=arguments-differ
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
              correlate: bool = True) -> Tuple[Optional[int], dict, dict]:

@@ -15,9 +15,6 @@ from ..elements import OperationalElement
 
 class ScanParam(OperationalElement):
     """Base class for parameters used in parameter scan."""
-    def __init__(self, name):
-        super().__init__(name)
-
     @abc.abstractmethod
     def generate(self, repeats: int = 1, cycles: int = 1):
         """Generate a sequence of parameters.

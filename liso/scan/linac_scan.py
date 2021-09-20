@@ -46,7 +46,7 @@ class LinacScan(BaseScan):
         parent_path.mkdir(exist_ok=True)
         return parent_path
 
-    async def _scan_imp(self, cycles: int, output_dir: str, *,
+    async def _scan_imp(self, cycles: int, output_dir: str, *,  # pylint: disable=too-many-locals
                         start_id: int, n_tasks: int, group: int, chmod: bool,
                         **kwargs) -> None:
         tasks = set()
@@ -75,8 +75,8 @@ class LinacScan(BaseScan):
                         self._linac.async_run(sim_id, x_map, **kwargs))
                     tasks.add(task)
 
-                    logger.info(f"Scan {sim_id:06d}: "
-                                + str(x_map)[1:-1].replace(': ', ' = '))
+                    logger.info("Scan %06d: %s",
+                                sim_id, str(x_map)[1:-1].replace(': ', ' = '))
 
                     count += 1
 
@@ -92,16 +92,18 @@ class LinacScan(BaseScan):
                             sim_id, controls, phasespaces = task.result()
                             writer.write(sim_id, controls, phasespaces)
                         except LisoRuntimeError as e:
-                            exc_type, exc_value, exc_traceback = sys.exc_info()
-                            logger.debug(repr(traceback.format_tb(exc_traceback))
-                                         + str(e))
+                            _, _, exc_traceback = sys.exc_info()
+                            logger.debug(
+                                "%s, %s",
+                                repr(traceback.format_tb(exc_traceback)),
+                                str(e))
                             logger.warning(str(e))
                         except Exception as e:
-                            exc_type, exc_value, exc_traceback = sys.exc_info()
+                            _, _, exc_traceback = sys.exc_info()
                             logger.error(
-                                f"(Unexpected exceptions): "
-                                + repr(traceback.format_tb(exc_traceback))
-                                + str(e))
+                                "(Unexpected exceptions): %s, %s",
+                                repr(traceback.format_tb(exc_traceback)),
+                                str(e))
                             raise
 
                         tasks.remove(task)
@@ -139,7 +141,7 @@ class LinacScan(BaseScan):
         output_dir = self._create_output_dir(output_dir)
 
         logger.info(str(self._linac))
-        logger.info(f"Starting parameter scan with {n_tasks} CPUs.")
+        logger.info("Starting parameter scan with %s CPUs.", n_tasks)
         logger.info(self.summarize())
 
         np.random.seed(seed)
@@ -153,4 +155,4 @@ class LinacScan(BaseScan):
             chmod=chmod,
             **kwargs))
 
-        logger.info(f"Scan finished!")
+        logger.info("Scan finished!")

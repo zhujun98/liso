@@ -1,4 +1,3 @@
-import sys
 from unittest.mock import patch
 from argparse import Namespace
 import tempfile
@@ -12,7 +11,7 @@ from liso.experiment.doocs_channels import AnyDoocsChannel
 @patch("time.sleep", side_effect=KeyboardInterrupt)
 @patch("liso.experiment.doocs_interface.DoocsInterface.read",
        return_value=(None, dict(), dict()))
-def test_monitor(patched_read, patched_sleep):
+def test_monitor(patched_read, _):
     with patch("argparse.ArgumentParser.parse_args",
                return_value=Namespace(channels=None, file=None, correlate=False)):
         with pytest.raises(ValueError, match="No DOOCS channel"):
@@ -26,6 +25,7 @@ def test_monitor(patched_read, patched_sleep):
         patched_read.reset_mock()
 
     ch_gt = ["A/B/C/D", "A/B/C/E", "A/B/C/F", "A/B/C/G"]
+    # pylint: disable=line-too-long
     with patch("liso.experiment.doocs_interface.DoocsInterface.add_diagnostic_channel") as mocked_add:
         with tempfile.NamedTemporaryFile("w+") as f:
             f.writelines([v + "\n" for v in ch_gt[1:]])

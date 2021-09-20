@@ -11,14 +11,15 @@ from .doocs_interface import DoocsInterface
 def _parse_channel_file(filepath):
     fast, slow = [], []
     ret = fast
-    for line in open(filepath, 'r').readlines():
-        line = line.strip()
-        if not line:
-            continue
-        if line.startswith("---"):
-            ret = slow
-            continue
-        ret.append(line)
+    with open(filepath, 'r', encoding='utf-8') as fp:
+        for line in fp.readlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("---"):
+                ret = slow
+                continue
+            ret.append(line)
     return fast, slow
 
 
@@ -54,9 +55,8 @@ def monitor():
     correlate = args.correlate
     try:
         while True:
-            pid, controls, diagnostics = interface.read(
+            pid, _, diagnostics = interface.read(
                 loop, executor, correlate=correlate)
-
             print("-" * 80)
             print("Macropulse ID:", pid)
             print()

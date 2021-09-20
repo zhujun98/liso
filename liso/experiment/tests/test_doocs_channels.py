@@ -18,8 +18,8 @@ from liso.experiment.doocs_channels import (
 
 
 class TestDoocs(unittest.TestCase):
-    def testDoocsChannel(self):
-        ch = DoocsChannel(address="A/B/C/D")
+    def testDoocsChannel(self):  # pylint: disable=no-self-use
+        DoocsChannel(address="A/B/C/D")
 
     def testAnyDoocsChannel(self):
         self.assertEqual(doocs_channels.ANY, AnyDoocsChannel)
