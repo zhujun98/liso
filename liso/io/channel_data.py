@@ -5,13 +5,14 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
-import numpy as np
 from typing import Optional, Union
 
-from .file_access import _FileAccessBase
+import numpy as np
+
+from .file_access import FileAccessBase
 
 
-class _AbstractPulseTrainData:
+class AbstractPulseTrainData:
     def __init__(self):
         self._ids = []
         self._files = []
@@ -37,7 +38,7 @@ class _AbstractPulseTrainData:
         """
         return self.__getitem__(self._ids[index])
 
-    def _find_data(self, id_) -> (_FileAccessBase, int):
+    def _find_data(self, id_) -> (FileAccessBase, int):
         for fa in self._files:
             idx = (fa._ids == id_).nonzero()[0]
             if idx.size > 0:
@@ -45,7 +46,7 @@ class _AbstractPulseTrainData:
         raise KeyError
 
 
-class ChannelData(_AbstractPulseTrainData):
+class ChannelData(AbstractPulseTrainData):
     """Data for one single channel.
 
     This class should not be created directly.
@@ -56,7 +57,7 @@ class ChannelData(_AbstractPulseTrainData):
 
         :param address: The address of the channel. For experimental data,
             this is the DOOCS channel name.
-        :param files: A list of _FileAccessBase objects.
+        :param files: A list of FileAccessBase objects.
         :param category: Category of the data, which can be CONTROL,
             PHASESPACE (simulation) or DIAGNOSTIC (experiment).
         :param ids: Simulation/pulse IDs of the data.

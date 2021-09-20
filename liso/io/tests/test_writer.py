@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 import unittest
 import tempfile
 import pathlib

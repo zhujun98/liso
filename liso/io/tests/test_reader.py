@@ -24,7 +24,7 @@ class TestSimReader(unittest.TestCase):
         self._sim_ids_gt = np.arange(2 * self._file_size + self._chunk_size + 9) + self._file_size
         np.random.shuffle(self._sim_ids_gt)  # sim_id does not come in sequence
 
-    def testOpenSim(self):
+    def testOpenSim(self):  # pylint: disable=too-many-locals,too-many-statements
         chunk_size = self._chunk_size
         file_size = self._file_size
         n_particles = self._n_particles
@@ -92,9 +92,9 @@ class TestSimReader(unittest.TestCase):
 
                 item = data.channel('gun/gun_phase')
                 with self.assertRaises(KeyError):
-                    data[min(self._sim_ids_gt) - 1]
+                    _ = data[min(self._sim_ids_gt) - 1]
                 with self.assertRaises(KeyError):
-                    data[max(self._sim_ids_gt) + 1]
+                    _ = data[max(self._sim_ids_gt) + 1]
 
                 idx = 9
                 self.assertEqual(idx * 20, item[self._sim_ids_gt[idx]])
@@ -156,7 +156,7 @@ class TestSimReader(unittest.TestCase):
             np.testing.assert_array_equal(self._sim_ids_gt, control_data.index)
 
             # test sorted
-            sorted_control_data = data.get_controls(sorted=True)
+            sorted_control_data = data.get_controls(ordered=True)
             np.testing.assert_array_equal(sorted(self._sim_ids_gt),
                                           sorted_control_data.index)
         elif i == 2:
@@ -180,11 +180,11 @@ class TestSimReader(unittest.TestCase):
 
     def _check_sim_iterate_over_data(self, data, i=None):
         with self.assertRaises(KeyError):
-            data[min(self._sim_ids_gt) - 1]
+            _ = data[min(self._sim_ids_gt) - 1]
         with self.assertRaises(KeyError):
-            data[max(self._sim_ids_gt) + 1]
+            _ = data[max(self._sim_ids_gt) + 1]
 
-        for idx, (sid, sim) in enumerate(data):
+        for idx, (_, sim) in enumerate(data):
             if i is not None:
                 idx += i * self._file_size
             self.assertSetEqual({
@@ -304,7 +304,7 @@ class TestExpReader(unittest.TestCase):
             with self.subTest("Test reading a single control data channel"):
                 item = data.channel('XFEL.A/B/C/D')
                 with self.assertRaises(KeyError):
-                    item[2]
+                    _ = item[2]
                 self.assertEqual(30., item[pulse_ids_gt[3]])
                 self.assertEqual(30., item.from_id(pulse_ids_gt[3]))
                 self.assertEqual(10., item.from_index(1))

@@ -14,7 +14,7 @@ from liso.simulation.input import (
 
 SKIP_TEST = False
 try:
-    import sdds
+    import sdds  # pylint: disable=unused-import
 except ImportError:
     SKIP_TEST = True
 

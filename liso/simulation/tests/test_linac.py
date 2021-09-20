@@ -1,13 +1,12 @@
+# pylint: disable=attribute-defined-outside-init,line-too-long
 import unittest
 from unittest.mock import patch
-import os
 import os.path as osp
 import asyncio
 import tempfile
 
 from liso import Linac
 from liso.config import config
-from liso.io import TempSimulationDirectory
 from liso.exceptions import LisoRuntimeError
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 
@@ -75,7 +74,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
         }, self._linac.compile(self._mapping))
 
     @patch('liso.simulation.beamline.Beamline._run_core')
-    def testRun(self, mocked_run_core):
+    def testRun(self, _):
         with patch('liso.simulation.beamline.Beamline.reset') as mocked_reset:
             with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
                 with patch('liso.simulation.beamline.Beamline._update_statistics') as mocked_us:

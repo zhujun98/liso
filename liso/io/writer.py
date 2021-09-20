@@ -65,7 +65,6 @@ class _BaseWriter(abc.ABC):
     @abc.abstractmethod
     def _create_new_file(self):
         """Create a new file in the run folder."""
-        pass
 
     def _init_meta_data(self):
         fp = self._fp

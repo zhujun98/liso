@@ -36,7 +36,7 @@ jobs:
 
     - name: Lint with pylint
       run: |
-        pylint liso/experiment liso/scan
+        pylint liso/experiment liso/scan liso/io liso/simulation
 
     - name: Test with pytest
       run: |

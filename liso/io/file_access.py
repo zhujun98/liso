@@ -8,6 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 from abc import abstractmethod
 import os.path as osp
 import platform
+import resource
 
 from collections import OrderedDict
 from weakref import WeakValueDictionary
@@ -70,7 +71,6 @@ def _init_file_open_registry():
     if platform.system().lower() == 'windows':
         max_files = (1024, 4096)
     else:
-        import resource
         # (soft, hard) = (1024, 4096) on the Maxwell cluster
         max_files = resource.getrlimit(resource.RLIMIT_NOFILE)
     return FileOpenRegistry(max_files[0])
@@ -92,7 +92,7 @@ def _read_channels(ds):
     return chs
 
 
-class _FileAccessBase:
+class FileAccessBase:
     """Base class for accessing an HDF5 file.
 
     This does not necessarily keep the real file open, but opens it on demand.
@@ -109,14 +109,14 @@ class _FileAccessBase:
             _file_access_registry[filepath] = instance
         return instance
 
-    def __init__(self, filepath):
+    def __init__(self, filepath):  # pylint: disable=unused-argument
         self._ids = []
 
     @property
     def file(self):
-        _file_open_registry.touch(self._filepath)
+        _file_open_registry.touch(self._filepath)  # pylint: disable=no-member
         if self._file is None:
-            self._file = h5py.File(self._filepath, 'r')
+            self._file = h5py.File(self._filepath, 'r')  # pylint: disable=no-member
         return self._file
 
     @abstractmethod
@@ -132,13 +132,13 @@ class _FileAccessBase:
         """
         if self._file:
             self._file = None
-        _file_open_registry.remove(self._filepath)
+        _file_open_registry.remove(self._filepath)  # pylint: disable=no-member
 
     def __repr__(self):
-        return "{}({})".format(type(self).__name__, repr(self._filepath))
+        return f"{type(self).__name__} ({repr(self._filepath)})"  # pylint: disable=no-member
 
 
-class SimFileAccess(_FileAccessBase):
+class SimFileAccess(FileAccessBase):
     """Access an HDF5 file which stores simulated data."""
     def __init__(self, filepath):
         super().__init__(filepath)
@@ -165,7 +165,7 @@ class SimFileAccess(_FileAccessBase):
         return frozenset(control_channels), frozenset(phasespace_channels)
 
 
-class ExpFileAccess(_FileAccessBase):
+class ExpFileAccess(FileAccessBase):
     """Access an HDF5 file which stores experimental data."""
     def __init__(self, filepath):
         super().__init__(filepath)
@@ -178,9 +178,9 @@ class ExpFileAccess(_FileAccessBase):
         except KeyError:
             try:
                 self.pulse_ids = self.file["INDEX/timestamp"][()]
-            except KeyError:
+            except KeyError as e:
                 raise KeyError("Cannot find both 'pulseId' and 'timestamp' "
-                               "in the data!")
+                               "in the data!") from e
         self._ids = self.pulse_ids
 
     def _read_data_channels(self):
