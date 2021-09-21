@@ -73,25 +73,25 @@ class MachineScan(AbstractScan):
         next_output_dir.mkdir(parents=True, exist_ok=False)
         return next_output_dir
 
-    def scan(self, cycles: int = 1,  # pylint: disable=too-many-locals
-             output_dir: str = "./", *,
+    def scan(self, cycles: int = 1, *,  # pylint: disable=too-many-locals
              tasks: Optional[int] = None,
              chmod: bool = True,
              group: int = 1,
-             seed: Optional[int] = None):
+             seed: Optional[int] = None,
+             output_dir: str = "./"):
         """Run the scan.
 
         :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param output_dir: Directory in which data for each run is
-            stored in in its own sub-directory.
         :param tasks: Maximum number of concurrent tasks for
             read and write.
         :param chmod: True for changing the permission to 400 after
             finishing writing.
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
+        :param output_dir: Directory in which data for each run is
+            stored in in its own sub-directory.
         """
         if not self._params:
             raise ValueError("No scan parameters specified!")

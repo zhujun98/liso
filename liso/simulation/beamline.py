@@ -6,11 +6,12 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 #pylint: disable=unspecified-encoding
-import asyncio
-import os.path as osp
 from abc import ABC, abstractmethod
-import subprocess
+import asyncio
 from distutils.spawn import find_executable
+import os.path as osp
+from pathlib import Path
+import subprocess
 from typing import Optional
 
 import numpy as np
@@ -199,12 +200,12 @@ class Beamline(ABC):
             f"executable [{filepath}] is not available"
         return executable
 
-    def _update_output(self, swd):
+    def _update_output(self, swd: Optional[str, Path]):
         """Analyse output particle file.
 
         Also prepare the initial particle file for the downstream simulation.
 
-        :param str swd: simulation working directory.
+        :param swd: simulation working directory.
         """
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')

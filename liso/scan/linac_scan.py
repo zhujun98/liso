@@ -114,25 +114,26 @@ class LinacScan(AbstractScan):
 
                         tasks.remove(task)
 
-    def scan(self, cycles: int = 1, output_dir: str = "./", *,
+    def scan(self, cycles: int = 1, *,
              start_id: int = 1,
              n_tasks: Optional[int] = None,
              chmod: bool = True,
              group: int = 1,
              seed: Optional[int] = None,
+             output_dir: str = "./",
              **kwargs) -> None:
         """Run the scan.
 
         :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param output_dir: Directory where the output simulation data is saved.
         :param start_id: Starting simulation id. Default = 1.
         :param n_tasks: Maximum number of concurrent tasks.
         :param chmod: True for changing the permission to 400 after
             finishing writing.
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
+        :param output_dir: Directory where the output simulation data is saved.
         """
         if not self._params:
             raise ValueError("No scan parameters specified!")
