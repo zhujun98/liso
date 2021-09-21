@@ -38,5 +38,6 @@ class OptimizationConstraintSupportError(OptimizationError):
     """Raise if an optimizer does not support certain constraint."""
 
 
+# FIXME: why inherited from RuntimeError?
 class LisoRuntimeError(RuntimeError):
     """RuntimeError for LISO."""

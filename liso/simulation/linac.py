@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from collections import defaultdict, OrderedDict
 from typing import Optional, Tuple
 
+from ..exceptions import LisoRuntimeError
 from .beamline import create_beamline
 
 
@@ -116,15 +117,23 @@ class Linac(Mapping):
             })
         return mapping_norm
 
+    def check_temp_swd(self, start_id, end_id):
+        """Check whether temporary simulation directories already exist.
+
+        :raises FileExistsError: If there is already any directory which has
+            the same name as the temporary simulation directory to be created.
+        """
+        for _, bl in self._beamlines.items():
+            bl.check_temp_swd(start_id, end_id)
+
     def run(self, params: dict, *,
-            n_workers: int = 1, timeout: Optional[float] = None) -> None:
+            n_workers: int = 1, timeout: Optional[int] = None) -> None:
         """Run simulation for all the beamlines.
 
         :param params: A dictionary of parameters used in the simulation
             input file.
-        :param int n_workers: Number of processes used in simulation.
-        :param float timeout: Maximum allowed duration in seconds of the
-            simulation.
+        :param n_workers: Number of processes used in simulation.
+        :param timeout: Maximum allowed duration in seconds of thesimulation.
         """
         self.compile(params)
 
@@ -132,14 +141,29 @@ class Linac(Mapping):
         for bl in self._beamlines.values():
             out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
-    async def async_run(self, sim_id, mapping, *,
+    async def async_run(self, sim_id: int, params: dict, *,
                         timeout=None) -> Tuple[int, dict]:
-        controls = self.compile(mapping)
+        """Run simulation for all the beamlines asynchronously.
+
+        :param sim_id: Id of the current simulation.
+        :param params: A dictionary of parameters used in the simulation
+            input file.
+        :param timeout: Maximum allowed duration in seconds of the
+            simulation.
+
+        :raises LisoRuntimeError: If any Beamline cannot create a
+            temporary directory to run simulation.
+        """
+        controls = self.compile(params)
 
         out = None
         phasespaces = OrderedDict()
         for name, bl in self._beamlines.items():
-            out = await bl.async_run(out, f'tmp{sim_id:06d}', timeout=timeout)
+            try:
+                out = await bl.async_run(sim_id, out, timeout=timeout)
+            except FileExistsError as e:
+                raise LisoRuntimeError(
+                    "Failed to create temporary simulation directory!") from e
             phasespaces[f"{name}/out"] = out
         return sim_id, {'control': controls, 'phasespace': phasespaces}
 

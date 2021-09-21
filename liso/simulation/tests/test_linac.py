@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 import os.path as osp
 import asyncio
+from pathlib import Path
 import tempfile
 
 from liso import Linac
@@ -10,7 +11,7 @@ from liso.config import config
 from liso.exceptions import LisoRuntimeError
 from liso.simulation.beamline import AstraBeamline, ImpacttBeamline
 
-_ROOT_DIR = osp.dirname(osp.abspath(__file__))
+_ROOT_DIR = Path(__file__).parent
 
 
 class TestAstraBeamline(unittest.TestCase):
@@ -73,7 +74,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
             'gun/gun_gradient': 1.0, 'gun/gun_phase': 2.0
         }, self._linac.compile(self._mapping))
 
-    @patch('liso.simulation.beamline.Beamline._run_core')
+    @patch('liso.simulation.beamline.Beamline._run_sim')
     def testRun(self, _):
         with patch('liso.simulation.beamline.Beamline.reset') as mocked_reset:
             with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
@@ -85,7 +86,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
                         mocked_us.assert_called_once_with()
                         mocked_gipf.assert_not_called()
 
-    @patch('liso.simulation.beamline.Beamline._async_run_core')
+    @patch('liso.simulation.beamline.Beamline._async_run_sim')
     def testAsyncRun(self, mocked_async_run_core):
         loop = asyncio.get_event_loop()
         with patch('liso.simulation.beamline.Beamline._update_output') as mocked_uo:
@@ -95,7 +96,7 @@ class TestLinacOneBeamLine(unittest.TestCase):
                 future.set_result(object())
                 mocked_async_run_core.return_value = future
 
-                tmp_dir = osp.join(self._tmp_dir, "tmp000001")
+                tmp_dir = Path(self._tmp_dir, "tmp000001")
                 # os.mkdir(tmp_dir)
                 sim_id, data = loop.run_until_complete(
                     self._linac.async_run(1, self._mapping))
@@ -164,7 +165,7 @@ class TestLinacTwoBeamLine(unittest.TestCase):
         }, self._linac.compile(mapping))
 
     @patch('liso.simulation.beamline.Beamline._update_statistics')
-    @patch('liso.simulation.beamline.Beamline._run_core')
+    @patch('liso.simulation.beamline.Beamline._run_sim')
     def testRun(self, mocked_run_core, mocked_update_statistics):
         mapping = self._mapping
         with patch.object(
@@ -184,7 +185,7 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                         mocked_gun_gipf.assert_not_called()
                         mocked_chicane_gipf.assert_called_once_with(mocked_gun_uo(), self._tmp_dir)
 
-    @patch('liso.simulation.beamline.Beamline._async_run_core')
+    @patch('liso.simulation.beamline.Beamline._async_run_sim')
     def testAsyncRun(self, mocked_async_run_core):
         sim_id_gt = 10
         mapping = self._mapping
@@ -209,7 +210,7 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                             self._linac.async_run(sim_id_gt, mapping))
 
                         self.assertEqual(2, mocked_async_run_core.call_count)
-                        actual_tmp_dir = osp.join(self._tmp_dir, f"tmp0000{sim_id_gt}")
+                        actual_tmp_dir = Path(self._tmp_dir, f"tmp0000{sim_id_gt}")
                         mocked_gun_uo.assert_called_once_with(actual_tmp_dir)
                         mocked_chicane_uo.assert_called_once_with(actual_tmp_dir)
 
@@ -224,3 +225,13 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                         self.assertDictEqual(
                             {'gun/out': mocked_gun_uo(),
                              'chicane/out': mocked_chicane_uo()}, data['phasespace'])
+
+    @patch("os.listdir")
+    def testCheckTempSwd(self, mocked_listdir):
+        mocked_listdir.return_value = ['tmp000005', 'tmp000016']
+        with self.assertRaisesRegex(FileExistsError, 'tmp000005'):
+            self._linac.check_temp_swd(5, 15)
+        with self.assertRaisesRegex(FileExistsError, 'tmp000016'):
+            self._linac.check_temp_swd(6, 20)
+        self._linac.check_temp_swd(6, 15)
+        self._linac.check_temp_swd(1, 4)

@@ -63,6 +63,8 @@ class LinacScan(AbstractScan):
         tasks = set()
         n_pulses = len(sequence)
 
+        self._linac.check_temp_swd(start_id, start_id + n_pulses)
+
         count = 0
         while True:
             if count < n_pulses:
@@ -112,7 +114,11 @@ class LinacScan(AbstractScan):
         :param timeout: Timeout in seconds for running a single simulation.
             None for no timeout.
 
-        :raises LisoRuntimeError: If generation of parameter sequence fails.
+        :raises ValueError: If generation of parameter sequence fails.
+        :raises FileExistsError: If there is already any directory which has
+            the same name as the temporary simulation directory to be created.
+        :raises LisoRuntimeError: If any Beamline of the Linac cannot create
+            a temporary directory to run simulation.
         """
         if not self._params:
             raise ValueError("No scan parameters specified!")

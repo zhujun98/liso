@@ -92,7 +92,7 @@ class AbstractScan(abc.ABC):
     def _generate_param_sequence(self, cycles: int) -> list:
         """Generate a sequence of parameter combinations for scan.
 
-        :raises LisoRuntimeError: If generation of parameter sequence fails.
+        :raises ValueError: If generation of parameter sequence fails.
         """
         if not self._params:
             return []
@@ -110,7 +110,7 @@ class AbstractScan(abc.ABC):
             if seq is not None:
                 return seq
 
-        raise RuntimeError(
+        raise ValueError(
             "Failed to a parameter sequence with enough distance!")
 
     def summarize(self):

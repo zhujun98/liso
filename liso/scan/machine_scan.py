@@ -129,7 +129,7 @@ class MachineScan(AbstractScan):
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
 
-        :raises LisoRuntimeError: If generation of parameter sequence fails.
+        :raises ValueError: If generation of parameter sequence fails.
         """
         if not self._params:
             raise ValueError("No scan parameters specified!")
