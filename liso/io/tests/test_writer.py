@@ -1,8 +1,8 @@
 # pylint: disable=no-member
-import unittest
-import tempfile
-import pathlib
 from datetime import datetime
+from pathlib import Path
+import tempfile
+import unittest
 
 import h5py
 import pandas as pd
@@ -81,7 +81,7 @@ class TestSimWriter(unittest.TestCase):
                                  {'gun/gun_gradient': 10 * i, 'gun/gun_phase': 0.1 * i},
                                  {'gun/out': ps})
 
-            path = pathlib.Path(tmp_dir)
+            path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
             self.assertListEqual(
                 [f"SIM-G01-S00000{i}.hdf5" for i in range(3)], files
@@ -216,7 +216,7 @@ class TestExpWriter(unittest.TestCase):
                          "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)}
                     )
 
-            path = pathlib.Path(tmp_dir)
+            path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
             self.assertListEqual(
                 [f"RAW-{path.name.upper()}-G11-S00000{i}.hdf5" for i in range(3)], files

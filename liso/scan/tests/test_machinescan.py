@@ -1,8 +1,8 @@
 # pylint: disable=attribute-defined-outside-init
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
-import tempfile
-import pathlib
 
 import numpy as np
 
@@ -103,7 +103,7 @@ class TestMachineScan(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.scan(2, output_dir=tmp_dir)
             sc.scan(2, output_dir=tmp_dir)
-            path = pathlib.Path(tmp_dir)
+            path = Path(tmp_dir)
             self.assertListEqual([path.joinpath(f'r000{i}') for i in [1, 2]],
                                  sorted((path.iterdir())))
 
@@ -123,13 +123,13 @@ class TestMachineScan(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.scan(10, output_dir=tmp_dir)
-            path = pathlib.Path(tmp_dir).joinpath('r0001')
+            path = Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             sc.scan(10, output_dir=tmp_dir, chmod=False)
-            path = pathlib.Path(tmp_dir).joinpath('r0001')
+            path = Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
 
@@ -147,7 +147,7 @@ class TestMachineScan(unittest.TestCase):
             sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
-            path = pathlib.Path(tmp_dir)
+            path = Path(tmp_dir)
 
             n_pulses = 40
             sc.scan(n_pulses, output_dir=tmp_dir)

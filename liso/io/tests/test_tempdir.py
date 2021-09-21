@@ -1,6 +1,6 @@
 import os
 import os.path as osp
-import pathlib
+from pathlib import Path
 import tempfile
 import unittest
 
@@ -30,7 +30,7 @@ class TestTempDir(unittest.TestCase):
         with TempSimulationDirectory(tmp_dir) as swd:
             self.assertEqual(tmp_dir, swd)
             self.assertTrue(osp.isdir(tmp_dir))
-            pathlib.Path(osp.join(tmp_dir, "tmp_file")).touch()
+            Path(osp.join(tmp_dir, "tmp_file")).touch()
             os.mkdir(osp.join(tmp_dir, "tmp_folder"))
         self.assertFalse(osp.isdir(tmp_dir))
 

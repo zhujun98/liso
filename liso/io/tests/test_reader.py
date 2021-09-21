@@ -1,6 +1,6 @@
-import unittest
+from pathlib import Path
 import tempfile
-import pathlib
+import unittest
 
 import numpy as np
 import pandas as pd
@@ -66,7 +66,7 @@ class TestSimReader(unittest.TestCase):
                                  {'gun/gun_gradient': 10 * i, 'gun/gun_phase': 20 * i},
                                  {'gun/out1': ps1, 'gun/out2': ps2})
 
-            path = pathlib.Path(tmp_dir)
+            path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
 
             with self.subTest("Test opening a single file"):

@@ -8,7 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import abc
 from datetime import datetime
 import os
-import pathlib
+from pathlib import Path
 from string import Template
 from typing import Union
 
@@ -17,7 +17,7 @@ import h5py
 from ..proc import Phasespace
 
 
-class _BaseWriter(abc.ABC):
+class WriterBase(abc.ABC):
     """Base class for HDF5 writer."""
 
     # cap the number of sequence files
@@ -25,7 +25,7 @@ class _BaseWriter(abc.ABC):
 
     _IMAGE_CHUNK = (16, 512)
 
-    def __init__(self, path: Union[str, pathlib.Path], *,
+    def __init__(self, path: Union[str, Path], *,
                  chmod: bool = True,
                  group: int = 1,
                  chunk_size: int = 50,
@@ -49,8 +49,7 @@ class _BaseWriter(abc.ABC):
         self._chunk_size = chunk_size
         self._max_events_per_file = max_events_per_file
 
-        self._path = path if isinstance(path, pathlib.Path) \
-            else pathlib.Path(path)
+        self._path = path if isinstance(path, Path) else Path(path)
         self._fp = None
 
         self._chmod = chmod
@@ -93,12 +92,12 @@ class _BaseWriter(abc.ABC):
             self._fp = None
 
 
-class SimWriter(_BaseWriter):
+class SimWriter(WriterBase):
     """Write simulated data in HDF5 file."""
 
     _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
 
-    def __init__(self, path: Union[str, pathlib.Path], *,
+    def __init__(self, path: Union[str, Path], *,
                  schema: tuple,
                  max_events_per_file: int = 10000, **kwargs):
         """Initialization.
@@ -107,8 +106,8 @@ class SimWriter(_BaseWriter):
         :param schema: (control, phasespace) data schema.
         :param max_events_per_file: Maximum events stored in a single file.
         """
-        super().__init__(path,
-                         max_events_per_file=max_events_per_file, **kwargs)
+        super().__init__(
+            path, max_events_per_file=max_events_per_file, **kwargs)
 
         self._sim_ids = []
 
@@ -147,7 +146,8 @@ class SimWriter(_BaseWriter):
                         shape=(self._chunk_size, v['macroparticles']),
                         dtype='<f8',
                         chunks=(self._chunk_size, v['macroparticles']),
-                        maxshape=(self._max_events_per_file, v['macroparticles']))
+                        maxshape=(self._max_events_per_file,
+                                  v['macroparticles']))
             else:
                 fp.create_dataset(
                     f"{channel_category.upper()}/{k}",
@@ -207,11 +207,11 @@ class SimWriter(_BaseWriter):
         fp["METADATA/updateDate"][()] = datetime.now().isoformat()
 
 
-class ExpWriter(_BaseWriter):
+class ExpWriter(WriterBase):
 
     _FILE_ROOT_NAME = Template("RAW-$run-G$group-S$seq.hdf5")
 
-    def __init__(self, path: Union[str, pathlib.Path], *,
+    def __init__(self, path: Union[str, Path], *,
                  schema: tuple,
                  max_events_per_file: int = 500, **kwargs):
         """Initialization.
@@ -220,8 +220,8 @@ class ExpWriter(_BaseWriter):
         :param schema: (control, phasespace) data schema.
         :param max_events_per_file: Maximum events stored in a single file.
         """
-        super().__init__(path,
-                         max_events_per_file=max_events_per_file, **kwargs)
+        super().__init__(
+            path, max_events_per_file=max_events_per_file, **kwargs)
 
         self._control_schema, self._diagnostic_schema = schema
 

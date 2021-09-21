@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
 import multiprocessing
-import pathlib
+from pathlib import Path
 import sys
 from typing import Optional
 import traceback
@@ -40,14 +40,18 @@ class LinacScan(BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    def _create_output_dir(self, parent: str):
-        parent_path = pathlib.Path(parent)
+    def _create_output_dir(self, parent: str) -> Path:
+        parent_path = Path(parent)
         # It is allowed to use an existing directory, but not an existing file.
         parent_path.mkdir(exist_ok=True)
         return parent_path
 
-    async def _scan_imp(self, cycles: int, output_dir: str, *,  # pylint: disable=too-many-locals
-                        start_id: int, n_tasks: int, group: int, chmod: bool,
+    async def _scan_imp(self, cycles: int,  # pylint: disable=too-many-locals
+                        output_dir: Path, *,
+                        start_id: int,
+                        n_tasks: int,
+                        group: int,
+                        chmod: bool,
                         **kwargs) -> None:
         tasks = set()
         sequence = self._generate_param_sequence(cycles)
