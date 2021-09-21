@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 from collections.abc import Mapping
 from collections import defaultdict, OrderedDict
-from typing import Optional
+from typing import Optional, Tuple
 
 from .beamline import create_beamline
 
@@ -132,7 +132,8 @@ class Linac(Mapping):
         for bl in self._beamlines.values():
             out = bl.run(out, timeout=timeout, n_workers=n_workers)
 
-    async def async_run(self, sim_id, mapping, *, timeout=None):
+    async def async_run(self, sim_id, mapping, *,
+                        timeout=None) -> Tuple[int, dict]:
         controls = self.compile(mapping)
 
         out = None
@@ -140,7 +141,7 @@ class Linac(Mapping):
         for name, bl in self._beamlines.items():
             out = await bl.async_run(out, f'tmp{sim_id:06d}', timeout=timeout)
             phasespaces[f"{name}/out"] = out
-        return sim_id, controls, phasespaces
+        return sim_id, {'control': controls, 'phasespace': phasespaces}
 
     def status(self):
         """Return the status of the linac."""

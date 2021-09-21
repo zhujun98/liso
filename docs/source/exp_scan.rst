@@ -38,7 +38,7 @@ control system, please refer to :ref:`interface with doocs`.
     sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE', lb=-3, ub=3)
     sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE', lb=182, ub=186)
 
-    sc.scan(1000, tasks=8)
+    sc.scan(1000, n_tasks=8)
 
 
 Check how to define different :ref:`scan parameters`.

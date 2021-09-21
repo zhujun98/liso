@@ -89,10 +89,16 @@ class DoocsInterface(MachineInterface):
         return list(self._diagnostics)
 
     @property
-    def schema(self) -> Tuple[dict, dict]:
+    def schema(self) -> dict:
         """Return the schema of all DOOCS addresses."""
-        return ({k: v.value_schema() for k, v in self._controls.items()},
-                {k: v.value_schema() for k, v in self._diagnostics.items()})
+        return {
+            "control": {
+                k: v.value_schema() for k, v in self._controls.items()
+            },
+            "diagnostic": {
+                k: v.value_schema() for k, v in self._diagnostics.items()
+            }
+        }
 
     def _check_address(self, address: str) -> None:
         if address in self._controls:

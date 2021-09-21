@@ -12,7 +12,7 @@ from distutils.spawn import find_executable
 import os.path as osp
 from pathlib import Path
 import subprocess
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -200,7 +200,7 @@ class Beamline(ABC):
             f"executable [{filepath}] is not available"
         return executable
 
-    def _update_output(self, swd: Optional[str, Path]):
+    def _update_output(self, swd: Union[str, Path]):
         """Analyse output particle file.
 
         Also prepare the initial particle file for the downstream simulation.

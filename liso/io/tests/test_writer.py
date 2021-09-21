@@ -47,18 +47,18 @@ class TestSimWriter(unittest.TestCase):
         sim_ids_gt = self._sim_ids_gt
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            schema = (
-                {
+            schema = {
+                "control": {
                     "gun/gun_gradient": {"type": "<f4"},
                     "gun/gun_phase": {"type": "<f4"}
                 },
-                {
+                "phasespace": {
                     "gun/out": {
                         "macroparticles": n_particles,
                         "type": "phasespace"
                     }
                 }
-            )
+            }
 
             with self.subTest("Test invalid input in writer"):
                 with self.assertRaisesRegex(ValueError, "cannot be smaller than chunk_size"):
@@ -77,9 +77,14 @@ class TestSimWriter(unittest.TestCase):
                                           't']), 1.0)
 
                 for i, sid in enumerate(sim_ids_gt):
-                    writer.write(sid,
-                                 {'gun/gun_gradient': 10 * i, 'gun/gun_phase': 0.1 * i},
-                                 {'gun/out': ps})
+                    writer.write(sid, {
+                        'control': {
+                            'gun/gun_gradient': 10 * i, 'gun/gun_phase': 0.1 * i
+                        },
+                        'phasespace': {
+                            'gun/out': ps
+                        }
+                    })
 
             path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
@@ -90,9 +95,14 @@ class TestSimWriter(unittest.TestCase):
             with self.subTest("Initialize writer when hdf5 file already exits"):
                 with SimWriter(tmp_dir, schema=schema) as writer:
                     with self.assertRaises(OSError):
-                        writer.write(0,
-                                     {'gun/gun_gradient': 0, 'gun/gun_phase': 0},
-                                     {'gun/out': ps})
+                        writer.write(0, {
+                            'control': {
+                                'gun/gun_gradient': 0, 'gun/gun_phase': 0
+                            },
+                            'phasespace': {
+                                'gun/out': ps
+                            }
+                        })
 
             with self.subTest("Test data in the file"):
                 self._check_data_files(path, files)
@@ -103,9 +113,14 @@ class TestSimWriter(unittest.TestCase):
                     ps = Phasespace(pd.DataFrame(
                         np.ones((n_particles + 1, 7)),
                         columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
-                    writer.write(0,
-                                {'gun/gun_gradient': 1, 'gun/gun_phase': 2},
-                                {'gun/out': ps})
+                    writer.write(0, {
+                        'control': {
+                            'gun/gun_gradient': 1, 'gun/gun_phase': 2
+                        },
+                        'phasespace': {
+                            'gun/out': ps
+                        }
+                    })
 
                     for col in ['x', 'y', 'z', 'px', 'py', 'pz', 't']:
                         self.assertFalse(
@@ -209,12 +224,15 @@ class TestExpWriter(unittest.TestCase):
                            max_events_per_file=file_size) as writer:
 
                 for i, pid in enumerate(pulse_ids_gt):
-                    writer.write(
-                        pid,
-                        {"XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i},
-                        {"XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
-                         "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)}
-                    )
+                    writer.write(pid, {
+                        'control': {
+                            "XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i
+                        },
+                        'diagnostic': {
+                            "XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
+                            "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)
+                        }
+                    })
 
             path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])

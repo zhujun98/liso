@@ -31,12 +31,12 @@ class TestSimReader(unittest.TestCase):
         sim_ids_gt = self._sim_ids_gt
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            schema = (
-                {
+            schema = {
+                "control": {
                     "gun/gun_gradient": {"type": "<f4"},
                     "gun/gun_phase": {"type": "<f4"}
                 },
-                {
+                "phasespace": {
                     "gun/out1": {
                         "macroparticles": n_particles,
                         "type": "phasespace"
@@ -46,7 +46,7 @@ class TestSimReader(unittest.TestCase):
                         "type": "phasespace"
                     }
                 }
-            )
+            }
 
             with SimWriter(tmp_dir,
                            schema=schema,
@@ -62,9 +62,14 @@ class TestSimReader(unittest.TestCase):
                         pd.DataFrame(np.ones((n_particles, 7)) * i * 0.1,
                                      columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 1.0)
 
-                    writer.write(sid,
-                                 {'gun/gun_gradient': 10 * i, 'gun/gun_phase': 20 * i},
-                                 {'gun/out1': ps1, 'gun/out2': ps2})
+                    writer.write(sid, {
+                        'control': {
+                            'gun/gun_gradient': 10 * i, 'gun/gun_phase': 20 * i
+                        },
+                        'phasespace': {
+                            'gun/out1': ps1, 'gun/out2': ps2
+                        }
+                    })
 
             path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
@@ -262,12 +267,15 @@ class TestExpReader(unittest.TestCase):
                            max_events_per_file=file_size) as writer:
 
                 for i, pid in enumerate(pulse_ids_gt):
-                    writer.write(
-                        pid,
-                        {"XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i},
-                        {"XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
-                         "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)}
-                    )
+                    writer.write(pid, {
+                        'control': {
+                            "XFEL.A/B/C/D": 10 * i, "XFEL.A/B/C/E": 0.1 * i
+                        },
+                        'diagnostic': {
+                            "XFEL.H/I/J/K": np.ones(s1, dtype=np.uint16),
+                            "XFEL.H/I/J/L": np.ones(s2, dtype=np.float32)
+                        }
+                    })
 
             data = open_run(tmp_dir)
             self.assertIsInstance(data, ExpDataCollection)

@@ -7,10 +7,15 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import deque, OrderedDict
+import sys
+from typing import Callable
+import traceback
 
 import numpy as np
 
 from .scan_param import JitterParam, SampleParam, StepParam
+from ..exceptions import LisoRuntimeError
+from ..io.writer import WriterBase
 from ..logging import logger
 
 
@@ -84,7 +89,11 @@ class AbstractScan(abc.ABC):
 
         return list(ret_queue)
 
-    def _generate_param_sequence(self, cycles):
+    def _generate_param_sequence(self, cycles: int) -> list:
+        """Generate a sequence of parameter combinations for scan.
+
+        :raises LisoRuntimeError: If generation of parameter sequence fails.
+        """
         if not self._params:
             return []
 
@@ -135,6 +144,25 @@ class AbstractScan(abc.ABC):
         return text
 
     @abc.abstractmethod
-    def scan(self, *args, **kwargs):
+    def scan(self, *args, **kwargs) -> None:
         """Run the scan."""
-        pass
+
+    @staticmethod
+    def _collect_result(writer: WriterBase, collector: Callable, *args) -> None:
+        """Collect result and write into file."""
+        try:
+            writer.write(*collector(*args))
+        except LisoRuntimeError as e:
+            _, _, exc_traceback = sys.exc_info()
+            logger.debug(
+                "%s, %s",
+                repr(traceback.format_tb(exc_traceback)),
+                str(e))
+            logger.warning(str(e))
+        except Exception as e:
+            _, _, exc_traceback = sys.exc_info()
+            logger.error(
+                "(Unexpected exceptions): %s, %s",
+                repr(traceback.format_tb(exc_traceback)),
+                str(e))
+            raise

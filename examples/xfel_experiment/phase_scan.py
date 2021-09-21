@@ -50,4 +50,4 @@ sc = MachineScan(m)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.A1.I1/PHASE.SAMPLE', lb=-3, ub=3)
 # sc.add_param('XFEL.RF/LLRF.CONTROLLER/VS.AH1.I1/PHASE.SAMPLE', lb=182, ub=186)
 
-sc.scan(args.pulses, tasks=args.tasks)
+sc.scan(args.pulses, n_tasks=args.tasks)

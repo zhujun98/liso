@@ -74,18 +74,18 @@ class TestDoocsInterface(unittest.TestCase):
 
         with self.subTest("Test schema"):
             m = self._machine
-            control_schema, diagnostic_schema = m.schema
+            schema = m.schema
             self.assertDictEqual(
                 {'XFEL.A/B/C/D': {'default': 0.0, 'type': '<f4',
                                   'maximum': np.finfo(np.float32).max,
                                   'minimum': np.finfo(np.float32).min},
                  'XFEL.A/B/C/E': {'default': 0.0, 'type': '<f8'}},
-                control_schema
+                schema['control']
             )
             self.assertDictEqual(
                 {'XFEL.H/I/J/K': {'dtype': '<u2', 'shape': (4, 4), 'type': 'NDArray'},
                  'XFEL.H/I/J/L': {'dtype': '<f4', 'shape': (5, 6), 'type': 'NDArray'}},
-                diagnostic_schema
+                schema['diagnostic']
             )
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")

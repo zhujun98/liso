@@ -97,15 +97,16 @@ class TestLinacOneBeamLine(unittest.TestCase):
 
                 tmp_dir = osp.join(self._tmp_dir, "tmp000001")
                 # os.mkdir(tmp_dir)
-                sim_id, controls, phasespaces = loop.run_until_complete(
+                sim_id, data = loop.run_until_complete(
                     self._linac.async_run(1, self._mapping))
 
                 mocked_uo.assert_called_once_with(tmp_dir)
                 mocked_gipf.assert_not_called()
 
                 self.assertEqual(1, sim_id)
-                self.assertDictEqual({'gun/gun_gradient': 1.0, 'gun/gun_phase': 2.0}, controls)
-                self.assertDictEqual({'gun/out': mocked_uo()}, phasespaces)
+                self.assertDictEqual({'gun/gun_gradient': 1.0, 'gun/gun_phase': 2.0},
+                                     data['control'])
+                self.assertDictEqual({'gun/out': mocked_uo()}, data['phasespace'])
 
 
 class TestLinacTwoBeamLine(unittest.TestCase):
@@ -204,7 +205,7 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                         future.set_result(object())
                         mocked_async_run_core.return_value = future
 
-                        sim_id, controls, phasespaces = loop.run_until_complete(
+                        sim_id, data = loop.run_until_complete(
                             self._linac.async_run(sim_id_gt, mapping))
 
                         self.assertEqual(2, mocked_async_run_core.call_count)
@@ -219,7 +220,7 @@ class TestLinacTwoBeamLine(unittest.TestCase):
                         self.assertEqual(sim_id_gt, sim_id)
                         self.assertDictEqual(
                             {'gun/gun_gradient': 1.0, 'gun/gun_phase': 1.0,
-                             'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0}, controls)
+                             'chicane/MQZM1_G': 1.0, 'chicane/MQZM2_G': 1.0}, data['control'])
                         self.assertDictEqual(
                             {'gun/out': mocked_gun_uo(),
-                             'chicane/out': mocked_chicane_uo()}, phasespaces)
+                             'chicane/out': mocked_chicane_uo()}, data['phasespace'])
