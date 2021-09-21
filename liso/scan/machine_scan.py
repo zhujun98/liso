@@ -18,7 +18,7 @@ from typing import Optional
 
 import numpy as np
 
-from .base_scan import BaseScan
+from .abstract_scan import AbstractScan
 from ..exceptions import LisoRuntimeError
 from ..io import ExpWriter
 from ..logging import logger
@@ -29,7 +29,7 @@ class ScanPolicy(enum.Enum):
     READ_AFTER_DELAY = 1
 
 
-class MachineScan(BaseScan):
+class MachineScan(AbstractScan):
     """Class for performing scans with a real machine."""
 
     def __init__(self, interface: MachineInterface,
@@ -53,7 +53,9 @@ class MachineScan(BaseScan):
         self._policy = policy
         self._read_delay = read_delay
 
-    def _create_output_dir(self, parent: str) -> Path:
+    @staticmethod
+    def _create_output_dir(parent: str) -> Path:
+        """Maybe create a directory to store the output data."""
         parent_path = Path(parent)
         # It is allowed to use an existing parent directory,
         # but not a run folder.
@@ -77,7 +79,7 @@ class MachineScan(BaseScan):
              chmod: bool = True,
              group: int = 1,
              seed: Optional[int] = None):
-        """Start a parameter scan.
+        """Run the scan.
 
         :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size

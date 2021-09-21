@@ -14,12 +14,12 @@ from .scan_param import JitterParam, SampleParam, StepParam
 from ..logging import logger
 
 
-class BaseScan(abc.ABC):
+class AbstractScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
         self._param_dists = OrderedDict()
 
-    def _check_param_name(self, name: str) -> str:  # pylint: disable=no-self-use
+    def _parse_param_name(self, name: str) -> str:  # pylint: disable=no-self-use
         return name
 
     def add_param(self, name: str, *, dist=-1., **kwargs):
@@ -31,7 +31,7 @@ class BaseScan(abc.ABC):
         :param kwargs: Keyword arguments will be passed to the constructor
             of the appropriate :class:`liso.scan.scan_param.ScanParam`.
         """
-        name = self._check_param_name(name)
+        name = self._parse_param_name(name)
 
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
@@ -135,5 +135,6 @@ class BaseScan(abc.ABC):
         return text
 
     @abc.abstractmethod
-    def _create_output_dir(self, parent):
+    def scan(self, *args, **kwargs):
+        """Run the scan."""
         pass

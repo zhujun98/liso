@@ -14,14 +14,14 @@ import traceback
 
 import numpy as np
 
-from .base_scan import BaseScan
+from .abstract_scan import AbstractScan
 from ..exceptions import LisoRuntimeError
 from ..io import SimWriter
 from ..simulation import Linac
 from ..logging import logger
 
 
-class LinacScan(BaseScan):
+class LinacScan(AbstractScan):
     """Class for performing scans in simulations."""
     def __init__(self, linac: Linac) -> None:
         """Initialization.
@@ -32,7 +32,7 @@ class LinacScan(BaseScan):
 
         self._linac = linac
 
-    def _check_param_name(self, name: str) -> str:
+    def _parse_param_name(self, name: str) -> str:
         """Override."""
         splitted = name.split('/', 1)
         first_bl = next(iter(self._linac))
@@ -40,7 +40,9 @@ class LinacScan(BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    def _create_output_dir(self, parent: str) -> Path:
+    @staticmethod
+    def _create_output_dir(parent: str) -> Path:
+        """Maybe create a directory to store the output data."""
         parent_path = Path(parent)
         # It is allowed to use an existing directory, but not an existing file.
         parent_path.mkdir(exist_ok=True)
@@ -119,7 +121,7 @@ class LinacScan(BaseScan):
              group: int = 1,
              seed: Optional[int] = None,
              **kwargs) -> None:
-        """Start a parameter scan.
+        """Run the scan.
 
         :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
