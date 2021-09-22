@@ -20,52 +20,72 @@ from ..proc import Phasespace
 class WriterBase(abc.ABC):
     """Base class for HDF5 writer."""
 
+    _FILE_ROOT_NAME = Template("$group-$seq.hdf5")
+
     # cap the number of sequence files
     _MAX_SEQUENCE = 99
 
     _IMAGE_CHUNK = (16, 512)
 
-    def __init__(self, path: Union[str, Path], *,
+    def __init__(self, path: Union[str, Path], schema: dict, *,
                  chmod: bool = True,
                  group: int = 1,
                  chunk_size: int = 50,
-                 max_events_per_file: int):
+                 max_events_per_file: int = 1000):
         """Initialization.
 
         :param path: Path of the simulation/run folder.
+        :param schema: Data schema.
         :param chmod: True for changing the permission to 400 after
             finishing writing.
         :param group: Writer group (1-99).
-        :param chunk_size: Size of the first dimention of a chunk in
+        :param chunk_size: Size of the first dimension of a chunk in
             a dataset.
         :param max_events_per_file: Maximum events stored in a single file.
 
         :raise OSError if the file already exists.
         """
-        if max_events_per_file < chunk_size:
-            raise ValueError(
-                "max_events_per_file cannot be smaller than chunk_size")
-
-        self._ids = []
-
-        self._chunk_size = chunk_size
-        self._max_events_per_file = max_events_per_file
-
         self._path = path if isinstance(path, Path) else Path(path)
         self._fp = None
-
         self._chmod = chmod
-
         self._group = group
         if not isinstance(group, int) or group < 1 or group > 99:
             raise ValueError("group must be an integer within [1, 99]")
+        self._chunk_size = chunk_size
+
+        if max_events_per_file < chunk_size:
+            raise ValueError(
+                "max_events_per_file cannot be smaller than chunk_size")
+        self._max_events_per_file = max_events_per_file
+
+        self._schema = schema
+
+        self._data_channels = []
+        self._ids = []
 
         self._index = 0
         self._file_count = 0
 
     @abc.abstractmethod
-    def _create_new_file(self):
+    def _next_file(self) -> Path:
+        pass
+
+    @abc.abstractmethod
+    def _init_channel_data(self, channel: str) -> None:
+        pass
+
+    def _initialize_next_file(self):
         """Create a new file in the run folder."""
+        self._fp = h5py.File(self._next_file(), 'w-')
+
+        self._file_count += 1
+        self._ids.clear()
+
+        self._init_meta_data()
+        for ch in self._data_channels:
+            self._init_channel_data(ch)
+
+        return self._fp
 
     def _init_meta_data(self):
         fp = self._fp
@@ -99,43 +119,26 @@ class WriterBase(abc.ABC):
 
 
 class SimWriter(WriterBase):
-    """Write simulated data in HDF5 file."""
+    """Write simulated data in HDF5 files."""
 
     _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
 
-    def __init__(self, path: Union[str, Path], *,
-                 schema: dict,
-                 max_events_per_file: int = 10000, **kwargs):
-        """Initialization.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        :param path: Path of the simulation folder.
-        :param schema: Data schema.
-        :param max_events_per_file: Maximum events stored in a single file.
-        """
-        super().__init__(
-            path, max_events_per_file=max_events_per_file, **kwargs)
+        # TODO: consider moving it into schema
+        self._data_channels = ["control", "phasespace"]
 
-        self._schema = schema
-
-    def _create_new_file(self):
+    def _next_file(self) -> Path:
         """Override."""
-        next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
+        return self._path.joinpath(self._FILE_ROOT_NAME.substitute(
             group=f"{self._group:02d}", seq=f"{self._file_count:06d}"))
-        self._file_count += 1
-        self._ids.clear()
 
-        self._fp = h5py.File(next_file, 'w-')
-
-        self._init_meta_data()
-        self._init_channel_data("control", self._schema["control"])
-        self._init_channel_data("phasespace", self._schema["phasespace"])
-
-        return self._fp
-
-    def _init_channel_data(self, channel_category, schema):
+    def _init_channel_data(self, channel: str) -> None:
         fp = self._fp
+        schema = self._schema[channel]
 
-        meta_ch = f"METADATA/{channel_category}Channel"
+        meta_ch = f"METADATA/{channel}Channel"
         fp.create_dataset(meta_ch,
                           dtype=h5py.string_dtype(),
                           shape=(len(schema),))
@@ -146,7 +149,7 @@ class SimWriter(WriterBase):
             if dtype == 'phasespace':
                 for col in Phasespace.columns:
                     fp.create_dataset(
-                        f"{channel_category.upper()}/{col.upper()}/{k}",
+                        f"{channel.upper()}/{col.upper()}/{k}",
                         shape=(self._chunk_size, v['macroparticles']),
                         dtype='<f8',
                         chunks=(self._chunk_size, v['macroparticles']),
@@ -154,7 +157,7 @@ class SimWriter(WriterBase):
                                   v['macroparticles']))
             else:
                 fp.create_dataset(
-                    f"{channel_category.upper()}/{k}",
+                    f"{channel.upper()}/{k}",
                     shape=(self._chunk_size,),
                     dtype=v['type'],
                     chunks=(self._chunk_size,),
@@ -174,7 +177,7 @@ class SimWriter(WriterBase):
             # close the current file
             self.close()
             # create a new one
-            fp = self._create_new_file()
+            fp = self._initialize_next_file()
             self._index = idx = 0
         elif idx % chunk_size == 0:
             n_chunks = idx // chunk_size + 1
@@ -211,44 +214,28 @@ class SimWriter(WriterBase):
 
 
 class ExpWriter(WriterBase):
+    """Write experimental data in HDF5 files."""
 
     _FILE_ROOT_NAME = Template("RAW-$run-G$group-S$seq.hdf5")
 
-    def __init__(self, path: Union[str, Path], *,
-                 schema: dict,
-                 max_events_per_file: int = 500, **kwargs):
-        """Initialization.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        :param path: Path of the simulation folder.
-        :param schema: Data schema.
-        :param max_events_per_file: Maximum events stored in a single file.
-        """
-        super().__init__(
-            path, max_events_per_file=max_events_per_file, **kwargs)
+        self._data_channels = ["control", "diagnostic"]
 
-        self._schema = schema
-
-    def _create_new_file(self):
+    def _next_file(self) -> Path:
         """Override."""
-        next_file = self._path.joinpath(self._FILE_ROOT_NAME.substitute(
+        return self._path.joinpath(self._FILE_ROOT_NAME.substitute(
             run=self._path.name.upper(),
             group=f"{self._group:02d}",
             seq=f"{self._file_count:06d}"))
-        self._file_count += 1
-        self._ids.clear()
 
-        self._fp = h5py.File(next_file, 'w-')
-
-        self._init_meta_data()
-        self._init_channel_data("control", self._schema["control"])
-        self._init_channel_data("diagnostic", self._schema["diagnostic"])
-
-        return self._fp
-
-    def _init_channel_data(self, channel_category, schema):
+    def _init_channel_data(self, channel: str) -> None:
+        """Override."""
         fp = self._fp
+        schema = self._schema[channel]
 
-        meta_ch = f"METADATA/{channel_category}Channel"
+        meta_ch = f"METADATA/{channel}Channel"
         fp.create_dataset(meta_ch,
                           dtype=h5py.string_dtype(),
                           shape=(len(schema),))
@@ -265,14 +252,14 @@ class ExpWriter(WriterBase):
                     # TODO: finish it
                     chunk_size = (self._chunk_size, *v['shape'])
                 fp.create_dataset(
-                    f"{channel_category.upper()}/{k}",
+                    f"{channel.upper()}/{k}",
                     shape=(self._chunk_size, *v['shape']),
                     dtype=v['dtype'],
                     chunks=chunk_size,
                     maxshape=(self._max_events_per_file, *v['shape']))
             else:
                 fp.create_dataset(
-                    f"{channel_category.upper()}/{k}",
+                    f"{channel.upper()}/{k}",
                     shape=(self._chunk_size,),
                     dtype=v['type'],
                     chunks=(self._chunk_size,),
@@ -292,7 +279,7 @@ class ExpWriter(WriterBase):
             # close the current file
             self.close()
             # create a new one
-            fp = self._create_new_file()
+            fp = self._initialize_next_file()
             self._index = idx = 0
         elif idx % chunk_size == 0:
             n_chunks = idx // chunk_size + 1
