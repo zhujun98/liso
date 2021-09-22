@@ -9,6 +9,7 @@ from liso import EuXFELInterface, Phasespace
 from liso.experiment import doocs_channels as dc
 from liso.io import ExpWriter, SimWriter, open_run, open_sim
 from liso.io.reader import ExpDataCollection, SimDataCollection
+from liso.utils import changed_cwd
 
 
 class TestSimReader(unittest.TestCase):
@@ -47,8 +48,10 @@ class TestSimReader(unittest.TestCase):
                     }
                 }
             }
+            path = Path(tmp_dir)
+            path.joinpath('r0001').mkdir()
 
-            with SimWriter(tmp_dir,
+            with SimWriter(path.joinpath('r0001'),
                            schema=schema,
                            chunk_size=chunk_size,
                            max_events_per_file=file_size) as writer:
@@ -71,12 +74,9 @@ class TestSimReader(unittest.TestCase):
                         }
                     })
 
-            path = Path(tmp_dir)
-            files = sorted([f.name for f in path.iterdir()])
-
             with self.subTest("Test opening a single file"):
-                for i, file in enumerate(files):
-                    data = open_sim(path.joinpath(file))
+                for i, file in enumerate(sorted(path.joinpath('r0001').iterdir())):
+                    data = open_sim(file)
                     self.assertIsInstance(data, SimDataCollection)
                     data.info()
                     self._check_sim_metadata(data, i)
@@ -84,12 +84,16 @@ class TestSimReader(unittest.TestCase):
                     self._check_sim_iterate_over_data(data, i)
                     self._check_sim_access_data(data, i)
 
-            with self.subTest("Test opening a folder"):
-                data = open_sim(tmp_dir)
+            with self.subTest("Test opening a folder with absolute path"):
+                data = open_sim(path.joinpath("r0001"))
                 self._check_sim_metadata(data)
                 self._check_sim_get_control(data)
                 self._check_sim_iterate_over_data(data)
                 self._check_sim_access_data(data)
+
+            with self.subTest("Test opening a folder with relative path"):
+                with changed_cwd(tmp_dir):
+                    data = open_sim("r0001")
 
             with self.subTest("Test control channel data"):
                 with self.assertRaisesRegex(KeyError, 'No data was found for channel'):

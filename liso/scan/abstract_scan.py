@@ -7,6 +7,8 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import deque, OrderedDict
+from pathlib import Path
+import re
 import sys
 from typing import Callable
 import traceback
@@ -112,6 +114,26 @@ class AbstractScan(abc.ABC):
 
         raise ValueError(
             "Failed to a parameter sequence with enough distance!")
+
+    @staticmethod
+    def _create_output_dir(parent: str) -> Path:
+        """Maybe create a directory to store the output data."""
+        parent_path = Path(parent)
+        # It is allowed to use an existing parent directory,
+        # but not a run folder.
+        parent_path.mkdir(exist_ok=True)
+
+        next_run_index = 1  # starting from 1
+        for d in parent_path.iterdir():
+            # Here d could also be a file
+            if re.search(r'r\d{4}', d.name):
+                seq = int(d.name[1:])
+                if seq >= next_run_index:
+                    next_run_index = seq + 1
+
+        next_output_dir = parent_path.joinpath(f'r{next_run_index:04d}')
+        next_output_dir.mkdir(parents=True, exist_ok=False)
+        return next_output_dir
 
     def summarize(self):
         text = '\n' + '=' * 80 + '\n'

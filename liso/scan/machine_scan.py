@@ -10,9 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 import enum
 import multiprocessing
 from pathlib import Path
-import re
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -50,26 +49,6 @@ class MachineScan(AbstractScan):
                              f"Valid values are {[str(p) for p in ScanPolicy]}")
         self._policy = policy
         self._read_delay = read_delay
-
-    @staticmethod
-    def _create_output_dir(parent: str) -> Path:
-        """Maybe create a directory to store the output data."""
-        parent_path = Path(parent)
-        # It is allowed to use an existing parent directory,
-        # but not a run folder.
-        parent_path.mkdir(exist_ok=True)
-
-        next_run_index = 1  # starting from 1
-        for d in parent_path.iterdir():
-            # Here d could also be a file
-            if re.search(r'r\d{4}', d.name):
-                seq = int(d.name[1:])
-                if seq >= next_run_index:
-                    next_run_index = seq + 1
-
-        next_output_dir = parent_path.joinpath(f'r{next_run_index:04d}')
-        next_output_dir.mkdir(parents=True, exist_ok=False)
-        return next_output_dir
 
     def _touch(self,
                mapping: dict,
@@ -111,7 +90,7 @@ class MachineScan(AbstractScan):
 
     def scan(self, cycles: int = 1, *,  # pylint: disable=arguments-differ
              n_tasks: Optional[int] = None,
-             output_dir: str = "./",
+             output_dir: Union[str, Path] = "./",
              chmod: bool = True,
              group: int = 1,
              seed: Optional[int] = None):
@@ -145,19 +124,20 @@ class MachineScan(AbstractScan):
             raise RuntimeError("Failed to read all the initial values of "
                                "the scanned parameters!") from e
 
-        logger.info("Starting parameter scan with %s CPUs.", n_tasks)
-        logger.info(self.summarize())
-
-        np.random.seed(seed)
-
         output_dir = self._create_output_dir(output_dir)
 
         sequence = self._generate_param_sequence(cycles)
+
+        logger.info("Starting parameter scan with %s CPUs. "
+                    "Scan result will be save at %s",
+                    n_tasks, output_dir.resolve())
+        logger.info(self.summarize())
 
         with ExpWriter(output_dir,
                        schema=self._interface.schema,
                        chmod=chmod,
                        group=group) as writer:
+            np.random.seed(seed)
             loop = asyncio.get_event_loop()
             executor = ThreadPoolExecutor(max_workers=n_tasks)
             self._scan_imp(sequence, writer, loop, executor)

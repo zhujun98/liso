@@ -11,7 +11,7 @@ Python, this is required to run further parameter scan and optimization in LISO.
 Building an injector using ASTRA
 --------------------------------
 
-Prerequisite: `ASTRA <https://www.desy.de/~mpyflo/>`_.
+Prerequisite: `ASTRA <https://www.desy.de/~mpyflo/>`_ and :any:`configuration`
 
 .. code-block:: python
 

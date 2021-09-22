@@ -1,15 +1,11 @@
 """
-This is a basic example showing
+This is an example showing how to perform parameter scan in a simulation with
+more than one code being used.
 
-```
-python elegant_basic.py
-```
-
-Author: Jun Zhu
+# TODO: Modify parameters in ELEGANT.
 """
 from liso import Linac, LinacScan
-from liso.logging import logger
-logger.setLevel('DEBUG')
+
 
 linac = Linac(2000)
 

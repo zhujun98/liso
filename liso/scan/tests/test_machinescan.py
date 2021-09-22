@@ -144,14 +144,13 @@ class TestMachineScan(unittest.TestCase):
             sc.scan(10)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
             sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
-            path = Path(tmp_dir)
-
             n_pulses = 40
             sc.scan(n_pulses, output_dir=tmp_dir)
-            run = open_run(path.joinpath('r0001'))
+            run = open_run(tmp_dir.joinpath('r0001'))
             run.info()
 
             control_data = run.get_controls()
