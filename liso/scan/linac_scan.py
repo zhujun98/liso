@@ -13,7 +13,7 @@ from typing import Optional, Union
 import numpy as np
 
 from .abstract_scan import AbstractScan
-from ..io import SimWriter
+from ..io import create_next_run_folder, SimWriter
 from ..simulation import Linac
 from ..logging import logger
 
@@ -122,7 +122,7 @@ class LinacScan(AbstractScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        output_dir = self._create_output_dir(output_dir)
+        output_dir = create_next_run_folder(output_dir)
 
         schema = self._create_schema()
 
@@ -134,12 +134,12 @@ class LinacScan(AbstractScan):
                     n_tasks, output_dir.resolve())
         logger.info(self.summarize())
 
+        np.random.seed(seed)
+        loop = asyncio.get_event_loop()
         with SimWriter(output_dir,
                        schema=schema,
                        chmod=chmod,
                        group=group) as writer:
-            np.random.seed(seed)
-            loop = asyncio.get_event_loop()
             loop.run_until_complete(self._scan_imp(
                 sequence, writer,
                 start_id=start_id,

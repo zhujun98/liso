@@ -8,8 +8,9 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import ValidationError
 
@@ -34,6 +35,7 @@ except ModuleNotFoundError:
         pass
 
 from ..exceptions import LisoRuntimeError
+from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
 from ..utils import profiler
 from .machine_interface import MachineInterface
@@ -449,6 +451,39 @@ class DoocsInterface(MachineInterface):
         print(f"{title}:\n" + "\n".join([f"- {k}: {v}"
                                          for k, v in data.items()]))
 
+    def acquire(self, output_dir: Union[str, Path] = "./", *,
+                executor: Optional[ThreadPoolExecutor] = None,
+                chmod: bool = True,
+                group: int = 1):
+        """Acquiring correlated data and saving it to HDF5 files.
+
+        :param output_dir: Directory in which data for each run is
+            stored in in its own sub-directory.
+        :param executor: ThreadPoolExecutor instance.
+        :param chmod: True for changing the permission to 400 after
+            finishing writing.
+        :param group: Writer group.
+        """
+        output_dir = create_next_run_folder(output_dir)
+
+        logger.info("Starting acquiring data and saving data to %s",
+                    output_dir.resolve())
+
+        loop = asyncio.get_event_loop()
+        with ExpWriter(output_dir,
+                       schema=self.schema,
+                       chmod=chmod,
+                       group=group) as writer:
+            try:
+                while True:
+                    pid, data = self.read(loop, executor)
+                    ret = dict()
+                    for key, item in data.items():
+                        ret[key] = {k: v['data'] for k, v in item.items()}
+                    writer.write(pid, ret)
+            except KeyboardInterrupt:
+                logger.info("Stopping data acquisition ...")
+
     def monitor(self,
                 executor: Optional[ThreadPoolExecutor] = None,
                 correlate: bool = False) -> None:
@@ -465,6 +500,7 @@ class DoocsInterface(MachineInterface):
                 pid, data = self.read(
                     loop, executor, correlate=correlate)
 
+                # FIXME: change print to log?
                 print("-" * 80)
                 print("Macropulse ID:", pid)
                 self._print_channel_data(

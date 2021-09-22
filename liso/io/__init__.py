@@ -1,5 +1,5 @@
 from .reader import open_run, open_sim
-from .writer import ExpWriter, SimWriter
+from .writer import create_next_run_folder, ExpWriter, SimWriter
 from .tempdir import TempSimulationDirectory
 
 
