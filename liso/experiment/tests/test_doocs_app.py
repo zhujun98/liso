@@ -10,7 +10,7 @@ from liso.experiment.doocs_channels import AnyDoocsChannel
 
 @patch("time.sleep", side_effect=KeyboardInterrupt)
 @patch("liso.experiment.doocs_interface.DoocsInterface.read",
-       return_value=(None, dict(), dict()))
+       return_value=(None, {'control': dict(), 'diagnostic': dict()}))
 def test_monitor(patched_read, _):
     with patch("argparse.ArgumentParser.parse_args",
                return_value=Namespace(channels=None, file=None, correlate=False)):

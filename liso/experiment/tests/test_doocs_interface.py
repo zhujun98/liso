@@ -126,7 +126,9 @@ class TestDoocsInterface(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.subTest("Test normal"):
-            pid, control_data, diagnostic_data = self._machine.read(correlate=False)
+            pid, data = self._machine.read(correlate=False)
+            control_data = data['control']
+            diagnostic_data = data['diagnostic']
             assert patched_read.call_count == 4
             assert pid is None
             assert len(control_data) == 2
@@ -143,7 +145,9 @@ class TestDoocsInterface(unittest.TestCase):
                     raise np.random.choice([PyDoocsException, DoocsException])
                 return dataset[address]
             patched_read.side_effect = lambda x: _side_effect_read2(dataset, x)
-            pid, control_data, diagnostic_data = m.read(correlate=False)
+            pid, data = m.read(correlate=False)
+            control_data = data['control']
+            diagnostic_data = data['diagnostic']
             assert len(control_data) == 2
             assert len(diagnostic_data) == 2
             assert control_data['XFEL.A/B/C/D'] is None
@@ -197,7 +201,9 @@ class TestDoocsInterface(unittest.TestCase):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                 10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=matched_pid)
 
-            pid, control_data, diagnostic_data = m.read()
+            pid, data = m.read()
+            control_data = data['control']
+            diagnostic_data = data['diagnostic']
             assert pid == matched_pid
             assert len(control_data) == 2
             assert len(diagnostic_data) == 2
@@ -264,6 +270,7 @@ class TestDoocsInterface(unittest.TestCase):
 
         mocked_read = MagicMock(return_value=(None, dict(), dict()))
         self._machine.read = mocked_read
+        mocked_read.return_value = (1, {'control': {}, 'diagnostic': {}})
 
         self._machine.monitor()
         self.assertDictEqual({'correlate': False}, mocked_read.call_args_list[0][1])

@@ -408,7 +408,7 @@ class DoocsInterface(MachineInterface):
     def read(self,  # pylint: disable=arguments-differ
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlate: bool = True) -> Tuple[Optional[int], dict, dict]:
+             correlate: bool = True) -> Tuple[Optional[int], dict]:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
@@ -439,7 +439,10 @@ class DoocsInterface(MachineInterface):
         control_data = self._extract_readout(self._controls, data)
         diagnostic_data = self._extract_readout(self._diagnostics, data)
 
-        return pid, control_data, diagnostic_data
+        return pid, {
+            "control": control_data,
+            "diagnostic": diagnostic_data
+        }
 
     @staticmethod
     def _print_channel_data(title: str, data: Dict[str, dict]) -> None:
@@ -459,13 +462,15 @@ class DoocsInterface(MachineInterface):
             while True:
                 # The readout must be validated and this is rational of
                 # having the schema for each channel.
-                pid, controls, diagnostics = self.read(
+                pid, data = self.read(
                     loop, executor, correlate=correlate)
 
                 print("-" * 80)
                 print("Macropulse ID:", pid)
-                self._print_channel_data("\nControl data", controls)
-                self._print_channel_data("\nDiagnostics data", diagnostics)
+                self._print_channel_data(
+                    "\nControl data", data['control'])
+                self._print_channel_data(
+                    "\nDiagnostics data", data['diagnostic'])
                 print("-" * 80)
 
                 if correlate:

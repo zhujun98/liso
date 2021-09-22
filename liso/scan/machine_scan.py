@@ -58,13 +58,12 @@ class MachineScan(AbstractScan):
         self._interface.write(mapping, loop=loop, executor=executor)
         if self._policy == ScanPolicy.READ_AFTER_DELAY:
             time.sleep(self._read_delay)
-        idx, controls, diagnostics = self._interface.read(
+        idx, data = self._interface.read(
             loop=loop, executor=executor)
 
-        ret = {
-            'control': {k: v['data'] for k, v in controls.items()},
-            'diagnostic': {k: v['data'] for k, v in diagnostics.items()}
-        }
+        ret = dict()
+        for key, item in data.items():
+            ret[key] = {k: v['data'] for k, v in item.items()}
         return idx, ret
 
     def _scan_imp(self, sequence: list,
@@ -117,9 +116,9 @@ class MachineScan(AbstractScan):
             n_tasks = multiprocessing.cpu_count()
 
         try:
-            ret = self._interface.read()
-            logger.info("Current values of the scanned parameters: %s",
-                        str(ret)[1:-1].replace(': ', ' = '))
+            _, ret = self._interface.read()
+            # TODO: improve
+            logger.info("Current values of the scanned parameters:\n %s", ret)
         except LisoRuntimeError as e:
             raise RuntimeError("Failed to read all the initial values of "
                                "the scanned parameters!") from e
