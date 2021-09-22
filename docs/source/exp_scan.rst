@@ -43,7 +43,8 @@ control system, please refer to :ref:`interface with doocs`.
 
 Check how to define different :ref:`scan parameters`.
 
-By default, the scan output will be stored in the current directory. For how to
-read out the result, please refer to :ref:`reading hdf5 exp`.
+By default, the scan output is stored in a "run" folder in the current
+directory. The number of "run" folder is generated in sequence starting from
+"r0001". For how to read out the result, please refer to :ref:`reading hdf5 exp`.
 
 For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/xfel_experiment>`_.

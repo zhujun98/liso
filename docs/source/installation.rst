@@ -32,12 +32,14 @@ pyOpt
     $ sudo pip3 install .
 
 
+.. _configuration:
+
 Configuration
 -------------
 
-When starting LISO for the first time, a default config file `$HOME/.liso/config.ini` will be
-generated. You may need to modify the executables for different simulation codes
-under sections `[EXECUTABLE]` and `[EXECUTABLE_PARA]`.
+When starting LISO for the first time, a default config file
+`$HOME/.liso/config.ini` will be generated. You may need to modify the
+executables for different simulation codes.
 
 .. code-block::
 
