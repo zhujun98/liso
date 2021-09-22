@@ -8,7 +8,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 import multiprocessing
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -36,14 +36,6 @@ class LinacScan(AbstractScan):
         if len(splitted) == 1:
             return f"{first_bl}/{name}"
         return name
-
-    @staticmethod
-    def _create_output_dir(parent: str) -> Path:
-        """Maybe create a directory to store the output data."""
-        parent_path = Path(parent)
-        # It is allowed to use an existing directory, but not an existing file.
-        parent_path.mkdir(exist_ok=True)
-        return parent_path
 
     def _create_schema(self) -> dict:
         phasespace_schema = self._linac.schema
@@ -93,7 +85,7 @@ class LinacScan(AbstractScan):
 
     def scan(self, cycles: int = 1, *,  # pylint: disable=arguments-differ
              n_tasks: Optional[int] = None,
-             output_dir: str = "./",
+             output_dir: Union[str, Path] = "./",
              chmod: bool = True,
              group: int = 1,
              seed: Optional[int] = None,

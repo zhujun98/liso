@@ -137,18 +137,19 @@ class TestLinacScan(unittest.TestCase):
             self._configure_mocked_run(mocked_run)
 
             with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_dir = Path(tmp_dir)
 
                 self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
                 with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
                     self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
+                assert tmp_dir.joinpath('r0001').is_dir()
 
                 self._sc.add_param('gun_phase', start=10., stop=30., num=3)
                 # Note: use n_tasks > 1 here to track bugs
                 self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
-
                 # Testing with a real file is necessary to check the
                 # expected results were written.
-                sim = open_sim(tmp_dir)
+                sim = open_sim(tmp_dir.joinpath('r0002'))
                 self.assertSetEqual(
                     {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
                 self.assertSetEqual(
@@ -167,18 +168,16 @@ class TestLinacScan(unittest.TestCase):
             with self.subTest("Test start_id"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir, start_id=11)
-                    sim = open_sim(tmp_dir)
+                    sim = open_sim(Path(tmp_dir).joinpath('r0001'))
                     np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
 
             with self.subTest("Test chmod"):
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir)
-                    path = Path(tmp_dir)
-                    for file in path.iterdir():
+                    for file in Path(tmp_dir).joinpath('r0001').iterdir():
                         self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir, chmod=False)
-                    path = Path(tmp_dir)
-                    for file in path.iterdir():
+                    for file in Path(tmp_dir).iterdir():
                         self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])

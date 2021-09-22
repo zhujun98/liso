@@ -66,15 +66,17 @@ class WriterBase(abc.ABC):
         self._index = 0
         self._file_count = 0
 
-    @abc.abstractmethod
     def _next_file(self) -> Path:
-        pass
+        return self._path.joinpath(self._FILE_ROOT_NAME.substitute(
+            run=self._path.name.upper(),
+            group=f"{self._group:02d}",
+            seq=f"{self._file_count:06d}"))
 
     @abc.abstractmethod
     def _init_channel_data(self, channel: str) -> None:
         pass
 
-    def _initialize_next_file(self):
+    def _initialize_next_file(self) -> h5py.File:
         """Create a new file in the run folder."""
         self._fp = h5py.File(self._next_file(), 'w-')
 
@@ -121,18 +123,13 @@ class WriterBase(abc.ABC):
 class SimWriter(WriterBase):
     """Write simulated data in HDF5 files."""
 
-    _FILE_ROOT_NAME = Template("SIM-G$group-S$seq.hdf5")
+    _FILE_ROOT_NAME = Template("SIM-$run-G$group-S$seq.hdf5")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # TODO: consider moving it into schema
         self._data_channels = ["control", "phasespace"]
-
-    def _next_file(self) -> Path:
-        """Override."""
-        return self._path.joinpath(self._FILE_ROOT_NAME.substitute(
-            group=f"{self._group:02d}", seq=f"{self._file_count:06d}"))
 
     def _init_channel_data(self, channel: str) -> None:
         fp = self._fp
@@ -222,13 +219,6 @@ class ExpWriter(WriterBase):
         super().__init__(*args, **kwargs)
 
         self._data_channels = ["control", "diagnostic"]
-
-    def _next_file(self) -> Path:
-        """Override."""
-        return self._path.joinpath(self._FILE_ROOT_NAME.substitute(
-            run=self._path.name.upper(),
-            group=f"{self._group:02d}",
-            seq=f"{self._file_count:06d}"))
 
     def _init_channel_data(self, channel: str) -> None:
         """Override."""

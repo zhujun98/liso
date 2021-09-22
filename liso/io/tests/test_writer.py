@@ -89,7 +89,7 @@ class TestSimWriter(unittest.TestCase):
             path = Path(tmp_dir)
             files = sorted([f.name for f in path.iterdir()])
             self.assertListEqual(
-                [f"SIM-G01-S00000{i}.hdf5" for i in range(3)], files
+                [f"SIM-{path.name.upper()}-G01-S00000{i}.hdf5" for i in range(3)], files
             )
 
             with self.subTest("Initialize writer when hdf5 file already exits"):
