@@ -5,7 +5,9 @@ The full license is in the file LICENSE, distributed with this software.
 
 Copyright (C) Jun Zhu. All rights reserved.
 """
+import contextlib
 import functools
+import os
 from threading import Thread
 import time
 
@@ -40,3 +42,13 @@ def profiler(info, *, process_time=False):
             return result
         return timed_f
     return wrap
+
+
+@contextlib.contextmanager
+def changed_cwd(dirname):
+    oldcwd = os.getcwd()
+    os.chdir(dirname)
+    try:
+        yield
+    finally:
+        os.chdir(oldcwd)

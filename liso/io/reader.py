@@ -130,7 +130,7 @@ def _open_data_folder(path: Union[str, Path], kls):
     if p.is_file():
         return kls.from_path(path)
 
-    paths = [p.joinpath(f) for f in p.iterdir() if f.name.endswith('.hdf5')]
+    paths = [f for f in p.iterdir() if f.name.endswith('.hdf5')]
     if not paths:
         raise Exception(f"No HDF5 files found in {path}!")
     return kls.from_paths(sorted(paths))
