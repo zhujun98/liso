@@ -129,7 +129,9 @@ class LinacScan(AbstractScan):
         sequence = self._generate_param_sequence(cycles)
 
         logger.info(str(self._linac))
-        logger.info("Starting parameter scan with %s CPUs.", n_tasks)
+        logger.info("Starting parameter scan with %s CPUs. "
+                    "Scan result will be save at %s",
+                    n_tasks, output_dir.resolve())
         logger.info(self.summarize())
 
         with SimWriter(output_dir,

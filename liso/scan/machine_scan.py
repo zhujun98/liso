@@ -124,19 +124,20 @@ class MachineScan(AbstractScan):
             raise RuntimeError("Failed to read all the initial values of "
                                "the scanned parameters!") from e
 
-        logger.info("Starting parameter scan with %s CPUs.", n_tasks)
-        logger.info(self.summarize())
-
-        np.random.seed(seed)
-
         output_dir = self._create_output_dir(output_dir)
 
         sequence = self._generate_param_sequence(cycles)
+
+        logger.info("Starting parameter scan with %s CPUs. "
+                    "Scan result will be save at %s",
+                    n_tasks, output_dir.resolve())
+        logger.info(self.summarize())
 
         with ExpWriter(output_dir,
                        schema=self._interface.schema,
                        chmod=chmod,
                        group=group) as writer:
+            np.random.seed(seed)
             loop = asyncio.get_event_loop()
             executor = ThreadPoolExecutor(max_workers=n_tasks)
             self._scan_imp(sequence, writer, loop, executor)
