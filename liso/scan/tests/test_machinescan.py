@@ -74,7 +74,7 @@ class TestMachineScan(unittest.TestCase):
             self.assertGreater(abs(seq[i][1] - seq[i+1][1]), 0.5)
             self.assertGreater(abs(seq[i][2] - seq[i+1][2]), 0.3)
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             self._sc._params.pop('param3')
             self._sc._param_dists.pop('param3')
             self._sc.add_param("param3", dist=1., start=-1., stop=1., num=10)

@@ -7,19 +7,24 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import deque, OrderedDict
+import sys
+from typing import Callable
+import traceback
 
 import numpy as np
 
 from .scan_param import JitterParam, SampleParam, StepParam
+from ..exceptions import LisoRuntimeError
+from ..io.writer import WriterBase
 from ..logging import logger
 
 
-class BaseScan(abc.ABC):
+class AbstractScan(abc.ABC):
     def __init__(self):
         self._params = OrderedDict()
         self._param_dists = OrderedDict()
 
-    def _check_param_name(self, name: str) -> str:  # pylint: disable=no-self-use
+    def _parse_param_name(self, name: str) -> str:  # pylint: disable=no-self-use
         return name
 
     def add_param(self, name: str, *, dist=-1., **kwargs):
@@ -31,7 +36,7 @@ class BaseScan(abc.ABC):
         :param kwargs: Keyword arguments will be passed to the constructor
             of the appropriate :class:`liso.scan.scan_param.ScanParam`.
         """
-        name = self._check_param_name(name)
+        name = self._parse_param_name(name)
 
         if name in self._params:
             raise ValueError(f"Parameter {name} already exists!")
@@ -84,7 +89,11 @@ class BaseScan(abc.ABC):
 
         return list(ret_queue)
 
-    def _generate_param_sequence(self, cycles):
+    def _generate_param_sequence(self, cycles: int) -> list:
+        """Generate a sequence of parameter combinations for scan.
+
+        :raises ValueError: If generation of parameter sequence fails.
+        """
         if not self._params:
             return []
 
@@ -101,7 +110,7 @@ class BaseScan(abc.ABC):
             if seq is not None:
                 return seq
 
-        raise RuntimeError(
+        raise ValueError(
             "Failed to a parameter sequence with enough distance!")
 
     def summarize(self):
@@ -135,5 +144,25 @@ class BaseScan(abc.ABC):
         return text
 
     @abc.abstractmethod
-    def _create_output_dir(self, parent):
-        pass
+    def scan(self, *args, **kwargs) -> None:
+        """Run the scan."""
+
+    @staticmethod
+    def _collect_result(writer: WriterBase, collector: Callable, *args) -> None:
+        """Collect result and write into file."""
+        try:
+            writer.write(*collector(*args))
+        except LisoRuntimeError as e:
+            _, _, exc_traceback = sys.exc_info()
+            logger.debug(
+                "%s, %s",
+                repr(traceback.format_tb(exc_traceback)),
+                str(e))
+            logger.warning(str(e))
+        except Exception as e:
+            _, _, exc_traceback = sys.exc_info()
+            logger.error(
+                "(Unexpected exceptions): %s, %s",
+                repr(traceback.format_tb(exc_traceback)),
+                str(e))
+            raise

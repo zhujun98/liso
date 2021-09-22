@@ -13,7 +13,7 @@ class MachineInterface(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def schema(self):
+    def schema(self) -> dict:
         pass
 
     @abc.abstractmethod

@@ -8,20 +8,17 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 import multiprocessing
 from pathlib import Path
-import sys
 from typing import Optional
-import traceback
 
 import numpy as np
 
-from .base_scan import BaseScan
-from ..exceptions import LisoRuntimeError
+from .abstract_scan import AbstractScan
 from ..io import SimWriter
 from ..simulation import Linac
 from ..logging import logger
 
 
-class LinacScan(BaseScan):
+class LinacScan(AbstractScan):
     """Class for performing scans in simulations."""
     def __init__(self, linac: Linac) -> None:
         """Initialization.
@@ -32,7 +29,7 @@ class LinacScan(BaseScan):
 
         self._linac = linac
 
-    def _check_param_name(self, name: str) -> str:
+    def _parse_param_name(self, name: str) -> str:
         """Override."""
         splitted = name.split('/', 1)
         first_bl = next(iter(self._linac))
@@ -40,97 +37,88 @@ class LinacScan(BaseScan):
             return f"{first_bl}/{name}"
         return name
 
-    def _create_output_dir(self, parent: str) -> Path:
+    @staticmethod
+    def _create_output_dir(parent: str) -> Path:
+        """Maybe create a directory to store the output data."""
         parent_path = Path(parent)
         # It is allowed to use an existing directory, but not an existing file.
         parent_path.mkdir(exist_ok=True)
         return parent_path
 
-    async def _scan_imp(self, cycles: int,  # pylint: disable=too-many-locals
-                        output_dir: Path, *,
-                        start_id: int,
-                        n_tasks: int,
-                        group: int,
-                        chmod: bool,
-                        **kwargs) -> None:
-        tasks = set()
-        sequence = self._generate_param_sequence(cycles)
-        n_pulses = len(sequence)
-
+    def _create_schema(self) -> dict:
         phasespace_schema = self._linac.schema
         control_schema = self._linac.compile(self._params)
         for param in control_schema:
             control_schema[param] = {'type': '<f4'}
-        schema = (control_schema, phasespace_schema)
+        return {
+            "control": control_schema,
+            "phasespace": phasespace_schema
+        }
 
-        with SimWriter(output_dir,
-                       schema=schema,
-                       chmod=chmod,
-                       group=group) as writer:
-            count = 0
-            while True:
-                if count < n_pulses:
-                    x_map = dict()
-                    for i, k in enumerate(self._params):
-                        x_map[k] = sequence[count][i]
+    async def _scan_imp(self, sequence: list,
+                        writer: SimWriter, *,
+                        start_id: int,
+                        n_tasks: int,
+                        timeout: Optional[int] = None) -> None:
+        tasks = set()
+        n_pulses = len(sequence)
 
-                    sim_id = count + start_id
-                    task = asyncio.create_task(
-                        self._linac.async_run(sim_id, x_map, **kwargs))
-                    tasks.add(task)
+        self._linac.check_temp_swd(start_id, start_id + n_pulses)
 
-                    logger.info("Scan %06d: %s",
-                                sim_id, str(x_map)[1:-1].replace(': ', ' = '))
+        count = 0
+        while True:
+            if count < n_pulses:
+                mapping = dict()
+                for i, k in enumerate(self._params):
+                    mapping[k] = sequence[count][i]
+                sim_id = count + start_id
+                count += 1
+                logger.info("Scan %06d: %s",
+                            sim_id, str(mapping)[1:-1].replace(': ', ' = '))
 
-                    count += 1
+                task = asyncio.create_task(
+                    self._linac.async_run(sim_id, mapping, timeout=timeout))
+                tasks.add(task)
 
-                if len(tasks) == 0:
-                    break
+            if len(tasks) == 0:
+                break
 
-                if len(tasks) >= n_tasks or count == n_pulses:
-                    done, _ = await asyncio.wait(
-                        tasks, return_when=asyncio.FIRST_COMPLETED)
+            if len(tasks) >= n_tasks or count == n_pulses:
+                done, _ = await asyncio.wait(
+                    tasks, return_when=asyncio.FIRST_COMPLETED)
 
-                    for task in done:
-                        try:
-                            sim_id, controls, phasespaces = task.result()
-                            writer.write(sim_id, controls, phasespaces)
-                        except LisoRuntimeError as e:
-                            _, _, exc_traceback = sys.exc_info()
-                            logger.debug(
-                                "%s, %s",
-                                repr(traceback.format_tb(exc_traceback)),
-                                str(e))
-                            logger.warning(str(e))
-                        except Exception as e:
-                            _, _, exc_traceback = sys.exc_info()
-                            logger.error(
-                                "(Unexpected exceptions): %s, %s",
-                                repr(traceback.format_tb(exc_traceback)),
-                                str(e))
-                            raise
+                for task in done:
+                    self._collect_result(writer, task.result)
+                    tasks.remove(task)
 
-                        tasks.remove(task)
-
-    def scan(self, cycles: int = 1, output_dir: str = "./", *,
-             start_id: int = 1,
+    def scan(self, cycles: int = 1, *,  # pylint: disable=arguments-differ
              n_tasks: Optional[int] = None,
+             output_dir: str = "./",
              chmod: bool = True,
              group: int = 1,
              seed: Optional[int] = None,
-             **kwargs) -> None:
-        """Start a parameter scan.
+             start_id: int = 1,
+             timeout: Optional[int] = None) -> None:
+        """Run the scan.
 
         :param cycles: Number of cycles of the parameter space. For
             pure jitter study, it is the number of runs since the size
             of variable space is 1.
-        :param output_dir: Directory where the output simulation data is saved.
-        :param start_id: Starting simulation id. Default = 1.
         :param n_tasks: Maximum number of concurrent tasks.
+        :param output_dir: Directory where the output simulation data is saved.
         :param chmod: True for changing the permission to 400 after
             finishing writing.
         :param group: Writer group.
         :param seed: Seed for the legacy MT19937 BitGenerator in numpy.
+        :param start_id: Starting simulation id. Default = 1.
+        :param timeout: Timeout in seconds for running a single simulation.
+            None for no timeout.
+
+        :raises ValueError: If generation of parameter sequence fails.
+        :raises FileExistsError: If there is already any directory which has
+            the same name as the temporary simulation directory to be created.
+        :raises LisoRuntimeError: If any Beamline of the Linac cannot create
+            a temporary directory to run simulation.
         """
         if not self._params:
             raise ValueError("No scan parameters specified!")
@@ -144,19 +132,24 @@ class LinacScan(BaseScan):
 
         output_dir = self._create_output_dir(output_dir)
 
+        schema = self._create_schema()
+
+        sequence = self._generate_param_sequence(cycles)
+
         logger.info(str(self._linac))
         logger.info("Starting parameter scan with %s CPUs.", n_tasks)
         logger.info(self.summarize())
 
-        np.random.seed(seed)
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._scan_imp(
-            cycles, output_dir,
-            start_id=start_id,
-            n_tasks=n_tasks,
-            group=group,
-            chmod=chmod,
-            **kwargs))
+        with SimWriter(output_dir,
+                       schema=schema,
+                       chmod=chmod,
+                       group=group) as writer:
+            np.random.seed(seed)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self._scan_imp(
+                sequence, writer,
+                start_id=start_id,
+                n_tasks=n_tasks,
+                timeout=timeout))
 
         logger.info("Scan finished!")

@@ -6,12 +6,14 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 #pylint: disable=unspecified-encoding
-import asyncio
-import os.path as osp
 from abc import ABC, abstractmethod
-import subprocess
+import asyncio
 from distutils.spawn import find_executable
-from typing import Optional
+import os
+import os.path as osp
+from pathlib import Path
+import subprocess
+from typing import Optional, Union
 
 import numpy as np
 
@@ -24,7 +26,7 @@ from ..proc import (
     analyze_line,
     parse_astra_phasespace, parse_astra_line,
     parse_impactt_phasespace, parse_impactt_line,
-    parse_elegant_phasespace,
+    parse_elegant_phasespace, Phasespace
 )
 from ..io import TempSimulationDirectory
 from .input import ParticleFileGenerator
@@ -64,6 +66,8 @@ class Beamline(ABC):
         self._input_gen = self._parse_template_in(template)
 
         self._swd = osp.abspath('./' if swd is None else swd)
+        # root name of the temporary simulation folder
+        self._tmp_root = 'tmp'
 
         self._fin = fin
         self._pin = pin
@@ -127,19 +131,20 @@ class Beamline(ABC):
         self._input_gen.update(mapping)
 
     @abstractmethod
-    def _generate_initial_particle_file(self, data, swd):
+    def _generate_initial_particle_file(
+            self, data: Phasespace, swd: Union[str, Path]):
         """Generate the initial particle file.
 
-        :param Phasespace data: particle phasespace.
-        :param str swd: simulation working directory.
+        :param data: particle phasespace.
+        :param swd: simulation working directory.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def _parse_phasespace(self, pfile):
+    def _parse_phasespace(self, pfile: str):
         """Parse the phasespace file.
 
-        :param str pfile: phasespace file name.
+        :param pfile: phasespace file name.
 
         :returns Phasespace: particle phasespace.
         """
@@ -199,12 +204,28 @@ class Beamline(ABC):
             f"executable [{filepath}] is not available"
         return executable
 
-    def _update_output(self, swd):
+    def check_temp_swd(self, start_id: int, end_id: int) -> None:
+        """Check whether temporary simulation directories already exist.
+
+        :raises FileExistsError: If there is already any directory which has
+            the same name as the temporary simulation directory to be created.
+        """
+        len_s1 = len(self._tmp_root)
+        for item in os.listdir(self._swd):
+            s1, s2 = item[:len_s1], item[len_s1:]
+            try:
+                s2 = int(s2)
+            except ValueError:
+                continue
+            if s1 == self._tmp_root and start_id <= s2 < end_id:
+                raise FileExistsError(f"{self._swd}/{item} already exists!")
+
+    def _update_output(self, swd: Union[str, Path]):
         """Analyse output particle file.
 
         Also prepare the initial particle file for the downstream simulation.
 
-        :param str swd: simulation working directory.
+        :param swd: simulation working directory.
         """
         pout = osp.join(swd, self._pout)
         self._check_file(pout, 'Output')
@@ -229,7 +250,7 @@ class Beamline(ABC):
         self._avg = analyze_line(data, np.average)
         self._std = analyze_line(data, np.std)
 
-    def _run_core(self, n_workers, timeout):
+    def _run_sim(self, n_workers: int, timeout: Optional[int]) -> None:
         executable = self._check_executable(n_workers > 1)
 
         # self._fin must be in the swd
@@ -252,8 +273,14 @@ class Beamline(ABC):
         except subprocess.CalledProcessError as e:
             raise LisoRuntimeError from e
 
-    def run(self, phasespace, *, timeout, n_workers):
-        """Run simulation for the beamline."""
+    def run(self,
+            phasespace: Optional[Phasespace], *,
+            timeout: Optional[int],
+            n_workers: int):
+        """Run simulation for the beamline.
+
+        It should only be called by users.
+        """
         if not isinstance(n_workers, int) or not n_workers > 0:
             raise ValueError("n_workers must be a positive integer!")
 
@@ -265,13 +292,13 @@ class Beamline(ABC):
         # need absolute path here
         self._input_gen.write(osp.join(self._swd, self._fin))
 
-        self._run_core(n_workers, timeout)
+        self._run_sim(n_workers, timeout)
 
         self._update_statistics()
 
         return self._update_output(self._swd)
 
-    async def _async_run_core(self, swd, timeout):
+    async def _async_run_sim(self, swd: Path, timeout: Optional[int]) -> None:
         executable = self._check_executable()
 
         # self._fin must be in the swd
@@ -298,18 +325,28 @@ class Beamline(ABC):
 
             _, _ = await proc.communicate()
 
-    async def async_run(self, phasespace, tmp_dir, *, timeout):
-        """Run simulation asynchronously for the beamline."""
-        with TempSimulationDirectory(osp.join(self._swd, tmp_dir),
-                                     delete_old=True) as swd:
+    async def async_run(self,
+                        sim_id: int,
+                        phasespace: Optional[Phasespace], *,
+                        timeout: Optional[int]):
+        """Run simulation asynchronously for the beamline.
 
+        :param sim_id: Id of the current simulation.
+        :param phasespace: Phasespace of the input particles.
+        :param timeout: Maximum allowed duration in seconds of the
+            simulation.
+
+        :raises FileExistsError: If the temporary directory already exists.
+        """
+        with TempSimulationDirectory(
+                Path(self._swd, f'{self._tmp_root}{sim_id:06d}')) as swd:
             if phasespace is not None:
                 self._generate_initial_particle_file(phasespace, swd)
 
             # need absolute path here
             self._input_gen.write(osp.join(swd, self._fin))
 
-            await self._async_run_core(swd, timeout)
+            await self._async_run_sim(swd, timeout)
 
             return self._update_output(swd)
 
@@ -326,7 +363,7 @@ class Beamline(ABC):
         }
 
     def __str__(self):
-        text = 'Beamline: %s\n' % self.name
+        text = f'Beamline: {self.name}\n'
         text += f'Simulation working directory: {self._swd}\n'
         text += f'Input file: {osp.basename(self._fin)}\n'
         text += f'Input particle file: {self._pin}\n'
@@ -364,7 +401,8 @@ class AstraBeamline(Beamline):
         """Override."""
         return parse_astra_line(rootname)
 
-    def _generate_initial_particle_file(self, data, swd):
+    def _generate_initial_particle_file(
+            self, data: Phasespace, swd: Union[str, Path]):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_astra(
             osp.join(swd, self._pin))
@@ -402,7 +440,8 @@ class ImpacttBeamline(Beamline):
         """Override."""
         return parse_impactt_line(rootname)
 
-    def _generate_initial_particle_file(self, data, swd):
+    def _generate_initial_particle_file(
+            self, data: Phasespace, swd: Union[str, Path]):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_impactt(
             osp.join(swd, self._pin))
@@ -433,7 +472,8 @@ class ElegantBeamline(Beamline):
         """Override."""
         raise NotImplementedError
 
-    def _generate_initial_particle_file(self, data, swd):
+    def _generate_initial_particle_file(
+            self, data: Phasespace, swd: Union[str, Path]):
         """Override."""
         ParticleFileGenerator.from_phasespace(data).to_elegant(
             osp.join(swd, self._pin))

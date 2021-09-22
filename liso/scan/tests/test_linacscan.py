@@ -101,22 +101,42 @@ class TestLinacScan(unittest.TestCase):
         self.assertLess(np.abs(np.mean(lst1)), 0.005)
         self.assertLess(np.abs(np.mean(lst2) - 5.), 0.25)
 
-    def testScan(self):
+    @staticmethod
+    def _configure_mocked_run(run):
+        ps = Phasespace(pd.DataFrame(
+            columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1)
+        if int(platform.python_version_tuple()[1]) > 7:
+            # Since Python 3.8, patched run is an AsyncMock object
+            run.return_value = ps
+        else:
+            future = asyncio.Future()
+            future.set_result(ps)
+            run.return_value = future
 
-        with patch.object(self._sc._linac['gun'], 'async_run') as patched_run:
-            ps = Phasespace(pd.DataFrame(
-                columns=['x', 'px', 'y', 'py', 'z', 'pz', 't']), 0.1)
-            if int(platform.python_version_tuple()[1]) > 7:
-                # Since Python 3.8, patched run is an AsyncMock object
-                patched_run.return_value = ps
-            else:
-                future = asyncio.Future()
-                future.set_result(ps)
-                patched_run.return_value = future
+    def testScanPrecheck(self):
+        with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
+            self._configure_mocked_run(mocked_run)
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 with self.assertRaisesRegex(ValueError, "No scan parameters"):
                     self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
+
+                with self.assertRaisesRegex(
+                        ValueError, "start_id must a positive integer"):
+                    self._sc.add_param('gun_phase', start=1., stop=3., num=3)
+                    self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
+                    self._sc.scan(2, output_dir=tmp_dir, start_id=0, n_tasks=2)
+
+                with patch('os.listdir', return_value=['tmp000002']):
+                    with self.assertRaisesRegex(FileExistsError, "tmp000002"):
+                        self._sc.scan(2, output_dir=tmp_dir, start_id=2, n_tasks=2)
+                    self._sc.scan(2, output_dir=tmp_dir, start_id=3, n_tasks=2)
+
+    def testScan(self):
+        with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
+            self._configure_mocked_run(mocked_run)
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
 
                 self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
                 with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
@@ -145,11 +165,6 @@ class TestLinacScan(unittest.TestCase):
                 self._sc.scan(2, output_dir=f"{tmp_dir}/tmp", n_tasks=2)
 
             with self.subTest("Test start_id"):
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    with self.assertRaisesRegex(
-                            ValueError, "start_id must a positive integer"):
-                        self._sc.scan(2, output_dir=tmp_dir, start_id=0, n_tasks=2)
-
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     self._sc.scan(2, output_dir=tmp_dir, start_id=11)
                     sim = open_sim(tmp_dir)
