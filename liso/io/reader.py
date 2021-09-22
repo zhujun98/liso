@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-import os
-import os.path as osp
+from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -21,7 +20,7 @@ from .file_access import FileAccessBase, SimFileAccess, ExpFileAccess
 from ..proc import Phasespace
 
 
-class DataCollectionBase(AbstractPulseTrainData):
+class DataCollection(AbstractPulseTrainData):
     """A collection of simulated or experimental data."""
 
     def __init__(self, files: List[FileAccessBase]) -> None:
@@ -38,7 +37,7 @@ class DataCollectionBase(AbstractPulseTrainData):
 
     @classmethod
     @abc.abstractmethod
-    def _create_fileaccess(cls, path: str):
+    def _create_fileaccess(cls, path: Path):
         """Create a file access object."""
 
     @abc.abstractmethod
@@ -46,7 +45,7 @@ class DataCollectionBase(AbstractPulseTrainData):
         """Print out the information of this data collection."""
 
     @classmethod
-    def from_path(cls, path: str) -> DataCollectionBase:
+    def from_path(cls, path: Path) -> DataCollection:
         """Construct a data collection from a single file.
 
         :param path: File path.
@@ -54,16 +53,17 @@ class DataCollectionBase(AbstractPulseTrainData):
         return cls([cls._create_fileaccess(path)])
 
     @classmethod
-    def _open_file(cls, path: str) -> Tuple[str, Union[FileAccessBase, str]]:
+    def _open_file(cls, path: Path) -> \
+            Tuple[str, Union[FileAccessBase, str]]:
         try:
             fa = cls._create_fileaccess(path)
         except Exception as e:  # pylint: disable=broad-except
-            return osp.basename(path), str(e)
+            return path.name, str(e)
         else:
-            return osp.basename(path), fa
+            return path.name, fa
 
     @classmethod
-    def from_paths(cls, paths: List[str]) -> DataCollectionBase:
+    def from_paths(cls, paths: List[Path]) -> DataCollection:
         """Construct a data collection from a list of files.
 
         :param paths: A list of file paths.
@@ -125,7 +125,18 @@ class DataCollectionBase(AbstractPulseTrainData):
                            columns=columns)
 
 
-class SimDataCollection(DataCollectionBase):
+def _open_data_folder(path: Union[str, Path], kls):
+    p = Path(path)
+    if p.is_file():
+        return kls.from_path(path)
+
+    paths = [p.joinpath(f) for f in p.iterdir() if f.name.endswith('.hdf5')]
+    if not paths:
+        raise Exception(f"No HDF5 files found in {path}!")
+    return kls.from_paths(sorted(paths))
+
+
+class SimDataCollection(DataCollection):
     """A collection of simulated data."""
 
     def __init__(self, files: List[SimFileAccess]) -> None:
@@ -179,21 +190,15 @@ class SimDataCollection(DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'PHASESPACE'
 
 
-def open_sim(path: str) -> SimDataCollection:
+def open_sim(path: Union[str, Path]) -> SimDataCollection:
     """Open simulation data from a single file or a directory.
 
     :param path: file or directory path.
     """
-    if osp.isfile(path):
-        return SimDataCollection.from_path(path)
-
-    paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
-    if not paths:
-        raise Exception(f"No HDF5 files found in {path}!")
-    return SimDataCollection.from_paths(sorted(paths))
+    return _open_data_folder(path, SimDataCollection)
 
 
-class ExpDataCollection(DataCollectionBase):
+class ExpDataCollection(DataCollection):
     """A collection of experimental data."""
 
     def __init__(self, files: List[ExpFileAccess]) -> None:
@@ -244,15 +249,9 @@ class ExpDataCollection(DataCollectionBase):
         return 'CONTROL' if ch in self.control_channels else 'DIAGNOSTIC'
 
 
-def open_run(path: str) -> ExpDataCollection:
+def open_run(path: Union[str, Path]) -> ExpDataCollection:
     """Open experimental data from a single file or a directory.
 
     :param path: File or directory path.
     """
-    if osp.isfile(path):
-        return ExpDataCollection.from_path(path)
-
-    paths = [osp.join(path, f) for f in os.listdir(path) if f.endswith('.hdf5')]
-    if not paths:
-        raise Exception(f"No HDF5 files found in {path}!")
-    return ExpDataCollection.from_paths(sorted(paths))
+    return _open_data_folder(path, ExpDataCollection)
