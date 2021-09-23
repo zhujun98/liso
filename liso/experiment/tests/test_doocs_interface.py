@@ -216,6 +216,13 @@ class TestDoocsInterface(unittest.TestCase):
             np.testing.assert_array_equal(np.ones((5, 6)), diagnostic_data['XFEL.H/I/J/L']['data'])
             assert diagnostic_data['XFEL.H/I/J/L']['macropulse'] == matched_pid
 
+        with self.subTest("Test value-only read"):
+            pid, data = m.read(value_only=True)
+            control_data = data['control']
+            diagnostic_data = data['diagnostic']
+            assert control_data['XFEL.A/B/C/D'] == 10.
+            np.testing.assert_array_equal(np.ones((4, 4)), diagnostic_data['XFEL.H/I/J/K'])
+
         with self.subTest("Test receiving data with invalid macropulse ID"):
             dataset["XFEL.A/B/C/D"] = ddgen.scalar(
                     10., m._controls["XFEL.A/B/C/D"].value_schema(), pid=0)

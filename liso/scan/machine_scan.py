@@ -59,12 +59,8 @@ class MachineScan(AbstractScan):
         if self._policy == ScanPolicy.READ_AFTER_DELAY:
             time.sleep(self._read_delay)
         idx, data = self._interface.read(
-            loop=loop, executor=executor)
-
-        ret = dict()
-        for key, item in data.items():
-            ret[key] = {k: v['data'] for k, v in item.items()}
-        return idx, ret
+            loop=loop, executor=executor, value_only=True)
+        return idx, data
 
     def _scan_imp(self, sequence: list,
                   writer: ExpWriter,

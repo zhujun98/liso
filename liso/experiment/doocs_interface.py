@@ -249,7 +249,8 @@ class DoocsInterface(MachineInterface):
 
     @staticmethod
     def _extract_readout(channels: Dict[str, DoocsChannel],
-                         readout: dict) -> Dict[str, Any]:
+                         readout: dict, *,
+                         value_only: bool) -> Dict[str, Any]:
         """Validate readout for given channels.
 
         :raises LisoRuntimeError: If validation fails.
@@ -257,7 +258,7 @@ class DoocsInterface(MachineInterface):
         ret = dict()
         for address, ch in channels.items():
             ch_data = readout[address]
-            ret[address] = ch_data
+            ret[address] = ch_data['data'] if value_only else ch_data
             if ch_data is not None:
                 try:
                     ch.value = ch_data['data']  # validate
@@ -410,13 +411,16 @@ class DoocsInterface(MachineInterface):
     def read(self,  # pylint: disable=arguments-differ
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlate: bool = True) -> Tuple[Optional[int], dict]:
+             correlate: bool = True,
+             value_only: bool = False) -> Tuple[Optional[int], dict]:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
         :param executor: ThreadPoolExecutor instance.
         :param correlate: True for returning the latest group of data with
             the same train ID.
+        :param value_only: True for returning only the value of the channel.
+            Otherwise, the full message received from DOOCS is returned.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         :raises LisoRuntimeError: If validation fails.
@@ -438,8 +442,10 @@ class DoocsInterface(MachineInterface):
             pid, data = loop.run_until_complete(
                 self._read(self.channels, loop, executor))
 
-        control_data = self._extract_readout(self._controls, data)
-        diagnostic_data = self._extract_readout(self._diagnostics, data)
+        control_data = self._extract_readout(
+            self._controls, data, value_only=value_only)
+        diagnostic_data = self._extract_readout(
+            self._diagnostics, data, value_only=value_only)
 
         return pid, {
             "control": control_data,
@@ -476,11 +482,8 @@ class DoocsInterface(MachineInterface):
                        group=group) as writer:
             try:
                 while True:
-                    pid, data = self.read(loop, executor)
-                    ret = dict()
-                    for key, item in data.items():
-                        ret[key] = {k: v['data'] for k, v in item.items()}
-                    writer.write(pid, ret)
+                    pid, data = self.read(loop, executor, value_only=True)
+                    writer.write(pid, data)
             except KeyboardInterrupt:
                 logger.info("Stopping data acquisition ...")
 
