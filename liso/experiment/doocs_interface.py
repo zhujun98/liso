@@ -484,6 +484,7 @@ class DoocsInterface(MachineInterface):
                 while True:
                     pid, data = self.read(loop, executor, value_only=True)
                     writer.write(pid, data)
+                    time.sleep(0.001)
             except KeyboardInterrupt:
                 logger.info("Stopping data acquisition ...")
 

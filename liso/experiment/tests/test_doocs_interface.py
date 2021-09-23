@@ -1,6 +1,8 @@
+from pathlib import Path
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
+import tempfile
 
 import numpy as np
 
@@ -8,6 +10,7 @@ from liso import EuXFELInterface
 from liso import doocs_channels as dc
 from liso.exceptions import LisoRuntimeError
 from liso.experiment.doocs_interface import DoocsException, PyDoocsException
+from liso.io import ExpWriter, open_run
 from liso.logging import logger
 
 from . import DoocsDataGenerator as ddgen
@@ -24,6 +27,15 @@ def _side_effect_read(dataset, address):
 
 
 class TestDoocsInterface(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+        ExpWriter._IMAGE_CHUNK = (3, 2)
+
+    @classmethod
+    def tearDownClass(cls):
+        ExpWriter._IMAGE_CHUNK = cls._orig_image_chunk
+
     def setUp(self):
         logger.setLevel("ERROR")
 
@@ -186,7 +198,7 @@ class TestDoocsInterface(unittest.TestCase):
             m.read()
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testCorrelatedRead(self, patched_read):
+    def testCorrelatedRead(self, patched_read):  # pylint: disable=too-many-statements
         logger.setLevel("WARNING")
 
         m = self._machine
@@ -273,13 +285,21 @@ class TestDoocsInterface(unittest.TestCase):
             self.assertLess(last_correlated_gt, m._last_correlated)
 
     @patch("time.sleep", side_effect=KeyboardInterrupt)
-    def testMonitor(self, patched_sleep):
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testAcquire(self, patched_read, _):
+        patched_read.side_effect = lambda x: _side_effect_read(self._dataset, x)
 
-        mocked_read = MagicMock(return_value=(None, dict(), dict()))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self._machine.acquire(tmp_dir)
+
+            run = open_run(Path(tmp_dir).joinpath('r0001'))
+            run.info()
+
+    @patch("time.sleep", side_effect=KeyboardInterrupt)
+    def testMonitor(self, mocked_sleep):
+        mocked_read = MagicMock(return_value=(None, {'control': {}, 'diagnostic': {}}))
         self._machine.read = mocked_read
-        mocked_read.return_value = (1, {'control': {}, 'diagnostic': {}})
 
         self._machine.monitor()
         self.assertDictEqual({'correlate': False}, mocked_read.call_args_list[0][1])
-        patched_sleep.assert_called_with(1.0)
-        patched_sleep.reset_mock()
+        mocked_sleep.assert_called_with(1.0)
