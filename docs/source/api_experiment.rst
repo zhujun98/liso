@@ -10,6 +10,7 @@ Experiment
     .. automethod:: add_diagnostic_channel
     .. automethod:: write
     .. automethod:: read
+    .. automethod:: acquire
     .. automethod:: monitor
 
 .. autoclass:: EuXFELInterface

@@ -6,7 +6,7 @@ Scanning Machine Parameters
 Parameter scan with DOOCS
 -------------------------
 
-In this section, we will performing parameter scan for the Injector of the
+In this section, we will be performing parameter scan for the Injector of the
 European XFEL. For how to build a machine interface which uses the DOOCS
 control system, please refer to :ref:`interface with doocs`.
 
