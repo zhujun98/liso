@@ -39,7 +39,7 @@ class TestStepParam(unittest.TestCase):
 
         # test repeats and cycles with jitter
         param = StepParam('param', start=-1., stop=1., num=2, sigma=0.1)
-        lst = param.generate(cycles=200, repeats=2)
+        lst = param.generate(cycles=500, repeats=2)
         self.assertNotEqual(lst[0], lst[1])
         self.assertNotEqual(lst[3], lst[4])
         self.assertLess(abs(0.1 - np.std([lst[::4], lst[1::4]])), 0.01)
