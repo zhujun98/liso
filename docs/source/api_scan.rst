@@ -17,7 +17,7 @@ Scan
     .. automethod:: scan
 
 
-.. _scan parameters:
+.. _scan parameters api:
 
 Scan parameters
 ---------------

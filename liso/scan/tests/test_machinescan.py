@@ -1,4 +1,6 @@
 # pylint: disable=attribute-defined-outside-init
+import asyncio
+from copy import deepcopy
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,10 +21,10 @@ _INITIAL_PID = 1000
 
 
 def _side_effect_read(dataset, address):
-    data = dataset[address]
+    data = deepcopy(dataset[address])
     if data['macropulse'] >= _INITIAL_PID:
-        data['data'] = data['data'] + 1  # do not mutate
-        data['macropulse'] += 1
+        dataset[address]['data'] += 1
+        dataset[address]['macropulse'] += 1
     return data
 
 
@@ -36,29 +38,53 @@ class TestMachineScan(unittest.TestCase):
     def tearDownClass(cls):
         ExpWriter._IMAGE_CHUNK = cls._orig_image_chunk
 
+    def setUp(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+
+    def tearDown(self):
+        asyncio.set_event_loop(None)
+        self._loop.close()
+
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
 
             cfg = {
-                "timeout.correlation": 0.2,
-                "interval.read.non_event_date": 0.02,
-                "interval.read.retry": 0.01
+                "timeout.correlation": 0.02,
+                "interval.read.retry": 0.002
             }
             m = EuXFELInterface(cfg)
-            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/D')
-            m.add_control_channel(dc.FLOAT32, 'XFEL.A/B/C/E', no_event=True)
-            m.add_diagnostic_channel(dc.IMAGE, 'XFEL.H/I/J/K', shape=(3, 4), dtype='uint16')
+            m.add_control_channel('XFEL.A/B/C/D', dc.FLOAT32)
+            m.add_control_channel('XFEL.A/B/C/E', dc.FLOAT32, non_event=True)
+            m.add_diagnostic_channel('XFEL.H/I/J/K', dc.IMAGE, shape=(3, 4), dtype='uint16')
             self._machine = m
 
             self._sc = MachineScan(m, read_delay=0.)
 
             super().run(result)
 
+    def _prepare_dataset(self):
+        m = self._machine
+        return {
+            "XFEL.A/B/C/D": ddgen.scalar(
+                1., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
+            "XFEL.A/B/C/E": ddgen.scalar(
+                100., m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
+            "XFEL.H/I/J/K": ddgen.image(
+                m._channels["XFEL.H/I/J/K"].value_schema(), pid=_INITIAL_PID),
+        }
+
     def testInitialization(self):
         m = EuXFELInterface()
         with self.assertRaisesRegex(ValueError, "not a valid scan policy"):
             MachineScan(m, policy='A')
+
+        m = self._machine
+        assert m.control_channels == {'XFEL.A/B/C/D', 'XFEL.A/B/C/E'}
+        assert m.diagnostic_channels == {'XFEL.H/I/J/K'}
+        assert m._event == {'XFEL.A/B/C/D', 'XFEL.H/I/J/K'}
+        assert m._non_event == {'XFEL.A/B/C/E'}
 
     def testSampleDistance(self):
         n = 1
@@ -81,17 +107,6 @@ class TestMachineScan(unittest.TestCase):
             self._sc._param_dists.pop('param3')
             self._sc.add_param("param3", dist=1., start=-1., stop=1., num=10)
             self._sc._generate_param_sequence(n)
-
-    def _prepare_dataset(self):
-        m = self._machine
-        return {
-            "XFEL.A/B/C/D": ddgen.scalar(
-                1., m._controls["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
-            "XFEL.A/B/C/E": ddgen.scalar(
-                100., m._controls["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
-            "XFEL.H/I/J/K": ddgen.image(
-                m._diagnostics["XFEL.H/I/J/K"].value_schema(), pid=_INITIAL_PID),
-        }
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -124,16 +139,29 @@ class TestMachineScan(unittest.TestCase):
         sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, output_dir=tmp_dir)
+            sc.scan(5, output_dir=tmp_dir)
             path = Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertEqual('400', oct(file.stat().st_mode)[-3:])
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            sc.scan(10, output_dir=tmp_dir, chmod=False)
+            sc.scan(5, output_dir=tmp_dir, chmod=False)
             path = Path(tmp_dir).joinpath('r0001')
             for file in path.iterdir():
                 self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testLogInitialParameters(self, mocked_read, _):
+        sc = self._sc
+        sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+
+        def _side_effect_raise(_):
+            raise DoocsException
+        mocked_read.side_effect = _side_effect_raise
+        with self.assertRaisesRegex(RuntimeError,
+                                    "Failed to read all the initial values"):
+            sc.scan(1)
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -143,50 +171,51 @@ class TestMachineScan(unittest.TestCase):
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.assertRaisesRegex(ValueError, "No scan parameters specified"):
-            sc.scan(10)
+            sc.scan(1)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
             sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
-            n_pulses = 40
+            n_pulses = 20
             sc.scan(n_pulses, output_dir=tmp_dir)
             run = open_run(tmp_dir.joinpath('r0001'))
             run.info()
 
-            control_data = run.get_controls()
+            pids = run.pulse_ids
+            self.assertListEqual(list(pids[:4]), [1002, 1004, 1006, 1008])
+            assert len(np.unique(pids)) == len(pids)
 
-            pids = control_data.index
-            self.assertEqual(len(np.unique(pids)), len(pids))
+            control_data = run.get_controls()
             np.testing.assert_array_equal(
                 control_data['XFEL.A/B/C/D'], pids - _INITIAL_PID + 1)
-            if len(pids) != 1:
-                self.assertEqual(len(np.unique(control_data['XFEL.A/B/C/E'])),
-                                 len(control_data['XFEL.A/B/C/E']))
 
             img_data = run.channel("XFEL.H/I/J/K").numpy()
 
-            self.assertTupleEqual((len(pids), 3, 4), img_data.shape)
-            self.assertTrue(np.all(img_data[1] == pids[1] - _INITIAL_PID + 1))
+            assert (len(pids), 3, 4) == img_data.shape
+            self.assertTrue(np.all(img_data[0] == pids[0] - _INITIAL_PID + 1))
             self.assertTrue(np.all(img_data[-1] == pids[-1] - _INITIAL_PID + 1))
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testLogInitialParameters(self, patched_read, _):
+    def testScanWithMoreThanOneRead(self, patched_read, _):
         sc = self._sc
+        sc._n_reads = 4
         dataset = self._prepare_dataset()
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
             sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
             sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
 
-            patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
-            sc.scan(10, output_dir=tmp_dir)
+            n_pulses = 20
+            sc.scan(n_pulses, output_dir=tmp_dir)
+            run = open_run(tmp_dir.joinpath('r0001'))
+            run.info()
 
-            def _side_effect_raise(x):
-                raise DoocsException
-            patched_read.side_effect = _side_effect_raise
-            with self.assertRaisesRegex(RuntimeError,
-                                        "Failed to read all the initial values"):
-                sc.scan(10, output_dir=tmp_dir)
+            pids = run.pulse_ids
+            self.assertListEqual(
+                list(pids[:8]), [1002, 1003, 1004, 1005, 1007, 1008, 1009, 1010])
+            assert len(np.unique(pids)) == len(pids)

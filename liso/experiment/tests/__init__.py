@@ -6,6 +6,8 @@ import numpy as np
 class DoocsDataGenerator:
     @staticmethod
     def data_type(dtype):
+        if dtype == "any":
+            return 'ANY'
         if np.dtype(dtype) == np.float32:
             return 'FLOAT'
         if np.dtype(dtype) == np.float64:

@@ -51,6 +51,14 @@ class TestAstraBeamline(unittest.TestCase):
 
 class TestLinacOneBeamLine(unittest.TestCase):
 
+    def setUp(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+
+    def tearDown(self):
+        asyncio.set_event_loop(None)
+        self._loop.close()
+
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir
@@ -111,6 +119,15 @@ class TestLinacOneBeamLine(unittest.TestCase):
 
 
 class TestLinacTwoBeamLine(unittest.TestCase):
+
+    def setUp(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+
+    def tearDown(self):
+        asyncio.set_event_loop(None)
+        self._loop.close()
+
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._tmp_dir = tmp_dir

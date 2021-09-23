@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
+from typing import List
 
 
 class MachineInterface(abc.ABC):
@@ -21,5 +22,9 @@ class MachineInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def read(self, *args, **kwargs) -> tuple:
+    def read(self, *args, **kwargs) -> List[tuple]:
+        pass
+
+    @abc.abstractmethod
+    def parse_readout(self, *args, **kwargs) -> dict:
         pass
