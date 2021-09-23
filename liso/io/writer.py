@@ -9,12 +9,33 @@ import abc
 from datetime import datetime
 import os
 from pathlib import Path
+import re
 from string import Template
 from typing import Union
 
 import h5py
 
 from ..proc import Phasespace
+
+
+def create_next_run_folder(parent: Union[str, Path]) -> Path:
+    """Create and return the next run folder to store the output data."""
+    parent = Path(parent)
+    # It is allowed to use an existing parent directory,
+    # but not a run folder.
+    parent.mkdir(exist_ok=True)
+
+    next_run_index = 1  # starting from 1
+    for d in parent.iterdir():
+        # Here d could also be a file
+        if re.search(r'r\d{4}', d.name):
+            seq = int(d.name[1:])
+            if seq >= next_run_index:
+                next_run_index = seq + 1
+
+    next_output_dir = parent.joinpath(f'r{next_run_index:04d}')
+    next_output_dir.mkdir(parents=True, exist_ok=False)
+    return next_output_dir
 
 
 class WriterBase(abc.ABC):

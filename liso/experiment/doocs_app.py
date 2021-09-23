@@ -55,12 +55,13 @@ def monitor():
     correlate = args.correlate
     try:
         while True:
-            pid, _, diagnostics = interface.read(
+            pid, data = interface.read(
                 loop, executor, correlate=correlate)
             print("-" * 80)
             print("Macropulse ID:", pid)
             print()
-            print("\n".join([f"- {k}: {v}" for k, v in diagnostics.items()]))
+            print("\n".join([f"- {k}: {v}"
+                             for k, v in data['diagnostic'].items()]))
             print("-" * 80)
 
             if correlate:

@@ -17,7 +17,7 @@ import numpy as np
 
 from .abstract_scan import AbstractScan
 from ..exceptions import LisoRuntimeError
-from ..io import ExpWriter
+from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
 from ..experiment.machine_interface import MachineInterface
 
@@ -58,14 +58,9 @@ class MachineScan(AbstractScan):
         self._interface.write(mapping, loop=loop, executor=executor)
         if self._policy == ScanPolicy.READ_AFTER_DELAY:
             time.sleep(self._read_delay)
-        idx, controls, diagnostics = self._interface.read(
-            loop=loop, executor=executor)
-
-        ret = {
-            'control': {k: v['data'] for k, v in controls.items()},
-            'diagnostic': {k: v['data'] for k, v in diagnostics.items()}
-        }
-        return idx, ret
+        idx, data = self._interface.read(
+            loop=loop, executor=executor, value_only=True)
+        return idx, data
 
     def _scan_imp(self, sequence: list,
                   writer: ExpWriter,
@@ -117,14 +112,14 @@ class MachineScan(AbstractScan):
             n_tasks = multiprocessing.cpu_count()
 
         try:
-            ret = self._interface.read()
-            logger.info("Current values of the scanned parameters: %s",
-                        str(ret)[1:-1].replace(': ', ' = '))
+            _, ret = self._interface.read()
+            # TODO: improve
+            logger.info("Current values of the scanned parameters:\n %s", ret)
         except LisoRuntimeError as e:
             raise RuntimeError("Failed to read all the initial values of "
                                "the scanned parameters!") from e
 
-        output_dir = self._create_output_dir(output_dir)
+        output_dir = create_next_run_folder(output_dir)
 
         sequence = self._generate_param_sequence(cycles)
 
@@ -133,13 +128,13 @@ class MachineScan(AbstractScan):
                     n_tasks, output_dir.resolve())
         logger.info(self.summarize())
 
+        np.random.seed(seed)
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor(max_workers=n_tasks)
         with ExpWriter(output_dir,
                        schema=self._interface.schema,
                        chmod=chmod,
                        group=group) as writer:
-            np.random.seed(seed)
-            loop = asyncio.get_event_loop()
-            executor = ThreadPoolExecutor(max_workers=n_tasks)
             self._scan_imp(sequence, writer, loop, executor)
 
         logger.info("Scan finished!")

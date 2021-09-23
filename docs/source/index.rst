@@ -38,6 +38,7 @@ it is live again but aims at:
 
    exp_interface
    exp_monitoring
+   exp_acquiring
    exp_scan
    exp_reading_data
 

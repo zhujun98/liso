@@ -27,12 +27,14 @@ def _side_effect_read(dataset, address):
 
 
 class TestMachineScan(unittest.TestCase):
-    def setUp(self):
-        self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
+    @classmethod
+    def setUpClass(cls):
+        cls._orig_image_chunk = ExpWriter._IMAGE_CHUNK
         ExpWriter._IMAGE_CHUNK = (3, 2)
 
-    def tearDown(self):
-        ExpWriter._IMAGE_CHUNK = self._orig_image_chunk
+    @classmethod
+    def tearDownClass(cls):
+        ExpWriter._IMAGE_CHUNK = cls._orig_image_chunk
 
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:

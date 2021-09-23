@@ -8,8 +8,9 @@ Copyright (C) Jun Zhu. All rights reserved.
 import asyncio
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import ValidationError
 
@@ -34,6 +35,7 @@ except ModuleNotFoundError:
         pass
 
 from ..exceptions import LisoRuntimeError
+from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
 from ..utils import profiler
 from .machine_interface import MachineInterface
@@ -247,7 +249,8 @@ class DoocsInterface(MachineInterface):
 
     @staticmethod
     def _extract_readout(channels: Dict[str, DoocsChannel],
-                         readout: dict) -> Dict[str, Any]:
+                         readout: dict, *,
+                         value_only: bool) -> Dict[str, Any]:
         """Validate readout for given channels.
 
         :raises LisoRuntimeError: If validation fails.
@@ -255,7 +258,7 @@ class DoocsInterface(MachineInterface):
         ret = dict()
         for address, ch in channels.items():
             ch_data = readout[address]
-            ret[address] = ch_data
+            ret[address] = ch_data['data'] if value_only else ch_data
             if ch_data is not None:
                 try:
                     ch.value = ch_data['data']  # validate
@@ -408,13 +411,16 @@ class DoocsInterface(MachineInterface):
     def read(self,  # pylint: disable=arguments-differ
              loop: Optional[asyncio.AbstractEventLoop] = None,
              executor: Optional[ThreadPoolExecutor] = None,
-             correlate: bool = True) -> Tuple[Optional[int], dict, dict]:
+             correlate: bool = True,
+             value_only: bool = False) -> Tuple[Optional[int], dict]:
         """Return readout value(s) of the diagnostics channel(s).
 
         :param loop: The event loop.
         :param executor: ThreadPoolExecutor instance.
         :param correlate: True for returning the latest group of data with
             the same train ID.
+        :param value_only: True for returning only the value of the channel.
+            Otherwise, the full message received from DOOCS is returned.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
         :raises LisoRuntimeError: If validation fails.
@@ -436,15 +442,51 @@ class DoocsInterface(MachineInterface):
             pid, data = loop.run_until_complete(
                 self._read(self.channels, loop, executor))
 
-        control_data = self._extract_readout(self._controls, data)
-        diagnostic_data = self._extract_readout(self._diagnostics, data)
+        control_data = self._extract_readout(
+            self._controls, data, value_only=value_only)
+        diagnostic_data = self._extract_readout(
+            self._diagnostics, data, value_only=value_only)
 
-        return pid, control_data, diagnostic_data
+        return pid, {
+            "control": control_data,
+            "diagnostic": diagnostic_data
+        }
 
     @staticmethod
     def _print_channel_data(title: str, data: Dict[str, dict]) -> None:
         print(f"{title}:\n" + "\n".join([f"- {k}: {v}"
                                          for k, v in data.items()]))
+
+    def acquire(self, output_dir: Union[str, Path] = "./", *,
+                executor: Optional[ThreadPoolExecutor] = None,
+                chmod: bool = True,
+                group: int = 1):
+        """Acquiring correlated data and saving it to HDF5 files.
+
+        :param output_dir: Directory in which data for each run is
+            stored in in its own sub-directory.
+        :param executor: ThreadPoolExecutor instance.
+        :param chmod: True for changing the permission to 400 after
+            finishing writing.
+        :param group: Writer group.
+        """
+        output_dir = create_next_run_folder(output_dir)
+
+        logger.info("Starting acquiring data and saving data to %s",
+                    output_dir.resolve())
+
+        loop = asyncio.get_event_loop()
+        with ExpWriter(output_dir,
+                       schema=self.schema,
+                       chmod=chmod,
+                       group=group) as writer:
+            try:
+                while True:
+                    pid, data = self.read(loop, executor, value_only=True)
+                    writer.write(pid, data)
+                    time.sleep(0.001)
+            except KeyboardInterrupt:
+                logger.info("Stopping data acquisition ...")
 
     def monitor(self,
                 executor: Optional[ThreadPoolExecutor] = None,
@@ -459,13 +501,16 @@ class DoocsInterface(MachineInterface):
             while True:
                 # The readout must be validated and this is rational of
                 # having the schema for each channel.
-                pid, controls, diagnostics = self.read(
+                pid, data = self.read(
                     loop, executor, correlate=correlate)
 
+                # FIXME: change print to log?
                 print("-" * 80)
                 print("Macropulse ID:", pid)
-                self._print_channel_data("\nControl data", controls)
-                self._print_channel_data("\nDiagnostics data", diagnostics)
+                self._print_channel_data(
+                    "\nControl data", data['control'])
+                self._print_channel_data(
+                    "\nDiagnostics data", data['diagnostic'])
                 print("-" * 80)
 
                 if correlate:
