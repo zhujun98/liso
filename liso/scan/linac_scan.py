@@ -122,7 +122,7 @@ class LinacScan(AbstractScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        output_dir = create_next_run_folder(output_dir)
+        output_dir = create_next_run_folder(output_dir, sim=True)
 
         schema = self._create_schema()
 

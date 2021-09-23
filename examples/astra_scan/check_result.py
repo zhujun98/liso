@@ -3,7 +3,7 @@ from liso import open_sim
 
 n = 12  # 1200
 
-sim = open_sim('./r0001')
+sim = open_sim('./s0001')
 
 sim.info()
 

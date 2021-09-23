@@ -89,8 +89,8 @@ The following information will be printed out in the terminal:
     INFO - Scan finished!
 
 
-By default, the scan output is stored in a "run" folder in the current
-directory. The number of "run" folder is generated in sequence starting from
-"r0001". For how to read out the result, please refer to :ref:`reading hdf5 sim`.
+By default, the scan output is stored in a "sim" folder in the current
+directory. The number of "sim" folder is generated in sequence starting from
+"s0001". For how to read out the result, please refer to :ref:`reading hdf5 sim`.
 
 For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/astra_scan>`_.

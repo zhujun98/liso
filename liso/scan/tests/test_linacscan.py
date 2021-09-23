@@ -113,6 +113,28 @@ class TestLinacScan(unittest.TestCase):
             future.set_result(ps)
             run.return_value = future
 
+    def testSimFolderCreation(self):
+        sc = self._sc
+        with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
+            self._configure_mocked_run(mocked_run)
+            sc.add_param('gun_gradient', start=1., stop=3., num=3)
+            sc.add_param('gun_phase', start=10., stop=30., num=3)
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                sc.scan(2, output_dir=tmp_dir)
+                sc.scan(2, output_dir=tmp_dir)
+                path = Path(tmp_dir)
+                self.assertListEqual([path.joinpath(f's000{i}') for i in [1, 2]],
+                                     sorted((path.iterdir())))
+
+                path.joinpath("s0006").mkdir()
+                sc.scan(2, output_dir=tmp_dir)
+                self.assertListEqual([path.joinpath(f's000{i}') for i in [1, 2, 6, 7]],
+                                     sorted((path.iterdir())))
+
+                # test the parent folder will be created when it does not exist
+                self._sc.scan(2, output_dir=f"{tmp_dir}/tmp", n_tasks=2)
+
     def testScanPrecheck(self):
         with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
             self._configure_mocked_run(mocked_run)
@@ -132,6 +154,22 @@ class TestLinacScan(unittest.TestCase):
                         self._sc.scan(2, output_dir=tmp_dir, start_id=2, n_tasks=2)
                     self._sc.scan(2, output_dir=tmp_dir, start_id=3, n_tasks=2)
 
+    def testChmod(self):
+        with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
+            self._configure_mocked_run(mocked_run)
+            self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
+            self._sc.add_param('gun_phase', start=10., stop=30., num=3)
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                self._sc.scan(2, output_dir=tmp_dir)
+                for file in Path(tmp_dir).joinpath('s0001').iterdir():
+                    self.assertEqual('400', oct(file.stat().st_mode)[-3:])
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                self._sc.scan(2, output_dir=tmp_dir, chmod=False)
+                for file in Path(tmp_dir).iterdir():
+                    self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+
     def testScan(self):
         with patch.object(self._sc._linac['gun'], 'async_run') as mocked_run:
             self._configure_mocked_run(mocked_run)
@@ -142,14 +180,14 @@ class TestLinacScan(unittest.TestCase):
                 self._sc.add_param('gun_gradient', start=1., stop=3., num=3)
                 with self.assertRaisesRegex(KeyError, "No mapping for <gun_phase>"):
                     self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
-                assert tmp_dir.joinpath('r0001').is_dir()
+                assert tmp_dir.joinpath('s0001').is_dir()
 
                 self._sc.add_param('gun_phase', start=10., stop=30., num=3)
                 # Note: use n_tasks > 1 here to track bugs
                 self._sc.scan(2, output_dir=tmp_dir, n_tasks=2)
                 # Testing with a real file is necessary to check the
                 # expected results were written.
-                sim = open_sim(tmp_dir.joinpath('r0002'))
+                sim = open_sim(tmp_dir.joinpath('s0002'))
                 self.assertSetEqual(
                     {'gun/gun_gradient', 'gun/gun_phase'}, sim.control_channels)
                 self.assertSetEqual(
@@ -162,22 +200,7 @@ class TestLinacScan(unittest.TestCase):
                     [10., 20., 30., 10., 20., 30., 10., 20., 30.] * 2,
                     sim.get_controls(ordered=True)['gun/gun_phase'])
 
-                # test when folder does not exist
-                self._sc.scan(2, output_dir=f"{tmp_dir}/tmp", n_tasks=2)
-
-            with self.subTest("Test start_id"):
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, output_dir=tmp_dir, start_id=11)
-                    sim = open_sim(Path(tmp_dir).joinpath('r0001'))
-                    np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
-
-            with self.subTest("Test chmod"):
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, output_dir=tmp_dir)
-                    for file in Path(tmp_dir).joinpath('r0001').iterdir():
-                        self.assertEqual('400', oct(file.stat().st_mode)[-3:])
-
-                with tempfile.TemporaryDirectory() as tmp_dir:
-                    self._sc.scan(2, output_dir=tmp_dir, chmod=False)
-                    for file in Path(tmp_dir).iterdir():
-                        self.assertNotEqual('400', oct(file.stat().st_mode)[-3:])
+                # test start_id
+                self._sc.scan(2, output_dir=tmp_dir, start_id=11)
+                sim = open_sim(Path(tmp_dir).joinpath('s0003'))
+                np.testing.assert_array_equal(np.arange(1, 19) + 10, sorted(sim.sim_ids))
