@@ -151,7 +151,14 @@ class AbstractScan(abc.ABC):
     def _collect_result(writer: WriterBase, collector: Callable, *args) -> None:
         """Collect result and write into file."""
         try:
-            writer.write(*collector(*args))
+            data = collector(*args)
+            if isinstance(data[0], tuple):
+                # experiment
+                for item in data:
+                    writer.write(*item)
+            else:
+                # simulation
+                writer.write(*data)
         except LisoRuntimeError as e:
             _, _, exc_traceback = sys.exc_info()
             logger.debug(
@@ -162,7 +169,7 @@ class AbstractScan(abc.ABC):
         except Exception as e:
             _, _, exc_traceback = sys.exc_info()
             logger.error(
-                "(Unexpected exceptions): %s, %s",
+                "%s, %s",
                 repr(traceback.format_tb(exc_traceback)),
                 str(e))
             raise

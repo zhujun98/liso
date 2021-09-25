@@ -1,10 +1,5 @@
 import argparse
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import time
 
-from ..logging import logger
-from .doocs_channels import AnyDoocsChannel
 from .doocs_interface import DoocsInterface
 
 
@@ -46,27 +41,8 @@ def monitor():
 
     interface = DoocsInterface("DOOCS")
     for ch in fast_channels:
-        interface.add_diagnostic_channel(AnyDoocsChannel, ch)
+        interface.add_diagnostic_channel(ch)
     for ch in slow_channels:
-        interface.add_diagnostic_channel(AnyDoocsChannel, ch, non_event=True)
+        interface.add_diagnostic_channel(ch, non_event=True)
 
-    loop = asyncio.get_event_loop()
-    executor = ThreadPoolExecutor()
-    correlate = args.correlate
-    try:
-        while True:
-            pid, data = interface.read(
-                loop, executor, correlate=correlate)
-            print("-" * 80)
-            print("Macropulse ID:", pid)
-            print()
-            print("\n".join([f"- {k}: {v}"
-                             for k, v in data['diagnostic'].items()]))
-            print("-" * 80)
-
-            if correlate:
-                time.sleep(0.001)
-            else:
-                time.sleep(1.0)
-    except KeyboardInterrupt:
-        logger.info("Stopping monitoring ...")
+    interface.monitor(correlate=args.correlate, app=True)

@@ -238,13 +238,13 @@ class TestSimReader(unittest.TestCase):
 class TestExpReader(unittest.TestCase):
     def setUp(self):
         m = EuXFELInterface()
-        m.add_control_channel(dc.FLOAT32, "XFEL.A/B/C/D")
-        m.add_control_channel(dc.FLOAT32, "XFEL.A/B/C/E")
-        m.add_control_channel(dc.BOOL, "XFEL.A/B/C/F")
+        m.add_control_channel("XFEL.A/B/C/D", dc.FLOAT32)
+        m.add_control_channel("XFEL.A/B/C/E", dc.FLOAT32)
+        m.add_control_channel("XFEL.A/B/C/F", dc.BOOL)
         self._s1 = (3, 4)
         self._s2 = (6, 5)
-        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/K", shape=self._s1, dtype='uint16')
-        m.add_diagnostic_channel(dc.IMAGE, "XFEL.H/I/J/L", shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel("XFEL.H/I/J/K", dc.IMAGE, shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel("XFEL.H/I/J/L", dc.IMAGE, shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK

@@ -1,13 +1,13 @@
 Optimizing beam parameters
 ==========================
 
-.. _injector optimization ASTRA:
+.. _injector optimization using astra:
 
 Optimizing an injector using ASTRA
 ----------------------------------
 
 In this section, we will be optimizing the performance of the injector
-introduced in :ref:`injector simulation ASTRA`.
+introduced in :ref:`injector simulation using astra`.
 
 .. code-block:: python
 

@@ -1,14 +1,14 @@
 Scanning Linac Parameters
 =========================
 
-.. _injector scan ASTRA:
+.. _injector scan using astra:
 
 Performing parameter scan for an injector using ASTRA
 -----------------------------------------------------
 
 In this section, we will be performing parameter scan for an injector
 simulated using ASTRA. For how to run a basic simulation with ASTRA, please
-refer to :ref:`injector simulation ASTRA`.
+refer to :ref:`injector simulation using astra`.
 
 .. code-block:: py
 
@@ -34,7 +34,7 @@ refer to :ref:`injector simulation ASTRA`.
 
     sc.scan()
 
-Check how to define different :ref:`scan parameters`.
+Check how to define different :ref:`scan parameters api`.
 
 Run the scan by typing:
 
@@ -91,6 +91,6 @@ The following information will be printed out in the terminal:
 
 By default, the scan output is stored in a "sim" folder in the current
 directory. The number of "sim" folder is generated in sequence starting from
-"s0001". For how to read out the result, please refer to :ref:`reading hdf5 sim`.
+"s0001". For how to read out the result, please refer to :ref:`reading simulated data`.
 
 For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/astra_scan>`_.

@@ -11,12 +11,11 @@ import enum
 import multiprocessing
 from pathlib import Path
 import time
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
 from .abstract_scan import AbstractScan
-from ..exceptions import LisoRuntimeError
 from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
 from ..experiment.machine_interface import MachineInterface
@@ -31,7 +30,8 @@ class MachineScan(AbstractScan):
 
     def __init__(self, interface: MachineInterface,
                  policy: ScanPolicy = ScanPolicy.READ_AFTER_DELAY,
-                 read_delay: float = 1.0) -> None:
+                 read_delay: float = 1.0,
+                 n_reads: int = 1) -> None:
         """Initialization.
 
         :param interface: MachineInterface instance.
@@ -39,6 +39,7 @@ class MachineScan(AbstractScan):
         :param read_delay: Delay for reading channel data in seconds after
             writing channels. Use only when
             policy = ScanPolicy.READ_AFTER_DELAY.
+        :param n_reads: Number of reads after each write.
         """
         super().__init__()
 
@@ -50,17 +51,26 @@ class MachineScan(AbstractScan):
         self._policy = policy
         self._read_delay = read_delay
 
+        if not isinstance(n_reads, int) and n_reads <= 0:
+            raise ValueError(f"n_reads must be a positive integer: {n_reads}")
+        self._n_reads = n_reads
+
     def _touch(self,
                mapping: dict,
                loop: asyncio.AbstractEventLoop,
-               executor: ThreadPoolExecutor) -> Tuple[int, dict]:
+               executor: ThreadPoolExecutor) -> List[Tuple[int, dict]]:
         """Touch the machine with reading after writing."""
         self._interface.write(mapping, loop=loop, executor=executor)
         if self._policy == ScanPolicy.READ_AFTER_DELAY:
             time.sleep(self._read_delay)
-        idx, data = self._interface.read(
-            loop=loop, executor=executor, value_only=True)
-        return idx, data
+        items = self._interface.read(
+            self._n_reads, loop=loop, executor=executor)
+        ret = []
+        for item in items:
+            data = self._interface.parse_readout(
+                item[1], verbose=False, validate=True)
+            ret.append((item[0], data))
+        return ret
 
     def _scan_imp(self, sequence: list,
                   writer: ExpWriter,
@@ -111,13 +121,14 @@ class MachineScan(AbstractScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        try:
-            _, ret = self._interface.read()
-            # TODO: improve
-            logger.info("Current values of the scanned parameters:\n %s", ret)
-        except LisoRuntimeError as e:
+        # TODO: improve
+        initial_setup = self._interface.read(1)
+        if initial_setup:
+            logger.info("Current values of the scanned parameters:\n"
+                        " %s", initial_setup)
+        else:
             raise RuntimeError("Failed to read all the initial values of "
-                               "the scanned parameters!") from e
+                               "the scanned parameters!")
 
         output_dir = create_next_run_folder(output_dir)
 
