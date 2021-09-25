@@ -47,6 +47,7 @@ class TestDoocsInterface(unittest.TestCase):
             "interval.read.retry": 0.002
         }
         m = EuXFELInterface(cfg)
+        m._validation_prob = 1.
         m.add_control_channel("XFEL.A/B/C/D", dc.FLOAT, write_address="XFEL.A/B/C/d")
         m.add_control_channel("XFEL.A/B/C/E")
         m.add_diagnostic_channel("XFEL.H/I/J/K", dc.IMAGE,
@@ -270,10 +271,14 @@ class TestDoocsInterface(unittest.TestCase):
                 m.acquire(tmp_dir)
 
             del m._channels["XFEL.A/B/C/E"]
-            m.add_control_channel("XFEL.A/B/C/E", dc.INT)
+            with self.assertRaisesRegex(TypeError, "Validation error"):
+                m.add_control_channel("XFEL.A/B/C/E", dc.INT)
+                m.acquire(tmp_dir)
 
+            del m._channels["XFEL.A/B/C/E"]
+            m.add_control_channel("XFEL.A/B/C/E", dc.FLOAT)
             m.acquire(tmp_dir)
-            run = open_run(Path(tmp_dir).joinpath('r0002'))
+            run = open_run(Path(tmp_dir).joinpath('r0003'))
             run.info()
 
     @patch("time.sleep", side_effect=KeyboardInterrupt)

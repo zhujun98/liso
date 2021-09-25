@@ -412,10 +412,10 @@ class DoocsInterface(MachineInterface):
         except KeyError as e:
             raise KeyError("Channel not found in the control channels") from e
 
-        if executor is None:
-            executor = ThreadPoolExecutor()
         if loop is None:
             loop = asyncio.get_event_loop()
+        if executor is None:
+            executor = ThreadPoolExecutor()
 
         failure_count = loop.run_until_complete(
             self._write(mapping_write, loop, executor))
@@ -434,7 +434,7 @@ class DoocsInterface(MachineInterface):
             only the 'data' of the message will be kept.
         :param validate: True for validate the readout 'data'.
 
-        :raises LisoRuntimeError: If validation fails.
+        :raises TypeError: If validation fails.
         """
         ret = dict()
         for cat, channels in self._catelog.items():
@@ -450,8 +450,11 @@ class DoocsInterface(MachineInterface):
                         and random.random() < self._validation_prob:
                     try:
                         self._channels[address].value = ch_value
-                    except ValidationError as e:
-                        raise LisoRuntimeError("Validation error") from e
+                    except ValidationError:
+                        raise TypeError(
+                            f"Validation error of channel: {address}, "
+                            f"expected: {self._channels[address].value_schema()}, "
+                            f"actual: {ch_value}")
             ret[cat] = sub_ret
         return ret
 
@@ -594,7 +597,8 @@ class DoocsInterface(MachineInterface):
 
         :param executor: ThreadPoolExecutor instance.
         :param correlate: True for correlating all channel data.
-        :param verbose:
+        :param verbose: True for printing out the full DOOCS message.
+            Otherwise, only 'data' is printed out.
         :param app: True for used in app with all channels belong to
             diagnostic.
         """

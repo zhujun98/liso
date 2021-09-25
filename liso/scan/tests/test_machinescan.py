@@ -51,12 +51,13 @@ class TestMachineScan(unittest.TestCase):
             self._tmp_dir = tmp_dir
 
             cfg = {
-                "timeout.correlation": 0.02,
-                "interval.read.retry": 0.002
+                "timeout.correlation": 0.05,
+                "interval.read.retry": 0.01
             }
             m = EuXFELInterface(cfg)
+            m._validation_prob = 1.
             m.add_control_channel('XFEL.A/B/C/D', dc.FLOAT32)
-            m.add_control_channel('XFEL.A/B/C/E', dc.FLOAT32, non_event=True)
+            m.add_control_channel('XFEL.A/B/C/E', dc.INT64, non_event=True)
             m.add_diagnostic_channel('XFEL.H/I/J/K', dc.IMAGE, shape=(3, 4), dtype='uint16')
             self._machine = m
 
@@ -70,7 +71,7 @@ class TestMachineScan(unittest.TestCase):
             "XFEL.A/B/C/D": ddgen.scalar(
                 1., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
-                100., m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
+                100, m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
             "XFEL.H/I/J/K": ddgen.image(
                 m._channels["XFEL.H/I/J/K"].value_schema(), pid=_INITIAL_PID),
         }
@@ -196,6 +197,21 @@ class TestMachineScan(unittest.TestCase):
             assert (len(pids), 3, 4) == img_data.shape
             self.assertTrue(np.all(img_data[0] == pids[0] - _INITIAL_PID + 1))
             self.assertTrue(np.all(img_data[-1] == pids[-1] - _INITIAL_PID + 1))
+
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testValidationDuringScan(self, mocked_read, _):
+        sc = self._sc
+        dataset = self._prepare_dataset()
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
+
+            dataset["XFEL.A/B/C/E"]['data'] = 1.0
+            with self.assertRaisesRegex(TypeError, "Validation error"):
+                sc.scan(1, output_dir=tmp_dir)
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")

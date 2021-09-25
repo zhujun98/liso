@@ -169,7 +169,7 @@ class AbstractScan(abc.ABC):
         except Exception as e:
             _, _, exc_traceback = sys.exc_info()
             logger.error(
-                "(Unexpected exceptions): %s, %s",
+                "%s, %s",
                 repr(traceback.format_tb(exc_traceback)),
                 str(e))
             raise
