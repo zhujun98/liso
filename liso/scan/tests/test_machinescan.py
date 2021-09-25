@@ -51,8 +51,8 @@ class TestMachineScan(unittest.TestCase):
             self._tmp_dir = tmp_dir
 
             cfg = {
-                "timeout.correlation": 0.05,
-                "interval.read.retry": 0.01
+                "timeout.correlation": 0.1,
+                "interval.read.retry": 0.005
             }
             m = EuXFELInterface(cfg)
             m._validation_prob = 1.

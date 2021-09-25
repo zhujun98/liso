@@ -368,6 +368,9 @@ class DoocsInterface(MachineInterface):
         except (DoocsException, PyDoocsException) as e:
             logger.error("Failed to write %s to %s: %s",
                          value, address, repr(e))
+        except asyncio.CancelledError:
+            logger.debug("Task for writing %s to %s was cancelled",
+                         value, address)
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Unexpected exception when writing %s to %s: %s",
                          value, address, repr(e))
@@ -479,10 +482,12 @@ class DoocsInterface(MachineInterface):
             logger.error(repr(e))
             raise
         except (DoocsException, PyDoocsException) as e:
-            logger.error("Failed to read data from %s: {%s}", address, repr(e))
+            logger.error("Failed to read data from %s: %s", address, repr(e))
+        except asyncio.CancelledError:
+            logger.debug("Task for reading from %s was cancelled", address)
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Unexpected exception when reading from "
-                         "{%s}: {%s}", address, repr(e))
+                         "%s: %s", address, repr(e))
         return address, None
 
     async def _query(self,
