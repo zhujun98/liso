@@ -66,6 +66,14 @@ class Correlator:
             except asyncio.CancelledError:
                 pass
 
+    @staticmethod
+    def _clean_event_buffer(buffer: OrderedDict, pid: int):
+        while True:
+            old_pid, item = buffer.popitem(last=False)
+            if old_pid == pid:
+                buffer[pid] = item
+                return
+
     async def _collect_event(self,
                              channels: set,
                              buffer: OrderedDict,
@@ -93,6 +101,7 @@ class Correlator:
                         if len(buffer[pid]) == len(channels):
                             ready.append(pid)
                             self._last_correlated = pid
+                            self._clean_event_buffer(buffer, pid)
 
                     elif pid == 0:
                         # FIXME: It is not 100% sure that data with
