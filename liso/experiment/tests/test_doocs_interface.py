@@ -277,7 +277,10 @@ class TestDoocsInterface(unittest.TestCase):
 
             del m._channels["XFEL.A/B/C/E"]
             m.add_control_channel("XFEL.A/B/C/E", dc.FLOAT)
-            m.acquire(tmp_dir)
+            logger.setLevel("INFO")
+            with self.assertLogs(level="INFO") as cm:
+                m.acquire(tmp_dir)
+            assert "Saved 1 pulse" in cm.output[-1]
             run = open_run(Path(tmp_dir).joinpath('r0003'))
             run.info()
 

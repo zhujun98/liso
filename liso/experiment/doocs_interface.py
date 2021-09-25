@@ -582,10 +582,15 @@ class DoocsInterface(MachineInterface):
             finishing writing.
         :param group: Writer group.
         """
+        count = 0
         def _write(pid, data):
             data = self.parse_readout(data, verbose=False, validate=True)
             writer.write(pid, data)
-            time.sleep(0.001)
+            nonlocal count
+            count += 1
+            if count % 100 == 0:
+                logger.info("%s pulses acquired", count)
+            time.sleep(0)  # for unittest
 
         output_dir = create_next_run_folder(output_dir)
 
@@ -601,6 +606,7 @@ class DoocsInterface(MachineInterface):
                 self.read(loop=loop, executor=executor, callback=_write)
             except KeyboardInterrupt:
                 logger.info("Stopping data acquisition ...")
+                logger.info("Saved %s pulse(s) in total", count)
 
     def monitor(self, *,
                 executor: Optional[ThreadPoolExecutor] = None,

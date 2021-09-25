@@ -185,7 +185,7 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            self.assertListEqual(list(pids[:4]), [1002, 1004, 1006, 1008])
+            assert pids[0] == 1002
             assert len(np.unique(pids)) == len(pids)
 
             control_data = run.get_controls()
@@ -232,6 +232,5 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            self.assertListEqual(
-                list(pids[:8]), [1002, 1003, 1004, 1005, 1007, 1008, 1009, 1010])
-            assert len(np.unique(pids)) == len(pids)
+            self.assertListEqual(list(pids[:4]), [1002, 1003, 1004, 1005])
+            assert len(np.unique(pids)) == len(pids) == 80
