@@ -6,14 +6,16 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
-from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from collections import deque, OrderedDict
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 import random
 import time
 from typing import (
-    Any, Callable, Dict, List, Optional, FrozenSet, Tuple, Type, Union
+    Any, Callable, Dict, Iterable, List, Optional, FrozenSet, Tuple, Type,
+    Union
 )
 
 from pydantic import ValidationError
@@ -437,7 +439,7 @@ class DoocsInterface(MachineInterface):
         if not mapping:
             return
 
-        # Validate should be done in DOOCS.
+        # Validate should be done in DOOCS
         try:
             mapping_write = {self._control_write[k]: v
                              for k, v in mapping.items()}
@@ -519,24 +521,23 @@ class DoocsInterface(MachineInterface):
                          "%s: %s", address, repr(e))
         return address, None
 
-    async def _query(self,
+    async def _query(self, addresses: Iterable[str], *,
                      loop: asyncio.AbstractEventLoop,
                      executor: ThreadPoolExecutor) -> Dict[str, dict]:
         tasks = [
             asyncio.create_task(self._read_channel(
                 address, loop=loop, executor=executor))
-            for address in self.channels
+            for address in addresses
         ]
 
         ret = dict()
         for fut in asyncio.as_completed(tasks, timeout=self._timeout_read):
             address, data = await fut
             ret[address] = data
-
         return ret
 
     @profiler("DOOCS interface query")
-    def query(self, *,
+    def query(self, *,  # pylint: disable=arguments-differ
               loop: Optional[asyncio.AbstractEventLoop] = None,
               executor: Optional[ThreadPoolExecutor] = None) -> Dict[str, dict]:
         """Read data from channels once without correlating them.
@@ -545,14 +546,14 @@ class DoocsInterface(MachineInterface):
         :param executor: ThreadPoolExecutor instance.
 
         :raises ModuleNotFoundError: If PyDOOCS cannot be imported.
-        :raises LisoRuntimeError: If validation fails.
         """
         if executor is None:
             executor = ThreadPoolExecutor()
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        return loop.run_until_complete(self._query(loop, executor))
+        return loop.run_until_complete(self._query(
+            self.channels, loop=loop, executor=executor))
 
     @profiler("DOOCS interface read")
     def read(self, n: Optional[int] = None, *,  # pylint: disable=arguments-differ
@@ -583,6 +584,36 @@ class DoocsInterface(MachineInterface):
             query=partial(self._read_channel, loop=loop, executor=executor),
             callback=callback
         ))
+
+    @contextmanager
+    def safe_write(self, addresses: Iterable[str], *,  # pylint: disable=arguments-differ
+                   loop: asyncio.AbstractEventLoop,
+                   executor: ThreadPoolExecutor) -> None:
+
+        try:
+            [self._control_write[addr] for addr in addresses]
+        except KeyError as e:
+            raise KeyError("Channel not found in the control channels") from e
+
+        mapping = loop.run_until_complete(self._query(
+            addresses, loop=loop, executor=executor))
+
+        for k, v in mapping.items():
+            if v is None:
+                raise LisoRuntimeError(f"Failed to read data from channel {k}")
+            mapping[k] = v['data']
+
+        logger.info("Initial machine setup: %s", mapping)
+
+        try:
+            yield
+        finally:
+            try:
+                self.write(mapping)
+            except LisoRuntimeError as e:
+                raise LisoRuntimeError("Failed to restore machine setup") from e
+
+        logger.info("Machine setup restored: %s", mapping)
 
     @staticmethod
     def _print_channel_data(title: str, data: Dict[str, dict]) -> None:

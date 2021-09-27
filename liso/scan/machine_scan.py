@@ -126,31 +126,25 @@ class MachineScan(AbstractScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        # TODO: improve
-        initial_setup = self._interface.read(1)
-        if initial_setup:
-            logger.info("Current values of the scanned parameters:\n"
-                        " %s", initial_setup)
-        else:
-            raise RuntimeError("Failed to read all the initial values of "
-                               "the scanned parameters!")
-
-        output_dir = create_next_run_folder(output_dir)
-
-        sequence = self._generate_param_sequence(cycles)
-
-        logger.info("Starting parameter scan with %s CPUs. "
-                    "Scan result will be save at %s",
-                    n_tasks, output_dir.resolve())
-        logger.info(self.summarize())
-
-        np.random.seed(seed)
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(max_workers=n_tasks)
-        with ExpWriter(output_dir,
-                       schema=self._interface.schema,
-                       chmod=chmod,
-                       group=group) as writer:
-            self._scan_imp(sequence, writer, loop, executor)
 
-        logger.info("Scan finished!")
+        with self._interface.safe_write(
+                self._params.keys(), loop=loop, executor=executor):
+            output_dir = create_next_run_folder(output_dir)
+
+            sequence = self._generate_param_sequence(cycles)
+
+            logger.info("Starting parameter scan with %s CPUs. "
+                        "Scan result will be save at %s",
+                        n_tasks, output_dir.resolve())
+            logger.info(self.summarize())
+
+            np.random.seed(seed)
+            with ExpWriter(output_dir,
+                           schema=self._interface.schema,
+                           chmod=chmod,
+                           group=group) as writer:
+                self._scan_imp(sequence, writer, loop, executor)
+
+            logger.info("Scan finished!")
