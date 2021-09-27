@@ -18,6 +18,7 @@ import numpy as np
 from .abstract_scan import AbstractScan
 from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
+from ..exceptions import LisoRuntimeError
 from ..experiment.machine_interface import MachineInterface
 
 
@@ -65,6 +66,10 @@ class MachineScan(AbstractScan):
             time.sleep(self._read_delay)
         items = self._interface.read(
             self._n_reads, loop=loop, executor=executor)
+        if len(items) < self._n_reads:
+            raise LisoRuntimeError(
+                f"Failed to readout {self._n_reads} data points")
+
         ret = []
         for item in items:
             data = self._interface.parse_readout(

@@ -2,6 +2,7 @@
 import asyncio
 from copy import deepcopy
 from pathlib import Path
+import random
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -14,8 +15,6 @@ from liso.experiment.doocs_interface import DoocsException
 from liso.io import ExpWriter
 from liso.logging import logger
 from ...experiment.tests import DoocsDataGenerator as ddgen
-
-logger.setLevel('ERROR')
 
 _INITIAL_PID = 1000
 
@@ -39,6 +38,8 @@ class TestMachineScan(unittest.TestCase):
         ExpWriter._IMAGE_CHUNK = cls._orig_image_chunk
 
     def setUp(self):
+        logger.setLevel('ERROR')
+
         self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
 
@@ -215,7 +216,7 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testScanWithMoreThanOneRead(self, patched_read, _):
+    def testScanWithMoreThanOneRead1(self, patched_read, _):
         sc = self._sc
         sc._n_reads = 4
         dataset = self._prepare_dataset()
@@ -234,3 +235,33 @@ class TestMachineScan(unittest.TestCase):
             pids = run.pulse_ids
             self.assertListEqual(list(pids[:4]), [1002, 1003, 1004, 1005])
             assert len(np.unique(pids)) == len(pids) == 80
+
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testScanWithMoreThanOneReadFail(self, patched_read, _):
+        logger.setLevel('WARNING')
+
+        sc = self._sc
+        sc._n_reads = 4
+        dataset = self._prepare_dataset()
+
+        def _side_effect_read_capped(dataset, address):
+            data = deepcopy(dataset[address])
+            if _INITIAL_PID + random.randint(1, sc._n_reads) > data['macropulse'] >= _INITIAL_PID:
+                dataset[address]['macropulse'] += 1
+            return data
+
+        patched_read.side_effect = lambda x: _side_effect_read_capped(dataset, x)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
+            sc.add_param('XFEL.A/B/C/E', lb=-3, ub=3)
+
+            n_pulses = 20
+            with self.assertLogs(level="WARNING") as cm:
+                sc.scan(n_pulses, output_dir=tmp_dir)
+            assert "Failed to readout 4 data" in cm.output[0]
+
+            with self.assertRaisesRegex(Exception, "No HDF5 files"):
+                open_run(tmp_dir.joinpath('r0001'))

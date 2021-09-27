@@ -152,13 +152,13 @@ class AbstractScan(abc.ABC):
         """Collect result and write into file."""
         try:
             data = collector(*args)
-            if isinstance(data[0], tuple):
+            if isinstance(data, tuple):
+                # simulation
+                writer.write(*data)
+            else:
                 # experiment
                 for item in data:
                     writer.write(*item)
-            else:
-                # simulation
-                writer.write(*data)
         except LisoRuntimeError as e:
             _, _, exc_traceback = sys.exc_info()
             logger.debug(
