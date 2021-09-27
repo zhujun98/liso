@@ -2,7 +2,6 @@
 import asyncio
 from copy import deepcopy
 from pathlib import Path
-import random
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,6 +10,7 @@ import numpy as np
 
 from liso import EuXFELInterface, MachineScan, open_run
 from liso import doocs_channels as dc
+from liso.exceptions import LisoRuntimeError
 from liso.experiment.doocs_interface import DoocsException
 from liso.io import ExpWriter
 from liso.logging import logger
@@ -154,16 +154,25 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testLogInitialParameters(self, mocked_read, _):
+    def testControlledScan(self, mocked_read, mocked_write):
+        logger.setLevel("INFO")
         sc = self._sc
         sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
         def _side_effect_raise(_):
             raise DoocsException
         mocked_read.side_effect = _side_effect_raise
-        with self.assertRaisesRegex(RuntimeError,
-                                    "Failed to read all the initial values"):
+        with self.assertRaisesRegex(LisoRuntimeError, "XFEL.A/B/C/D"):
             sc.scan(1)
+
+        dataset = self._prepare_dataset()
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
+        with self.assertLogs(level="INFO") as cm:
+            sc.scan(1)
+        assert mocked_write.call_count == 2
+        assert mocked_write.call_args_list[1][0] == ('XFEL.A/B/C/D', 1.0)
+        assert "Initial machine setup: " in cm.output[0]
+        assert "Machine setup restored: " in cm.output[-1]
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
@@ -186,7 +195,7 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            assert pids[0] == 1002
+            assert pids[0] == 1001
             assert len(np.unique(pids)) == len(pids)
 
             control_data = run.get_controls()
@@ -233,7 +242,7 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            self.assertListEqual(list(pids[:4]), [1002, 1003, 1004, 1005])
+            self.assertListEqual(list(pids[:4]), [1001, 1002, 1003, 1004])
             assert len(np.unique(pids)) == len(pids) == 80
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
@@ -247,7 +256,7 @@ class TestMachineScan(unittest.TestCase):
 
         def _side_effect_read_capped(dataset, address):
             data = deepcopy(dataset[address])
-            if _INITIAL_PID + random.randint(1, sc._n_reads) > data['macropulse'] >= _INITIAL_PID:
+            if _INITIAL_PID + 3 > data['macropulse'] >= _INITIAL_PID:
                 dataset[address]['macropulse'] += 1
             return data
 
