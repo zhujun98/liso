@@ -47,6 +47,25 @@ from .doocs_channels import AnyDoocsChannel, DoocsChannel
 
 
 class Correlator:
+
+    class Timer:
+        def __init__(self, timeout: Optional[float], *, callback: Callable):
+            self._timeout = timeout
+            self._task = asyncio.create_task(self._countdown())
+            self._callback = callback
+
+        async def _countdown(self):
+            if self._timeout is not None:
+                await asyncio.sleep(self._timeout)
+                self._callback()
+
+        async def cancel(self):
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+
     def __init__(self, *,
                  timeout: float,
                  retry_after: float):
@@ -163,16 +182,15 @@ class Correlator:
 
         await self._cancel_all(tasks)
 
-    async def _timer(self, n: Optional[int]):
-        if self._timeout is None or n is None:
-            return
-
-        await asyncio.sleep(self._timeout * n)
+    def _stop(self):
         self._running = False
 
     async def _aggregate(self, n: Optional[int], event, event_ready,
                          non_event, non_event_ready, *,
                          callback: Optional[Callable] = None):
+        timeout = None if n is None else self._timeout * n
+        timer = self.Timer(timeout, callback=self._stop)
+
         ret = []
         while self._running:  # pylint: disable=too-many-nested-blocks
             if non_event_ready:
@@ -195,6 +213,8 @@ class Correlator:
 
             await asyncio.sleep(self._retry_after)
 
+        await timer.cancel()
+
         return ret
 
     async def correlate(self, n: Optional[int], event: set, non_event: set, *,
@@ -215,7 +235,6 @@ class Correlator:
 
         self._running = True
         ret = await asyncio.gather(
-            asyncio.create_task(self._timer(n)),
             asyncio.create_task(self._collect_event(
                 event, event_buffer, event_ready, query=query)),
             asyncio.create_task(self._collect_non_event(
