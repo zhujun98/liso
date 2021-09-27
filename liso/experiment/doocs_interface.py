@@ -201,11 +201,12 @@ class Correlator:
                         query: Callable, callback: Callable):
         """Correlate all the given channels.
 
-        :param n:
-        :param event:
-        :param non_event:
-        :param query:
-        :param callback:
+        :param n: Number of pulses (trains) to collect before returning. None
+            for running in an infinite loop.
+        :param event: Names of event channels.
+        :param non_event: Names of non-event channels.
+        :param query: Function for querying the channel data.
+        :param callback: Function for processing the correlated data.
         """
         event_buffer = OrderedDict()
         event_ready = deque()
