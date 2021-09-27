@@ -3,6 +3,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 import tempfile
+import time
 
 import numpy as np
 
@@ -259,6 +260,21 @@ class TestDoocsInterface(unittest.TestCase):
         items = m.read(4)
         assert len(items) == 4
         assert [pid for pid, _ in items] == [1000, 1001, 1002, 1003]
+
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testCorrelatedTimeout(self, patched_read):
+        m = self._machine
+        dataset = self._dataset
+        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+
+        m._corr._timeout = 0.2
+        t0 = time.time()
+        m.read(1)
+        assert time.time() - t0 < 0.1
+
+        t0 = time.time()
+        m.read(4)
+        assert time.time() - t0 < 0.1
 
     @patch("time.sleep", side_effect=KeyboardInterrupt)
     @patch("liso.experiment.doocs_interface.pydoocs_read")
