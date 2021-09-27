@@ -33,6 +33,31 @@ An example code snippet is shown below:
                              shape=(1750, 2330), dtype='uint16', no_event=True)
 
 
-Read more about :ref:`monitoring with doocs`.
+Conceptually, DOOCS channels are categorized into control and diagnostic
+channels in LISO. A control channel can be set to change the behavior of the
+machine, for example, an RF phase and a Quadrupole magnet current. In principle,
+the value of a control channel should be a single number. A diagnostic channel
+provides the measured result which cannot be changed explicitly, for example,
+the image on an OTR screen. In many cases, the value of a diagnostic channel
+is an array. If you do not plan to write new values to the machine, for instance,
+performing a :ref:`parameter scan with doocs`, you can actually add a
+diagnostic channel as a control channel and vise versa. Nevertheless, it is
+recommended to follow the above convention since this may affect reading data
+from files and further analysis.
 
-Read more about :ref:`parameter scan with doocs`.
+Once the interface is defined, we can start to acquire the data defined in the
+control and diagnostic channels and save them to files by:
+
+.. code-block:: py
+
+   m.acquire()
+
+
+By default, the scan output is stored in a "run" folder in the current
+directory. The number of "run" folder is generated in sequence starting from
+"r0001". For how to read out the result, please refer to :ref:`reading experimental data`.
+
+For more details, check the `example <https://github.com/zhujun98/liso/tree/master/examples/xfel_experiment>`_.
+
+
+Read more about :ref:`monitoring with doocs`.

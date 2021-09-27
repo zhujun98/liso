@@ -429,7 +429,10 @@ class DoocsInterface(MachineInterface):
               executor: Optional[ThreadPoolExecutor] = None) -> None:
         """Write new value(s) to the given control channel(s).
 
-        :param mapping: A mapping between DOOCS channel(s) and value(s).
+        :param mapping: A mapping between DOOCS channel(s) and value(s). These
+            channels must be among the existing control channels and the new
+            value will actually be written into the corresponding DOOCS write
+            address. See :meth:`~liso.experiment.DoocsInterface.add_control_channel`
         :param loop: The event loop.
         :param executor: ThreadPoolExecutor instance.
 
@@ -591,29 +594,31 @@ class DoocsInterface(MachineInterface):
                    executor: ThreadPoolExecutor) -> None:
 
         try:
-            [self._control_write[addr] for addr in addresses]
+            write_addresses = [self._control_write[addr] for addr in addresses]
         except KeyError as e:
             raise KeyError("Channel not found in the control channels") from e
 
-        mapping = loop.run_until_complete(self._query(
-            addresses, loop=loop, executor=executor))
+        mapping_write = loop.run_until_complete(self._query(
+            write_addresses, loop=loop, executor=executor))
 
-        for k, v in mapping.items():
+        for k, v in mapping_write.items():
             if v is None:
                 raise LisoRuntimeError(f"Failed to read data from channel {k}")
-            mapping[k] = v['data']
+            mapping_write[k] = v['data']
 
-        logger.info("Initial machine setup: %s", mapping)
+        logger.info("Initial machine setup: %s", mapping_write)
 
         try:
             yield
         finally:
-            try:
-                self.write(mapping)
-            except LisoRuntimeError as e:
-                raise LisoRuntimeError("Failed to restore machine setup") from e
+            failure_count = loop.run_until_complete(
+                self._write(mapping_write, loop, executor))
+            if failure_count > 0:
+                raise LisoRuntimeError(
+                    f"Failed to restore machine setup: {failure_count} "
+                    f"channel(s) out of {len(mapping_write)} failed ")
 
-        logger.info("Machine setup restored: %s", mapping)
+        logger.info("Machine setup restored: %s", mapping_write)
 
     @staticmethod
     def _print_channel_data(title: str, data: Dict[str, dict]) -> None:
