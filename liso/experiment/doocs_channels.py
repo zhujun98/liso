@@ -7,7 +7,6 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 # pylint: disable=no-name-in-module
 # pylint: disable=missing-class-docstring
-import abc
 from collections import namedtuple
 from typing import Any, Optional, Tuple
 
@@ -18,13 +17,7 @@ from pydantic import (
 )
 
 
-class NDArrayMeta(type):
-    # FIXME: why?
-    def __getitem__(cls):  # pylint: disable=unexpected-special-method-signature
-        return type('NDArray', (NDArray,))
-
-
-class NDArray(np.ndarray, metaclass=NDArrayMeta):
+class NDArray(np.ndarray):
     @classmethod
     def __get_validators__(cls):
         yield cls.validate_type
@@ -38,13 +31,13 @@ class NDArray(np.ndarray, metaclass=NDArrayMeta):
         )
 
     @classmethod
-    def validate_type(cls, v):
+    def validate_type(cls, v: Any):
         if not isinstance(v, np.ndarray):
             raise TypeError('Input must be a numpy.ndarray')
         return v
 
 
-class DoocsChannel(BaseModel, metaclass=abc.ABCMeta):
+class DoocsChannel(BaseModel):
     address: str
 
     @validator('address')
@@ -82,6 +75,7 @@ class Int64DoocsChannel(DoocsChannel):
     class Config:
         @staticmethod
         def schema_extra(schema, _):
+            # original type is 'integer'
             schema['properties']['value']['type'] = '<i8'
 
 
@@ -143,6 +137,7 @@ class Float64DoocsChannel(DoocsChannel):
     class Config:
         @staticmethod
         def schema_extra(schema, _):
+            # original type is number
             schema['properties']['value']['type'] = '<f8'
 
 
@@ -157,8 +152,8 @@ class Float32DoocsChannel(DoocsChannel):
             schema['properties']['value']['type'] = '<f4'
 
 
-class ImageDoocsChannel(DoocsChannel):
-    shape: Tuple[int, int]
+class ArrayDoocsChannel(DoocsChannel):
+    shape: Tuple
     # The array-protocol typestring, e.g. <i8, <f8, etc.
     dtype: str
     value: Optional[NDArray] = None
@@ -176,9 +171,10 @@ class ImageDoocsChannel(DoocsChannel):
         return dtype.str
 
     @validator("value", always=True)
-    def check_value(cls, v, values):  # pylint: disable=no-self-argument,no-self-use
+    def check_value(cls, v: Any, values: dict):  # pylint: disable=no-self-argument,no-self-use
         if 'shape' not in values or 'dtype' not in values:
-            # ValidationError will be raised later
+            # ValidationError will be raised later because the required field
+            # is missing.
             return v
 
         shape, dtype = values['shape'], values['dtype']
@@ -228,7 +224,7 @@ _DoocsChannelFactory = namedtuple(
      "INT32", "INT", "UINT32", "UINT",
      "INT16", "UINT16",
      "FLOAT64", "DOUBLE", "FLOAT32", "FLOAT",
-     "IMAGE",
+     "ARRAY",
      "ANY"]
 )
 
@@ -248,6 +244,6 @@ doocs_channels = _DoocsChannelFactory(
     DOUBLE=Float64DoocsChannel,
     FLOAT32=Float32DoocsChannel,
     FLOAT=Float32DoocsChannel,
-    IMAGE=ImageDoocsChannel,
+    ARRAY=ArrayDoocsChannel,
     ANY=AnyDoocsChannel
 )

@@ -60,7 +60,8 @@ class TestMachineScan(unittest.TestCase):
             m.add_control_channel('XFEL.A/B/C/D', dc.FLOAT32,
                                   write_address='XFEL.A/B/C/D.write')
             m.add_control_channel('XFEL.A/B/C/E', dc.INT64, non_event=True)
-            m.add_diagnostic_channel('XFEL.H/I/J/K', dc.IMAGE, shape=(3, 4), dtype='uint16')
+            m.add_diagnostic_channel('XFEL.H/I/J/K', dc.ARRAY, shape=(3, 4), dtype='uint16')
+            m.add_diagnostic_channel('XFEL.H/I/J/L', dc.ARRAY, shape=(100,), dtype='float64')
             self._machine = m
 
             self._sc = MachineScan(m, read_delay=0.)
@@ -76,8 +77,10 @@ class TestMachineScan(unittest.TestCase):
                 1., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
                 100, m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
-            "XFEL.H/I/J/K": ddgen.image(
+            "XFEL.H/I/J/K": ddgen.array(
                 m._channels["XFEL.H/I/J/K"].value_schema(), pid=_INITIAL_PID),
+            "XFEL.H/I/J/L": ddgen.array(
+                m._channels["XFEL.H/I/J/L"].value_schema(), pid=_INITIAL_PID),
         }
 
     def testInitialization(self):
@@ -87,8 +90,8 @@ class TestMachineScan(unittest.TestCase):
 
         m = self._machine
         assert m.control_channels == {'XFEL.A/B/C/D', 'XFEL.A/B/C/E'}
-        assert m.diagnostic_channels == {'XFEL.H/I/J/K'}
-        assert m._event == {'XFEL.A/B/C/D', 'XFEL.H/I/J/K'}
+        assert m.diagnostic_channels == {'XFEL.H/I/J/K', 'XFEL.H/I/J/L'}
+        assert m._event == {'XFEL.A/B/C/D', 'XFEL.H/I/J/K', 'XFEL.H/I/J/L'}
         assert m._non_event == {'XFEL.A/B/C/E'}
 
     def testSampleDistance(self):
@@ -211,6 +214,9 @@ class TestMachineScan(unittest.TestCase):
             assert (len(pids), 3, 4) == img_data.shape
             self.assertTrue(np.all(img_data[0] == pids[0] - _INITIAL_PID + 1))
             self.assertTrue(np.all(img_data[-1] == pids[-1] - _INITIAL_PID + 1))
+
+            array_data = run.channel("XFEL.H/I/J/L").numpy()
+            assert (len(pids), 100) == array_data.shape
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")

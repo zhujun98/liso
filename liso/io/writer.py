@@ -255,14 +255,13 @@ class ExpWriter(WriterBase):
         for i, (k, v) in enumerate(schema.items()):
             fp[meta_ch][i] = k
             dtype = v['type']
+            # TODO: optimize chunk size
             if dtype == 'NDArray':
                 shape = v['shape']
-                if len(shape) == 2:
-                    # image data
-                    chunk_size = (1, *self._IMAGE_CHUNK)
+                if len(shape) >= 2:
+                    chunk_size = (1,) * (len(shape) - 1) + self._IMAGE_CHUNK
                 else:
-                    # TODO: finish it
-                    chunk_size = (self._chunk_size, *v['shape'])
+                    chunk_size = (self._chunk_size, v['shape'][0])
                 fp.create_dataset(
                     f"{channel.upper()}/{k}",
                     shape=(self._chunk_size, *v['shape']),

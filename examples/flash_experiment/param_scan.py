@@ -26,7 +26,7 @@ m.add_control_channel('FLASH.RF/LLRF.CONTROLLER/VS.ACC45/PHASE.SAMPLE', dc.FLOAT
 m.add_control_channel('FLASH.RF/LLRF.CONTROLLER/VS.ACC67/PHASE.SAMPLE', dc.FLOAT,
                       write_address='FLASH.RF/LLRF.CONTROLLER/CTRL.ACC67/SP.PHASE')
 
-# m.add_diagnostic_channel("FLASH.DIAG/CAMERA/OTR9FL2XTDS/IMAGE_EXT_ZMQ", dc.IMAGE,
+# m.add_diagnostic_channel("FLASH.DIAG/CAMERA/OTR9FL2XTDS/IMAGE_EXT_ZMQ", dc.ARRAY,
 #                          shape=(1776, 2360), dtype='uint16', no_event=True)
 
 sc = MachineScan(m)
