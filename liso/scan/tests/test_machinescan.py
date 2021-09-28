@@ -171,7 +171,8 @@ class TestMachineScan(unittest.TestCase):
         dataset = self._prepare_dataset()
         mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
         with self.assertLogs(level="INFO") as cm:
-            sc.scan(1)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                sc.scan(1, output_dir=tmp_dir)
         assert mocked_write.call_count == 2
         assert mocked_write.call_args_list[1][0] == ('XFEL.A/B/C/D.write', 1.0)
         assert "Initial machine setup: " in cm.output[0]
