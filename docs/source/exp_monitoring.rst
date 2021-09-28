@@ -6,8 +6,8 @@ Monitoring
 Monitoring with DOOCS
 ---------------------
 
-LISO provides the command line tool `liso-doocs-monitor` for quickly checking
-data from DOOCS channels:
+LISO provides a convenient command line tool `liso-doocs-monitor` for quickly
+checking data from DOOCS channels:
 
 .. code-block:: bash
 

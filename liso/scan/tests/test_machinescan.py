@@ -21,7 +21,7 @@ _INITIAL_PID = 1000
 
 def _side_effect_read(dataset, address):
     data = deepcopy(dataset[address])
-    if data['macropulse'] >= _INITIAL_PID:
+    if 'write' not in address and data['macropulse'] >= _INITIAL_PID:
         dataset[address]['data'] += 1
         dataset[address]['macropulse'] += 1
     return data
@@ -57,7 +57,8 @@ class TestMachineScan(unittest.TestCase):
             }
             m = EuXFELInterface(cfg)
             m._validation_prob = 1.
-            m.add_control_channel('XFEL.A/B/C/D', dc.FLOAT32)
+            m.add_control_channel('XFEL.A/B/C/D', dc.FLOAT32,
+                                  write_address='XFEL.A/B/C/D.write')
             m.add_control_channel('XFEL.A/B/C/E', dc.INT64, non_event=True)
             m.add_diagnostic_channel('XFEL.H/I/J/K', dc.IMAGE, shape=(3, 4), dtype='uint16')
             self._machine = m
@@ -70,6 +71,8 @@ class TestMachineScan(unittest.TestCase):
         m = self._machine
         return {
             "XFEL.A/B/C/D": ddgen.scalar(
+                1., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
+            "XFEL.A/B/C/D.write": ddgen.scalar(
                 1., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
                 100, m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
@@ -170,7 +173,7 @@ class TestMachineScan(unittest.TestCase):
         with self.assertLogs(level="INFO") as cm:
             sc.scan(1)
         assert mocked_write.call_count == 2
-        assert mocked_write.call_args_list[1][0] == ('XFEL.A/B/C/D', 1.0)
+        assert mocked_write.call_args_list[1][0] == ('XFEL.A/B/C/D.write', 1.0)
         assert "Initial machine setup: " in cm.output[0]
         assert "Machine setup restored: " in cm.output[-1]
 
@@ -195,7 +198,7 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            assert pids[0] == 1001
+            assert pids[0] == 1000
             assert len(np.unique(pids)) == len(pids)
 
             control_data = run.get_controls()
@@ -242,7 +245,7 @@ class TestMachineScan(unittest.TestCase):
             run.info()
 
             pids = run.pulse_ids
-            self.assertListEqual(list(pids[:4]), [1001, 1002, 1003, 1004])
+            self.assertListEqual(list(pids[:4]), [1000, 1001, 1002, 1003])
             assert len(np.unique(pids)) == len(pids) == 80
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
@@ -256,7 +259,7 @@ class TestMachineScan(unittest.TestCase):
 
         def _side_effect_read_capped(dataset, address):
             data = deepcopy(dataset[address])
-            if _INITIAL_PID + 3 > data['macropulse'] >= _INITIAL_PID:
+            if _INITIAL_PID + 2 > data['macropulse'] >= _INITIAL_PID:
                 dataset[address]['macropulse'] += 1
             return data
 
