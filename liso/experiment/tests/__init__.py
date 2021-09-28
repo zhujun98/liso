@@ -31,11 +31,22 @@ class DoocsDataGenerator:
         }
 
     @classmethod
-    def image(cls, schema, *, pid):
+    def array(cls, schema, *, pid):
+        shape = schema['shape']
+        if len(shape) == 1:
+            a_type = 'ARRAY'  # FIXME
+        elif len(shape) == 2:
+            if shape[1] == 2:
+                a_type = "SPECTRUM"
+            else:
+                a_type = "IMAGE"
+        else:
+            raise ValueError
+
         return {
             'data': np.ones(schema['shape'], dtype=schema['dtype']),
             'macropulse': pid,
             'miscellaneous': {},
             'timestamp': datetime.timestamp(datetime.now()),
-            'type': 'IMAGE',
+            'type': a_type,
         }

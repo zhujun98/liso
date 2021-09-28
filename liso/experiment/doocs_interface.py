@@ -371,7 +371,7 @@ class DoocsInterface(MachineInterface):
 
             >>> m = EuXFELInterface()
             >>> m.add_diagnostic_channel(
-            >>>     'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ', dc.IMAGE,
+            >>>     'XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ', dc.ARRAY,
             >>>     shape=(1750, 2330), dtype='uint16')
 
         """

@@ -13,7 +13,7 @@ from liso.experiment.doocs_channels import (
     Int16DoocsChannel, UInt16DoocsChannel,
     Float32DoocsChannel,
     Float64DoocsChannel,
-    ImageDoocsChannel,
+    ArrayDoocsChannel,
 )
 
 
@@ -37,6 +37,7 @@ class TestDoocs(unittest.TestCase):
                 {'title': 'Value', 'type': 'any'}, schema['value'])
 
     def testInt64DoocsChannel(self):
+        print(doocs_channels.LONG.schema())
         self.assertEqual(doocs_channels.LONG, Int64DoocsChannel)
         self.assertEqual(doocs_channels.INT64, Int64DoocsChannel)
 
@@ -192,23 +193,23 @@ class TestDoocs(unittest.TestCase):
                 schema['value'])
 
     def testImageChannel(self):
-        self.assertEqual(doocs_channels.IMAGE, ImageDoocsChannel)
+        self.assertEqual(doocs_channels.ARRAY, ArrayDoocsChannel)
 
         for k, v in {"int": "<i8",
                      "uint16": "<u2",
                      "float": "<f8",
                      "float32": "<f4",
                      "f8": "<f8"}.items():
-            ch = ImageDoocsChannel(address="A/B/C/D", shape=(2, 2), dtype=k)
+            ch = ArrayDoocsChannel(address="A/B/C/D", shape=(2, 2), dtype=k)
             self.assertEqual(v, ch.dtype)
 
         with self.subTest("Test shape and dtype are mandate"):
-            with self.assertRaisesRegex(ValidationError, 'dtype'):
-                ImageDoocsChannel(address="A/B/C/D", shape=(2, 2))
-            with self.assertRaisesRegex(ValidationError, 'shape'):
-                ImageDoocsChannel(address="A/B/C/D", dtype="<i8")
+            with self.assertRaisesRegex(ValidationError, 'field required'):
+                ArrayDoocsChannel(address="A/B/C/D", shape=(2, 2))
+            with self.assertRaisesRegex(ValidationError, 'field required'):
+                ArrayDoocsChannel(address="A/B/C/D", dtype="<i8")
 
-        ch = ImageDoocsChannel(address="A/B/C/D", shape=(2, 2), dtype="<i8")
+        ch = ArrayDoocsChannel(address="A/B/C/D", shape=(2, 2), dtype="<i8")
         self.assertTupleEqual((2, 2), ch.shape)
         np.testing.assert_array_equal(np.zeros((2, 2), dtype=np.int64), ch.value)
         with self.subTest("Test validation is on for assignment"):
@@ -226,8 +227,7 @@ class TestDoocs(unittest.TestCase):
             self.assertDictEqual(
                 {'title': 'Address', 'type': 'string'}, schema['address'])
             self.assertDictEqual(
-                {'title': 'Shape', 'type': 'array',
-                 'items': [{'type': 'integer'}, {'type': 'integer'}]}, schema['shape'])
+                {'title': 'Shape', 'type': 'array', 'items': {}}, schema['shape'])
             self.assertDictEqual(
                 {'title': 'Dtype', 'type': 'string'}, schema['dtype'])
             self.assertDictEqual(

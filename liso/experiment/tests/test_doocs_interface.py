@@ -51,10 +51,10 @@ class TestDoocsInterface(unittest.TestCase):
         m._validation_prob = 1.
         m.add_control_channel("XFEL.A/B/C/D", dc.FLOAT, write_address="XFEL.A/B/C/d")
         m.add_control_channel("XFEL.A/B/C/E")
-        m.add_diagnostic_channel("XFEL.H/I/J/K", dc.IMAGE,
-                                 shape=(4, 4), dtype="uint16", non_event=True)
-        m.add_diagnostic_channel("XFEL.H/I/J/L", dc.IMAGE,
-                                 shape=(5, 6), dtype="float32")
+        m.add_diagnostic_channel("XFEL.H/I/J/K", dc.ARRAY,
+                                 shape=(4, 6), dtype="uint16", non_event=True)
+        m.add_diagnostic_channel("XFEL.H/I/J/L", dc.ARRAY,
+                                 shape=(100,), dtype="float32")
         self._machine = m
 
         self._dataset = {
@@ -62,9 +62,9 @@ class TestDoocsInterface(unittest.TestCase):
                 10., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
                 100., m._channels["XFEL.A/B/C/E"].value_schema(), pid=_INITIAL_PID),
-            "XFEL.H/I/J/K": ddgen.image(
+            "XFEL.H/I/J/K": ddgen.array(
                 m._channels["XFEL.H/I/J/K"].value_schema(), pid=0),  # non-event warning
-            "XFEL.H/I/J/L": ddgen.image(
+            "XFEL.H/I/J/L": ddgen.array(
                 m._channels["XFEL.H/I/J/L"].value_schema(), pid=_INITIAL_PID)
         }
 
@@ -85,7 +85,7 @@ class TestDoocsInterface(unittest.TestCase):
 
         with self.subTest("Add an existing channel"):
             with self.assertRaisesRegex(ValueError, "existing channel"):
-                m.add_control_channel("XFEL.A/B/C/D", dc.IMAGE, shape=(2, 2), dtype="uint16")
+                m.add_control_channel("XFEL.A/B/C/D", dc.ARRAY, shape=(2, 2), dtype="uint16")
             with self.assertRaisesRegex(ValueError, "existing channel"):
                 m.add_diagnostic_channel("XFEL.H/I/J/K", dc.FLOAT)
 
@@ -100,8 +100,8 @@ class TestDoocsInterface(unittest.TestCase):
                 schema['control']
             )
             self.assertDictEqual(
-                {'XFEL.H/I/J/K': {'dtype': '<u2', 'shape': (4, 4), 'type': 'NDArray'},
-                 'XFEL.H/I/J/L': {'dtype': '<f4', 'shape': (5, 6), 'type': 'NDArray'}},
+                {'XFEL.H/I/J/K': {'dtype': '<u2', 'shape': (4, 6), 'type': 'NDArray'},
+                 'XFEL.H/I/J/L': {'dtype': '<f4', 'shape': (100,), 'type': 'NDArray'}},
                 schema['diagnostic']
             )
 
@@ -149,7 +149,8 @@ class TestDoocsInterface(unittest.TestCase):
             assert data['XFEL.A/B/C/D']['data'] == 10
             assert data['XFEL.A/B/C/E']['macropulse'] == 1000
             assert data['XFEL.H/I/J/K']['macropulse'] == 0
-            assert data['XFEL.H/I/J/L']['type'] == 'IMAGE'
+            assert data['XFEL.H/I/J/K']['type'] == 'IMAGE'
+            assert data['XFEL.H/I/J/L']['type'] == 'ARRAY'
 
         with self.subTest("Raise when reading"):
             # raise happens to an event-based channel
@@ -166,7 +167,7 @@ class TestDoocsInterface(unittest.TestCase):
             assert data['XFEL.H/I/J/L'] is None
 
         with self.subTest("Receive data with invalid macropulse ID"):
-            dataset["XFEL.H/I/J/K"] = ddgen.image(
+            dataset["XFEL.H/I/J/K"] = ddgen.array(
                 m._channels["XFEL.H/I/J/K"].value_schema(), pid=-1
             )
             data = m.query()
@@ -193,9 +194,9 @@ class TestDoocsInterface(unittest.TestCase):
             assert data['XFEL.A/B/C/D']['macropulse'] == matched_pid
             assert data['XFEL.A/B/C/E']['data'] == 100.
             assert data['XFEL.A/B/C/E']['macropulse'] == matched_pid
-            np.testing.assert_array_equal(np.ones((4, 4)), data['XFEL.H/I/J/K']['data'])
+            np.testing.assert_array_equal(np.ones((4, 6)), data['XFEL.H/I/J/K']['data'])
             assert data['XFEL.H/I/J/K']['macropulse'] == 0
-            np.testing.assert_array_equal(np.ones((5, 6)), data['XFEL.H/I/J/L']['data'])
+            np.testing.assert_array_equal(np.ones((100,)), data['XFEL.H/I/J/L']['data'])
             assert data['XFEL.H/I/J/L']['macropulse'] == matched_pid
 
         with self.subTest("Receive data with invalid macropulse ID"):

@@ -195,8 +195,8 @@ class TestExpWriter(unittest.TestCase):
 
         self._s1 = (4, 4)
         self._s2 = (5, 6)
-        m.add_diagnostic_channel("XFEL.H/I/J/K", dc.IMAGE, shape=self._s1, dtype='uint16')
-        m.add_diagnostic_channel("XFEL.H/I/J/L", dc.IMAGE, shape=self._s2, dtype='float32')
+        m.add_diagnostic_channel("XFEL.H/I/J/K", dc.ARRAY, shape=self._s1, dtype='uint16')
+        m.add_diagnostic_channel("XFEL.H/I/J/L", dc.ARRAY, shape=self._s2, dtype='float32')
         self._schema = m.schema
 
         self._orig_image_chunk = ExpWriter._IMAGE_CHUNK
