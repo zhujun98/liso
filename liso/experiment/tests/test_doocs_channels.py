@@ -192,16 +192,18 @@ class TestDoocs(unittest.TestCase):
                  'maximum': np.finfo(np.float32).max, 'minimum': np.finfo(np.float32).min},
                 schema['value'])
 
-    def testImageChannel(self):
+    def testArrayChannel(self):
         self.assertEqual(doocs_channels.ARRAY, ArrayDoocsChannel)
 
-        for k, v in {"int": "<i8",
-                     "uint16": "<u2",
-                     "float": "<f8",
-                     "float32": "<f4",
-                     "f8": "<f8"}.items():
-            ch = ArrayDoocsChannel(address="A/B/C/D", shape=(2, 2), dtype=k)
-            self.assertEqual(v, ch.dtype)
+        with self.subTest("Normal"):
+            for s in [(100,), (4, 8), (2, 3, 4)]:
+                for k, v in {"int": "<i8",
+                             "uint16": "<u2",
+                             "float": "<f8",
+                             "float32": "<f4",
+                             "f8": "<f8"}.items():
+                    ch = ArrayDoocsChannel(address="A/B/C/D", shape=s, dtype=k)
+                    self.assertEqual(v, ch.dtype)
 
         with self.subTest("Test shape and dtype are mandate"):
             with self.assertRaisesRegex(ValidationError, 'field required'):
@@ -227,7 +229,7 @@ class TestDoocs(unittest.TestCase):
             self.assertDictEqual(
                 {'title': 'Address', 'type': 'string'}, schema['address'])
             self.assertDictEqual(
-                {'title': 'Shape', 'type': 'array', 'items': {}}, schema['shape'])
+                {'title': 'Shape', 'type': 'array', 'items': {'type': 'integer'}}, schema['shape'])
             self.assertDictEqual(
                 {'title': 'Dtype', 'type': 'string'}, schema['dtype'])
             self.assertDictEqual(

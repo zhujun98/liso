@@ -153,7 +153,7 @@ class Float32DoocsChannel(DoocsChannel):
 
 
 class ArrayDoocsChannel(DoocsChannel):
-    shape: Tuple
+    shape: Tuple[int, ...]
     # The array-protocol typestring, e.g. <i8, <f8, etc.
     dtype: str
     value: Optional[NDArray] = None
