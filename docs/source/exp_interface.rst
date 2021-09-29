@@ -45,6 +45,8 @@ diagnostic channel as a control channel and vise versa. Nevertheless, it is
 recommended to follow the above convention since this may affect reading data
 from files and further analysis.
 
+.. _data acquisition with doocs machine interface:
+
 Once the interface is defined, we can start to acquire the data defined in the
 control and diagnostic channels and save them to files by:
 
