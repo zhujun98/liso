@@ -87,14 +87,6 @@ class Correlator:
             except asyncio.CancelledError:
                 pass
 
-    @staticmethod
-    def _clean_event_buffer(buffer: OrderedDict, pid: int):
-        while True:
-            old_pid, item = buffer.popitem(last=False)
-            if old_pid == pid:
-                buffer[pid] = item
-                return
-
     async def _collect_event(self,
                              channels: set,
                              buffer: OrderedDict,
@@ -120,9 +112,8 @@ class Correlator:
                         buffer[pid][address] = ch_data
 
                         if len(buffer[pid]) == len(channels):
-                            ready.append(pid)
                             self._last_correlated = pid
-                            self._clean_event_buffer(buffer, pid)
+                            ready.append(pid)
 
                     elif pid == 0:
                         # FIXME: It is not 100% sure that data with
@@ -187,8 +178,12 @@ class Correlator:
     def _stop(self):
         self._running = False
 
-    async def _aggregate(self, n: Optional[int], event, event_ready,
-                         non_event, non_event_ready, *,
+    async def _aggregate(self,
+                         n: Optional[int],
+                         event_buffer: OrderedDict,
+                         event_ready: deque,
+                         non_event_buffer: dict,
+                         non_event_ready: deque, *,
                          callback: Optional[Callable] = None):
         timeout = None if n is None else self._timeout * n
         timer = self.Timer(timeout, callback=self._stop)
@@ -199,8 +194,11 @@ class Correlator:
                 while True:
                     try:
                         pid = event_ready.popleft()
-                        data = event.pop(pid)
-                        data.update(non_event)
+                        while True:
+                            key, data = event_buffer.popitem(last=False)
+                            if key == pid:
+                                break
+                        data.update(non_event_buffer)
 
                         if callback is not None:
                             callback(pid, data)
