@@ -21,16 +21,16 @@ m.add_control_channel(
     'XFEL.MAGNETS/MAGNET.ML/QI.64.I1D/KICK_MRAD.SP', dc.DOUBLE, non_event=True)
 
 # m.add_diagnostic_channel(
-#     'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE.RESOLUTION', dc.FLOAT, no_event=True)
+#     'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE.RESOLUTION', dc.FLOAT, non_event=True)
 # m.add_diagnostic_channel(
-#     'XFEL.SDIAG/BAM/47.I1/SINGLEBUNCH_NUMBER_FOR_ARRIVAL_TIME_HISTORY.1', dc.INT, no_event=True)
+#     'XFEL.SDIAG/BAM/47.I1/SINGLEBUNCH_NUMBER_FOR_ARRIVAL_TIME_HISTORY.1', dc.INT, non_event=True)
 # m.add_diagnostic_channel(
 #     'XFEL.SDIAG/BAM/47.I1/LOW_CHARGE_SINGLEBUNCH_ARRIVAL_TIME.1', dc.FLOAT)
 
 m.add_diagnostic_channel('XFEL.DIAG/CHARGE.ML/TORA.25.I1/CHARGE.ALL', dc.FLOAT)
 
 # m.add_diagnostic_channel('XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ', dc.ARRAY,
-#                          shape=(1750, 2330), dtype='uint16', no_event=True)
+#                          shape=(1750, 2330), dtype='uint16', non_event=True)
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ An example code snippet is shown below:
 
     m.add_diagnostic_channel('XFEL.DIAG/CHARGE.ML/TORA.25.I1/CHARGE.ALL', dc.FLOAT)
     m.add_diagnostic_channel('XFEL.DIAG/CAMERA/OTRC.64.I1D/IMAGE_EXT_ZMQ', dc.ARRAY,
-                             shape=(1750, 2330), dtype='uint16', no_event=True)
+                             shape=(1750, 2330), dtype='uint16', non_event=True)
 
 
 Conceptually, DOOCS channels are categorized into control and diagnostic

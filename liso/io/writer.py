@@ -258,10 +258,14 @@ class ExpWriter(WriterBase):
             # TODO: optimize chunk size
             if dtype == 'NDArray':
                 shape = v['shape']
-                if len(shape) >= 2:
-                    chunk_size = (1,) * (len(shape) - 1) + self._IMAGE_CHUNK
+                if len(shape) > 2:
+                    if shape[-1] > self._IMAGE_CHUNK[1] and \
+                            shape[-2] > self._IMAGE_CHUNK[0]:
+                        chunk_size = (1,) * (len(shape) - 1) + self._IMAGE_CHUNK
+                    else:
+                        chunk_size = True  # auto chunk
                 else:
-                    chunk_size = (self._chunk_size, v['shape'][0])
+                    chunk_size = (self._chunk_size,) + shape
                 fp.create_dataset(
                     f"{channel.upper()}/{k}",
                     shape=(self._chunk_size, *v['shape']),
