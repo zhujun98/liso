@@ -33,6 +33,7 @@ setup(
         'h5py>=2.10',
         'matplotlib',
         'pydantic>=1.7.2',
+        'sortedcontainers>=2.4'
     ],
     entry_points={
         'console_scripts': [
