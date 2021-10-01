@@ -43,6 +43,12 @@ class TestDoocsInterface(unittest.TestCase):
 
         logger.setLevel("ERROR")
 
+    def tearDown(self):
+        asyncio.set_event_loop(None)
+        self._loop.close()
+
+    @staticmethod
+    def machine():
         cfg = {
             "timeout.correlation": 0.04,
             "interval.read.retry": 0.002
@@ -55,9 +61,11 @@ class TestDoocsInterface(unittest.TestCase):
                                  shape=(4, 6), dtype="uint16", non_event=True)
         m.add_diagnostic_channel("XFEL.H/I/J/L", dc.ARRAY,
                                  shape=(100,), dtype="float32")
-        self._machine = m
+        return m
 
-        self._dataset = {
+    @staticmethod
+    def dataset(m: EuXFELInterface):
+        return {
             "XFEL.A/B/C/D": ddgen.scalar(
                 10., m._channels["XFEL.A/B/C/D"].value_schema(), pid=_INITIAL_PID),
             "XFEL.A/B/C/E": ddgen.scalar(
@@ -68,12 +76,8 @@ class TestDoocsInterface(unittest.TestCase):
                 m._channels["XFEL.H/I/J/L"].value_schema(), pid=_INITIAL_PID)
         }
 
-    def tearDown(self):
-        asyncio.set_event_loop(None)
-        self._loop.close()
-
     def testChannelManipulation(self):
-        m = self._machine
+        m = self.machine()
 
         self.assertSetEqual({"XFEL.A/B/C/D", 'XFEL.A/B/C/E'}, m.control_channels)
         self.assertSetEqual({"XFEL.A/B/C/d", 'XFEL.A/B/C/E'}, set(m._control_write.values()))
@@ -90,24 +94,22 @@ class TestDoocsInterface(unittest.TestCase):
                 m.add_diagnostic_channel("XFEL.H/I/J/K", dc.FLOAT)
 
         with self.subTest("Test schema"):
-            m = self._machine
-            schema = m.schema
             self.assertDictEqual(
                 {'XFEL.A/B/C/D': {'default': 0.0, 'type': '<f4',
                                   'maximum': np.finfo(np.float32).max,
                                   'minimum': np.finfo(np.float32).min},
                  'XFEL.A/B/C/E': {'type': 'any'}},
-                schema['control']
+                m.schema['control']
             )
             self.assertDictEqual(
                 {'XFEL.H/I/J/K': {'dtype': '<u2', 'shape': (4, 6), 'type': 'NDArray'},
                  'XFEL.H/I/J/L': {'dtype': '<f4', 'shape': (100,), 'type': 'NDArray'}},
-                schema['diagnostic']
+                m.schema['diagnostic']
             )
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     def testWrite(self, patched_write):
-        m = self._machine
+        m = self.machine()
 
         with self.assertRaisesRegex(KeyError, "not found in the control channels"):
             m.write(mapping={'XFEL.A/B/C/C': 1.})
@@ -138,8 +140,8 @@ class TestDoocsInterface(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testQuery(self, mocked_read):
-        m = self._machine
-        dataset = self._dataset
+        m = self.machine()
+        dataset = self.dataset(m)
         mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.subTest("Normal"):
@@ -177,8 +179,8 @@ class TestDoocsInterface(unittest.TestCase):
     def testCorrelatedReadOnce(self, mocked_read):  # pylint: disable=too-many-statements
         logger.setLevel("WARNING")
 
-        m = self._machine
-        dataset = self._dataset
+        m = self.machine()
+        dataset = self.dataset(m)
         mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.subTest("Normal"):
@@ -231,10 +233,10 @@ class TestDoocsInterface(unittest.TestCase):
             assert len(data) == 0
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testCorrelatedReadOnceWithOldPulseId(self, patched_read):
-        m = self._machine
-        dataset = self._dataset
-        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+    def testCorrelatedReadOnceWithOldPulseId(self, mocked_read):
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with self.subTest("Event channel has old macropulse ID"):
             last_correlated_gt = _INITIAL_PID
@@ -253,20 +255,41 @@ class TestDoocsInterface(unittest.TestCase):
             self.assertLess(last_correlated_gt, m._corr._last_correlated)
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testCorrelatedReadMultiple(self, patched_read):
-        m = self._machine
-        dataset = self._dataset
-        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+    def testCorrelateBufferCleanup(self, mocked_read):
+        logger.setLevel("WARNING")
+
+        for delay in (4, 5):
+            m = self.machine()
+            dataset = self.dataset(m)
+            mocked_read.side_effect = lambda x: _side_effect_read(
+                dataset, x)  # pylint: disable=cell-var-from-loop
+
+            m._corr._event_buffer_size = 5
+            dataset["XFEL.A/B/C/D"]['macropulse'] = _INITIAL_PID + delay
+            with self.assertLogs(level="WARNING") as cm:
+                if delay == 4:
+                    pid, _ = m.read(1)[0]
+                    assert pid == 1004
+                else:
+                    assert not m.read(1)
+
+                assert "Buffer full" in cm.output[0]
+
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testCorrelatedReadMultiple(self, mocked_read):
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         items = m.read(4)
         assert len(items) == 4
         assert [pid for pid, _ in items] == [1000, 1001, 1002, 1003]
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testCorrelatedTimeout(self, patched_read):
-        m = self._machine
-        dataset = self._dataset
-        patched_read.side_effect = lambda x: _side_effect_read(dataset, x)
+    def testCorrelatedTimeout(self, mocked_read):
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         m._corr._timeout = 0.2
         t0 = time.time()
@@ -279,9 +302,10 @@ class TestDoocsInterface(unittest.TestCase):
 
     @patch("time.sleep", side_effect=KeyboardInterrupt)
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testAcquire(self, patched_read, _):
-        m = self._machine
-        patched_read.side_effect = lambda x: _side_effect_read(self._dataset, x)
+    def testAcquire(self, mocked_read, _):
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             with self.assertRaisesRegex(TypeError, "type 'any' not understood"):
@@ -304,19 +328,20 @@ class TestDoocsInterface(unittest.TestCase):
     @patch("time.sleep", side_effect=KeyboardInterrupt)
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testMonitor(self, mocked_pydoocs_read, _):
-        m = self._machine
-        mocked_pydoocs_read.side_effect = lambda x: _side_effect_read(self._dataset, x)
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_pydoocs_read.side_effect = lambda x: _side_effect_read(dataset, x)
 
         with patch.object(m, "query") as mocked_query:
-            self._machine.monitor()
+            m.monitor()
             mocked_query.assert_called_once()
 
         with patch.object(m, "read") as mocked_read:
-            self._machine.monitor(correlate=True)
+            m.monitor(correlate=True)
             mocked_read.assert_called_once()
 
-        self._machine.monitor()
-        self._machine.monitor(verbose=False)
+        m.monitor()
+        m.monitor(verbose=False)
 
-        self._machine.monitor(correlate=True)
-        self._machine.monitor(verbose=False)
+        m.monitor(correlate=True)
+        m.monitor(verbose=False)

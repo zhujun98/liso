@@ -7,7 +7,7 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from collections import deque, OrderedDict
+from collections import deque
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
@@ -19,6 +19,7 @@ from typing import (
 )
 
 from pydantic import ValidationError
+from sortedcontainers import SortedDict
 
 try:
     from pydoocs import read as pydoocs_read  # pylint: disable=import-error
@@ -70,9 +71,11 @@ class Correlator:
 
     def __init__(self, *,
                  timeout: float,
-                 retry_after: float):
+                 retry_after: float,
+                 event_buffer_size: int):
         self._timeout = timeout
         self._retry_after = retry_after
+        self._event_buffer_size = event_buffer_size
 
         self._last_correlated = 0
 
@@ -89,7 +92,7 @@ class Correlator:
 
     async def _collect_event(self,
                              channels: set,
-                             buffer: OrderedDict,
+                             buffer: SortedDict,
                              ready: deque, *,
                              query) -> None:
         tasks = {
@@ -111,7 +114,16 @@ class Correlator:
                             buffer[pid] = dict()
                         buffer[pid][address] = ch_data
 
-                        if len(buffer[pid]) == len(channels):
+                        # prevent the buffer from growing infinitely
+                        if len(buffer) > self._event_buffer_size:
+                            pid_removed, _ = buffer.popitem(index=0)
+                            if ready and pid_removed == ready[0]:
+                                ready.popleft()
+                            logger.warning("Buffer full: drop macropulse %s",
+                                           pid_removed)
+
+                        # correlated
+                        if pid in buffer and len(buffer[pid]) == len(channels):
                             self._last_correlated = pid
                             ready.append(pid)
 
@@ -180,7 +192,7 @@ class Correlator:
 
     async def _aggregate(self,
                          n: Optional[int],
-                         event_buffer: OrderedDict,
+                         event_buffer: SortedDict,
                          event_ready: deque,
                          non_event_buffer: dict,
                          non_event_ready: deque, *,
@@ -195,7 +207,7 @@ class Correlator:
                     try:
                         pid = event_ready.popleft()
                         while True:
-                            key, data = event_buffer.popitem(last=False)
+                            key, data = event_buffer.popitem(index=0)
                             if key == pid:
                                 break
                         data.update(non_event_buffer)
@@ -228,7 +240,7 @@ class Correlator:
         :param query: Function for querying the channel data.
         :param callback: Function for processing the correlated data.
         """
-        event_buffer = OrderedDict()
+        event_buffer = SortedDict()
         event_ready = deque()
         non_event_buffer = dict()
         non_event_ready = deque()
@@ -279,12 +291,10 @@ class DoocsInterface(MachineInterface):
         if config is None:
             config = dict()
 
-        tc = config.get("timeout.correlation")
-        irr = config.get("interval.read.retry")
-
         self._corr = Correlator(
-            timeout=2.0 if tc is None else tc,
-            retry_after=0.01 if irr is None else irr
+            timeout=config.get("timeout.correlation", 2.0),
+            retry_after=config.get("interval.read.retry", 0.01),
+            event_buffer_size=config.get("buffer.event.size", 50)
         )
 
     @property
