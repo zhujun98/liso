@@ -7,15 +7,15 @@ Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
 from collections import deque, OrderedDict
+import functools
 import sys
-from typing import Callable
 import traceback
+from typing import Awaitable, Callable, List
 
 import numpy as np
 
 from .scan_param import JitterParam, SampleParam, StepParam
 from ..exceptions import LisoRuntimeError
-from ..io.writer import WriterBase
 from ..logging import logger
 
 
@@ -89,7 +89,7 @@ class AbstractScan(abc.ABC):
 
         return list(ret_queue)
 
-    def _generate_param_sequence(self, cycles: int) -> list:
+    def _generate_param_sequence(self, cycles: int) -> List[tuple]:
         """Generate a sequence of parameter combinations for scan.
 
         :raises ValueError: If generation of parameter sequence fails.
@@ -147,18 +147,12 @@ class AbstractScan(abc.ABC):
     def scan(self, *args, **kwargs) -> None:
         """Run the scan."""
 
-    @staticmethod
-    def _collect_result(writer: WriterBase, collector: Callable, *args) -> None:
-        """Collect result and write into file."""
+
+def _capture_scan_error(f: Callable[..., Awaitable[None]]):
+    @functools.wraps(f)
+    async def decorated_f(*args, **kwargs):
         try:
-            data = collector(*args)
-            if isinstance(data, tuple):
-                # simulation
-                writer.write(*data)
-            else:
-                # experiment
-                for item in data:
-                    writer.write(*item)
+            await f(*args, **kwargs)
         except LisoRuntimeError as e:
             _, _, exc_traceback = sys.exc_info()
             logger.debug(
@@ -173,3 +167,4 @@ class AbstractScan(abc.ABC):
                 repr(traceback.format_tb(exc_traceback)),
                 str(e))
             raise
+    return decorated_f

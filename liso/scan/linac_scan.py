@@ -12,7 +12,7 @@ from typing import Optional, Union
 
 import numpy as np
 
-from .abstract_scan import AbstractScan
+from .abstract_scan import AbstractScan, _capture_scan_error
 from ..io import create_next_run_folder, SimWriter
 from ..simulation import Linac
 from ..logging import logger
@@ -47,11 +47,18 @@ class LinacScan(AbstractScan):
             "phasespace": phasespace_schema
         }
 
+    @staticmethod
+    @_capture_scan_error
+    async def _collect(writer: SimWriter, task: asyncio.Task):
+        pid, data = task.result()
+        writer.write(pid, data)
+
     async def _scan_imp(self, sequence: list,
                         writer: SimWriter, *,
                         start_id: int,
                         n_tasks: int,
                         timeout: Optional[int] = None) -> None:
+
         tasks = set()
         n_pulses = len(sequence)
 
@@ -80,7 +87,7 @@ class LinacScan(AbstractScan):
                     tasks, return_when=asyncio.FIRST_COMPLETED)
 
                 for task in done:
-                    self._collect_result(writer, task.result)
+                    await self._collect(writer, task)
                     tasks.remove(task)
 
     def scan(self, cycles: int = 1, *,  # pylint: disable=arguments-differ
