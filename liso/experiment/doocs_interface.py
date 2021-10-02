@@ -90,12 +90,12 @@ class Correlator:
             except asyncio.CancelledError:
                 pass
 
-    async def _collect_event(self,
-                             channels: set,
-                             buffer: SortedDict,
-                             ready: deque, *,
-                             read: Callable[[str], Awaitable[Tuple[str, dict]]])\
-            -> None:
+    async def _collect_event(
+            self,
+            channels: set,
+            buffer: SortedDict,
+            ready: deque, *,
+            read: Callable[..., Awaitable[Tuple[str, dict]]]) -> None:
         tasks = {
             asyncio.create_task(read(address)): address
             for address in channels
@@ -159,7 +159,7 @@ class Correlator:
             channels: set,
             buffer: dict,
             ready: deque, *,
-            read: Callable[[str], Awaitable[Tuple[str, dict]]]) -> None:
+            read: Callable[..., Awaitable[Tuple[str, dict]]]) -> None:
 
         if not channels:
             ready.append(object())
