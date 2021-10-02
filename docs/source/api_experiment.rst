@@ -8,8 +8,11 @@ Experiment
 
     .. automethod:: add_control_channel
     .. automethod:: add_diagnostic_channel
+    .. automethod:: awrite
+    .. automethod:: aread
     .. automethod:: write
     .. automethod:: read
+    .. automethod:: query
     .. automethod:: acquire
     .. automethod:: monitor
 

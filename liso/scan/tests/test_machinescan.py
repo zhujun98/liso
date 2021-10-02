@@ -1,5 +1,4 @@
 # pylint: disable=attribute-defined-outside-init
-import asyncio
 from copy import deepcopy
 from pathlib import Path
 import tempfile
@@ -39,13 +38,6 @@ class TestMachineScan(unittest.TestCase):
 
     def setUp(self):
         logger.setLevel('ERROR')
-
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-
-    def tearDown(self):
-        asyncio.set_event_loop(None)
-        self._loop.close()
 
     def run(self, result=None):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -160,16 +152,17 @@ class TestMachineScan(unittest.TestCase):
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
-    def testControlledScan(self, mocked_read, mocked_write):
+    def testSafeScan(self, mocked_read, mocked_write):
         logger.setLevel("INFO")
         sc = self._sc
         sc.add_param('XFEL.A/B/C/D', lb=-3, ub=3)
 
-        def _side_effect_raise(_):
-            raise DoocsException
-        mocked_read.side_effect = _side_effect_raise
-        with self.assertRaisesRegex(LisoRuntimeError, "XFEL.A/B/C/D"):
-            sc.scan(1)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            def _side_effect_raise(_):
+                raise DoocsException
+            mocked_read.side_effect = _side_effect_raise
+            with self.assertRaisesRegex(LisoRuntimeError, "XFEL.A/B/C/D"):
+                sc.scan(1, output_dir=tmp_dir)
 
         dataset = self._prepare_dataset()
         mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
@@ -178,8 +171,8 @@ class TestMachineScan(unittest.TestCase):
                 sc.scan(1, output_dir=tmp_dir)
         assert mocked_write.call_count == 2
         assert mocked_write.call_args_list[1][0] == ('XFEL.A/B/C/D.write', 1.0)
-        assert "Initial machine setup: " in cm.output[0]
-        assert "Machine setup restored: " in cm.output[-1]
+        assert "Initial machine setup: " in cm.output[-4]
+        assert "Machine setup restored: " in cm.output[-2]
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")

@@ -10,12 +10,11 @@ from concurrent.futures import ThreadPoolExecutor
 import enum
 import multiprocessing
 from pathlib import Path
-import time
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import numpy as np
 
-from .abstract_scan import AbstractScan
+from .abstract_scan import AbstractScan, _capture_scan_error
 from ..io import create_next_run_folder, ExpWriter
 from ..logging import logger
 from ..exceptions import LisoRuntimeError
@@ -56,47 +55,58 @@ class MachineScan(AbstractScan):
             raise ValueError(f"n_reads must be a positive integer: {n_reads}")
         self._n_reads = n_reads
 
-    def _touch(self,
-               mapping: dict,
-               loop: asyncio.AbstractEventLoop,
-               executor: ThreadPoolExecutor) -> List[Tuple[int, dict]]:
+    @_capture_scan_error
+    async def _collect(self,
+                       writer: ExpWriter,
+                       mapping: dict,
+                       executor: ThreadPoolExecutor) -> None:
         """Touch the machine with reading after writing."""
-        self._interface.write(mapping, loop=loop, executor=executor)
+        await self._interface.awrite(mapping, executor=executor)
+
         if self._policy == ScanPolicy.READ_AFTER_DELAY:
-            time.sleep(self._read_delay)
-        items = self._interface.read(
-            self._n_reads, loop=loop, executor=executor)
+            await asyncio.sleep(self._read_delay)
+
+        items = []
+        async for pid, data in self._interface.aread(
+                self._n_reads, executor=executor):
+            data = self._interface.parse_readout(
+                data, verbose=False, validate=True)
+            items.append((pid, data))
+
         if len(items) < self._n_reads:
             raise LisoRuntimeError(
                 f"Failed to readout {self._n_reads} data points")
 
-        ret = []
         for item in items:
-            data = self._interface.parse_readout(
-                item[1], verbose=False, validate=True)
-            ret.append((item[0], data))
-        return ret
+            writer.write(*item)
 
-    def _scan_imp(self, sequence: list,
-                  writer: ExpWriter,
-                  loop: asyncio.AbstractEventLoop,
-                  executor: ThreadPoolExecutor) -> None:
+    async def _scan(self, sequence: List[tuple], *,
+                    executor: ThreadPoolExecutor,
+                    output_dir: Path,
+                    chmod: bool,
+                    group: int) -> None:
         n_pulses = len(sequence)
 
-        count = 0
-        while count < n_pulses:
-            mapping = dict()
-            for i, k in enumerate(self._params):
-                mapping[k] = sequence[count][i]
-            count += 1
-            logger.info(
-                "Scan %06d: %s",
-                count,
-                str({address: value for address, value
-                     in mapping.items()})[1:-1].replace(': ', ' = '))
+        async with self._interface.safe_awrite(
+                self._params.keys(), executor=executor):
 
-            self._collect_result(
-                writer, self._touch, mapping, loop, executor)
+            with ExpWriter(output_dir,
+                           schema=self._interface.schema,
+                           chmod=chmod,
+                           group=group) as writer:
+                count = 0
+                while count < n_pulses:
+                    mapping = dict()
+                    for i, k in enumerate(self._params):
+                        mapping[k] = sequence[count][i]
+                    count += 1
+                    logger.info(
+                        "Scan %06d: %s",
+                        count,
+                        str({address: value for address, value
+                             in mapping.items()})[1:-1].replace(': ', ' = '))
+
+                    await self._collect(writer, mapping, executor)
 
     def scan(self, cycles: int = 1, *,  # pylint: disable=arguments-differ
              n_tasks: Optional[int] = None,
@@ -126,25 +136,22 @@ class MachineScan(AbstractScan):
         if n_tasks is None:
             n_tasks = multiprocessing.cpu_count()
 
-        loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(max_workers=n_tasks)
 
-        with self._interface.safe_write(
-                self._params.keys(), loop=loop, executor=executor):
-            output_dir = create_next_run_folder(output_dir)
+        output_dir = create_next_run_folder(output_dir)
 
-            sequence = self._generate_param_sequence(cycles)
+        np.random.seed(seed)
+        sequence = self._generate_param_sequence(cycles)
 
-            logger.info("Starting parameter scan with %s CPUs. "
-                        "Scan result will be save at %s",
-                        n_tasks, output_dir.resolve())
-            logger.info(self.summarize())
+        logger.info("Starting parameter scan with %s CPUs. "
+                    "Scan result will be save at %s",
+                    n_tasks, output_dir.resolve())
+        logger.info(self.summarize())
 
-            np.random.seed(seed)
-            with ExpWriter(output_dir,
-                           schema=self._interface.schema,
-                           chmod=chmod,
-                           group=group) as writer:
-                self._scan_imp(sequence, writer, loop, executor)
+        asyncio.run(self._scan(sequence,
+                               executor=executor,
+                               output_dir=output_dir,
+                               chmod=chmod,
+                               group=group))
 
-            logger.info("Scan finished!")
+        logger.info("Scan finished!")

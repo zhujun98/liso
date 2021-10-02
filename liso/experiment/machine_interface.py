@@ -6,7 +6,9 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import abc
-from typing import Dict, List
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterable, Dict, Iterable, List, Optional
 
 
 class MachineInterface(abc.ABC):
@@ -18,21 +20,40 @@ class MachineInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def write(self, *args, **kwargs) -> None:
-        pass
+    async def awrite(self,
+                     mapping: Dict[str, Any], *,
+                     executor: Optional[ThreadPoolExecutor] = None) -> None:
+        """Asynchronously write new value(s)."""
 
     @abc.abstractmethod
-    def read(self, *args, **kwargs) -> List[tuple]:
-        pass
+    async def aread(self, n: Optional[int] = None, *,
+                    executor: Optional[ThreadPoolExecutor] = None) -> \
+            AsyncIterable:
+        """Asynchronously read new pulse/train value(s)."""
 
     @abc.abstractmethod
-    def query(self, *args, **kwargs) -> Dict[str, dict]:
-        pass
+    def write(self, mapping: Dict[str, Any], *,
+              executor: Optional[ThreadPoolExecutor] = None) -> None:
+        """Write new value(s)."""
 
     @abc.abstractmethod
-    def safe_write(self, *args, **kwargs) -> None:
-        pass
+    def read(self, n: int, *, executor: Optional[ThreadPoolExecutor] = None)\
+            -> List[tuple]:
+        """Read new pulse/train values(s)"""
 
     @abc.abstractmethod
-    def parse_readout(self, *args, **kwargs) -> dict:
-        pass
+    def query(self, addresses: Optional[Iterable[str]] = None, *,
+              executor: Optional[ThreadPoolExecutor] = None) -> Dict[str, dict]:
+        """Read new value(s) which can be from different pulses/trains."""
+
+    @abc.abstractmethod
+    def parse_readout(self, readout: dict, *,
+                      verbose: bool = True,
+                      validate: bool = False) -> Dict[str, Any]:
+        """Parse the readout for writing data to files."""
+
+    @abc.abstractmethod
+    @asynccontextmanager
+    async def safe_awrite(self, addresses: Iterable[str], *,
+                          executor: ThreadPoolExecutor) -> None:
+        """Contextmanger for safely modifying machine setups."""

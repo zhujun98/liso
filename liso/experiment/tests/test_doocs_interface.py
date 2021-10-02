@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+import platform
 import unittest
 from unittest.mock import patch
 import tempfile
@@ -38,14 +39,7 @@ class TestDoocsInterface(unittest.TestCase):
         ExpWriter._IMAGE_CHUNK = cls._orig_image_chunk
 
     def setUp(self):
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-
         logger.setLevel("ERROR")
-
-    def tearDown(self):
-        asyncio.set_event_loop(None)
-        self._loop.close()
 
     @staticmethod
     def machine():
@@ -108,7 +102,7 @@ class TestDoocsInterface(unittest.TestCase):
             )
 
     @patch("liso.experiment.doocs_interface.pydoocs_write")
-    def testWrite(self, patched_write):
+    def testWrite(self, mocked_write):
         m = self.machine()
 
         with self.assertRaisesRegex(KeyError, "not found in the control channels"):
@@ -119,7 +113,7 @@ class TestDoocsInterface(unittest.TestCase):
                 def _side_effect_write1(address, _):
                     if address == 'XFEL.A/B/C/E':
                         raise np.random.choice([PyDoocsException, DoocsException])
-                patched_write.side_effect = _side_effect_write1
+                mocked_write.side_effect = _side_effect_write1
                 m.write(mapping={
                     'XFEL.A/B/C/D': 1.,
                     'XFEL.A/B/C/E': 10.,
@@ -131,12 +125,37 @@ class TestDoocsInterface(unittest.TestCase):
                 def _side_effect_write2(address, _):
                     if address == 'XFEL.A/B/C/d':
                         raise np.random.choice([ValueError, RuntimeError])
-                patched_write.side_effect = _side_effect_write2
+                mocked_write.side_effect = _side_effect_write2
                 m.write(mapping={
                     'XFEL.A/B/C/D': 1.,
                     'XFEL.A/B/C/E': 10.,
                 })
         assert "Unexpected exception" in cm.output[0]
+
+    @patch("liso.experiment.doocs_interface.pydoocs_write")
+    @patch("liso.experiment.doocs_interface.pydoocs_read")
+    def testSafeAwrite(self, mocked_read, _):
+        logger.setLevel("INFO")
+
+        async def _main():
+            async with m.safe_awrite(["XFEL.A/B/C/D"]):
+                raise RuntimeError
+
+        m = self.machine()
+        dataset = self.dataset(m)
+        mocked_read.side_effect = lambda x: _side_effect_read(dataset, x)
+        # failed to read the initial setup
+        with self.assertRaisesRegex(LisoRuntimeError, "XFEL.A/B/C/d"):
+            asyncio.run(_main())
+
+        def _side_effect_read_new(_):
+            return {'data': 1.111}
+        mocked_read.side_effect = _side_effect_read_new
+        # the machine setup will be restored even when there is exception raised
+        with self.assertRaises(RuntimeError):
+            with self.assertLogs(level="INFO") as cm:
+                asyncio.run(_main())
+            assert "Machine setup restored: {'XFEL.A/B/C/d': 1.111}" in cm.output[-1]
 
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testQuery(self, mocked_read):
@@ -258,7 +277,7 @@ class TestDoocsInterface(unittest.TestCase):
     def testCorrelateBufferCleanup(self, mocked_read):
         logger.setLevel("WARNING")
 
-        for delay in (4, 5):
+        for delay in (3, 5):
             m = self.machine()
             dataset = self.dataset(m)
             mocked_read.side_effect = lambda x: _side_effect_read(
@@ -267,9 +286,9 @@ class TestDoocsInterface(unittest.TestCase):
             m._corr._event_buffer_size = 5
             dataset["XFEL.A/B/C/D"]['macropulse'] = _INITIAL_PID + delay
             with self.assertLogs(level="WARNING") as cm:
-                if delay == 4:
+                if delay == 3:
                     pid, _ = m.read(1)[0]
-                    assert pid == 1004
+                    assert pid == 1003
                 else:
                     assert not m.read(1)
 
@@ -321,7 +340,7 @@ class TestDoocsInterface(unittest.TestCase):
             logger.setLevel("INFO")
             with self.assertLogs(level="INFO") as cm:
                 m.acquire(tmp_dir)
-            assert "Saved 1 pulse" in cm.output[-1]
+            assert "Saved 1 pulse" in cm.output[-2]
             run = open_run(Path(tmp_dir).joinpath('r0003'))
             run.info()
 
@@ -330,15 +349,20 @@ class TestDoocsInterface(unittest.TestCase):
     def testMonitor(self, mocked_pydoocs_read, _):
         m = self.machine()
         dataset = self.dataset(m)
+
+        if int(platform.python_version_tuple()[1]) > 7:
+            with patch.object(m, "parse_readout"):
+                from unittest.mock import AsyncMock  # pylint: disable=no-name-in-module, import-outside-toplevel
+
+                with patch.object(m, "_query", new_callable=AsyncMock) as mocked_query:
+                    m.monitor()
+                    mocked_query.assert_called_once()
+
+                with patch.object(m, "aread") as mocked_read:
+                    m.monitor(correlate=True)
+                    mocked_read.assert_called_once()
+
         mocked_pydoocs_read.side_effect = lambda x: _side_effect_read(dataset, x)
-
-        with patch.object(m, "query") as mocked_query:
-            m.monitor()
-            mocked_query.assert_called_once()
-
-        with patch.object(m, "read") as mocked_read:
-            m.monitor(correlate=True)
-            mocked_read.assert_called_once()
 
         m.monitor()
         m.monitor(verbose=False)
