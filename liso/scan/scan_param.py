@@ -78,13 +78,15 @@ class StepParam(ScanParam):
 
     def list_item(self):
         """Override."""
-        return '{:12}  {:^12.4e}  {:^12.4e}  {:^12d}  {:^12.4e}\n'.format(
-            self.name[:12], self._start, self._stop, len(self._values),
+        w = self._max_name_display_width
+        return '{}  {:^12.4e}  {:^12.4e}  {:^12d}  {:^12.4e}\n'.format(
+            self.name[:w].center(w), self._start, self._stop, len(self._values),
             self._sigma)
 
     def __str__(self):
-        return '{:12}  {:^12}  {:^12}  {:^12}  {:^12}\n'.format(
-               'Name', 'Start', 'Stop', 'Num', 'Sigma') + \
+        w = self._max_name_display_width
+        return '{}  {:^12}  {:^12}  {:^12}  {:^12}\n'.format(
+               'Name'.center(w), 'Start', 'Stop', 'Num', 'Sigma') + \
                self.list_item()
 
 
@@ -112,12 +114,14 @@ class SampleParam(ScanParam):
 
     def list_item(self):
         """Override."""
-        return '{:12}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name[:12], self._lb, self._ub)
+        w = self._max_name_display_width
+        return '{}  {:^12.4e}  {:^12.4e}\n'.format(
+            self.name[:w].center(w), self._lb, self._ub)
 
     def __str__(self):
-        return '{:12}  {:^12}  {:^12}\n'.format(
-            'Name', 'Lower bound', 'Upper bound') + self.list_item()
+        w = self._max_name_display_width
+        return '{}  {:^12}  {:^12}\n'.format(
+            'Name'.center(w), 'Lower bound', 'Upper bound') + self.list_item()
 
 
 class JitterParam(ScanParam):
@@ -147,9 +151,11 @@ class JitterParam(ScanParam):
 
     def list_item(self):
         """Override."""
-        return '{:12}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name[:12], self._value, self._sigma)
+        w = self._max_name_display_width
+        return '{}  {:^12.4e}  {:^12.4e}\n'.format(
+            self.name[:w].center(w), self._value, self._sigma)
 
     def __str__(self):
-        return '{:12}  {:^12}  {:^12}\n'.format('Name', 'Value', 'Sigma') + \
-               self.list_item()
+        w = self._max_name_display_width
+        return '{}  {:^12}  {:^12}\n'.format(
+            'Name'.center(w), 'Value', 'Sigma') + self.list_item()

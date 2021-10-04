@@ -615,6 +615,12 @@ class DoocsInterface(MachineInterface):
         :raises LisoRuntimeError: If there is error when reading the initial
             values or restoring any channel at exit.
         """
+        def _format_machine_setup(mapping):
+            ret = ""
+            for k_, v_ in mapping.items():
+                ret += f"\n{k_}: {v_}"
+            return ret
+
         try:
             write_addresses = [self._control_write[addr] for addr in addresses]
         except KeyError as e:
@@ -629,7 +635,8 @@ class DoocsInterface(MachineInterface):
                 raise LisoRuntimeError(f"Failed to read data from channel {k}")
             mapping_write[k] = v['data']
 
-        logger.info("Initial machine setup: %s", mapping_write)
+        logger.info("Initial machine setup: %s",
+                    _format_machine_setup(mapping_write))
 
         try:
             yield
@@ -640,7 +647,8 @@ class DoocsInterface(MachineInterface):
                 raise LisoRuntimeError(
                     "Failed to restore the machine setup") from e
 
-            logger.info("Machine setup restored: %s", mapping_write)
+            logger.info("Machine setup restored: %s",
+                        _format_machine_setup(mapping_write))
 
     @staticmethod
     def _print_channel_data(title: str, data: Dict[str, dict]) -> None:

@@ -114,10 +114,10 @@ class AbstractScan(abc.ABC):
             "Failed to a parameter sequence with enough distance!")
 
     def summarize(self):
-        text = '\n' + '=' * 80 + '\n'
+        text = '\n' + '=' * 120 + '\n'
         text += 'Scanned parameters:\n'
         text += self._summarize_parameters()
-        text += '=' * 80 + '\n'
+        text += '=' * 120 + '\n'
         return text
 
     def _summarize_parameters(self):

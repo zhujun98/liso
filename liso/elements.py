@@ -20,6 +20,7 @@ class OperationalElement(ABC):
         :param str name: name of the element.
         """
         self.name = name
+        self._max_name_display_width = 56
 
     @abstractmethod
     def list_item(self):
