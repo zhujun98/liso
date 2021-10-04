@@ -177,6 +177,8 @@ class TestMachineScan(unittest.TestCase):
     @patch("liso.experiment.doocs_interface.pydoocs_write")
     @patch("liso.experiment.doocs_interface.pydoocs_read")
     def testScan(self, patched_read, _):
+        logger.setLevel("INFO")
+
         sc = self._sc
         dataset = self._prepare_dataset()
         patched_read.side_effect = lambda x: _side_effect_read(dataset, x)

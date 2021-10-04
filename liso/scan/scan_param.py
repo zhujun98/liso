@@ -80,13 +80,13 @@ class StepParam(ScanParam):
         """Override."""
         w = self._max_name_display_width
         return '{}  {:^12.4e}  {:^12.4e}  {:^12d}  {:^12.4e}\n'.format(
-            self.name[:w].ljust(w), self._start, self._stop, len(self._values),
+            self.name[:w].center(w), self._start, self._stop, len(self._values),
             self._sigma)
 
     def __str__(self):
         w = self._max_name_display_width
         return '{}  {:^12}  {:^12}  {:^12}  {:^12}\n'.format(
-               'Name'.ljust(w), 'Start', 'Stop', 'Num', 'Sigma') + \
+               'Name'.center(w), 'Start', 'Stop', 'Num', 'Sigma') + \
                self.list_item()
 
 
@@ -116,12 +116,12 @@ class SampleParam(ScanParam):
         """Override."""
         w = self._max_name_display_width
         return '{}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name[:w].ljust(w), self._lb, self._ub)
+            self.name[:w].center(w), self._lb, self._ub)
 
     def __str__(self):
         w = self._max_name_display_width
         return '{}  {:^12}  {:^12}\n'.format(
-            'Name'.ljust(w), 'Lower bound', 'Upper bound') + self.list_item()
+            'Name'.center(w), 'Lower bound', 'Upper bound') + self.list_item()
 
 
 class JitterParam(ScanParam):
@@ -153,9 +153,9 @@ class JitterParam(ScanParam):
         """Override."""
         w = self._max_name_display_width
         return '{}  {:^12.4e}  {:^12.4e}\n'.format(
-            self.name[:w].ljust(w), self._value, self._sigma)
+            self.name[:w].center(w), self._value, self._sigma)
 
     def __str__(self):
         w = self._max_name_display_width
         return '{}  {:^12}  {:^12}\n'.format(
-            'Name'.ljust(w), 'Value', 'Sigma') + self.list_item()
+            'Name'.center(w), 'Value', 'Sigma') + self.list_item()

@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import enum
 import multiprocessing
@@ -96,15 +97,12 @@ class MachineScan(AbstractScan):
                            group=group) as writer:
                 count = 0
                 while count < n_pulses:
-                    mapping = dict()
+                    mapping = OrderedDict()
                     for i, k in enumerate(self._params):
                         mapping[k] = sequence[count][i]
                     count += 1
                     logger.info(
-                        "Scan %06d: %s",
-                        count,
-                        str({address: value for address, value
-                             in mapping.items()})[1:-1].replace(': ', ' = '))
+                        "Scan %06d: %s", count, [v for v in mapping.values()])
 
                     await self._collect(writer, mapping, executor)
 

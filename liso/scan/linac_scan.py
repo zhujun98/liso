@@ -6,6 +6,7 @@ The full license is in the file LICENSE, distributed with this software.
 Copyright (C) Jun Zhu. All rights reserved.
 """
 import asyncio
+from collections import OrderedDict
 import multiprocessing
 from pathlib import Path
 from typing import Optional, Union
@@ -67,13 +68,13 @@ class LinacScan(AbstractScan):
         count = 0
         while True:
             if count < n_pulses:
-                mapping = dict()
+                mapping = OrderedDict()
                 for i, k in enumerate(self._params):
                     mapping[k] = sequence[count][i]
                 sim_id = count + start_id
                 count += 1
-                logger.info("Scan %06d: %s",
-                            sim_id, str(mapping)[1:-1].replace(': ', ' = '))
+                logger.info(
+                    "Scan %06d: %s", sim_id, [v for v in mapping.values()])
 
                 task = asyncio.create_task(
                     self._linac.async_run(sim_id, mapping, timeout=timeout))
