@@ -12,6 +12,8 @@ class TestStepParam(unittest.TestCase):
             StepParam('param', start=-1., stop=1., num=0)
 
         param = StepParam('param', start=-0.1, stop=0.1, num=5)
+        print(f"\n{param}")
+
         np.testing.assert_array_almost_equal(
             [-0.1, -0.05, 0., 0.05, 0.1], param.generate())
 
@@ -47,6 +49,7 @@ class TestStepParam(unittest.TestCase):
 
     def testJitterParam(self):
         param = JitterParam('param', value=-0.1)
+        print(f"\n{param}")
         np.testing.assert_array_almost_equal([-0.1], param.generate())
 
         # test positive sigma
@@ -62,6 +65,8 @@ class TestStepParam(unittest.TestCase):
 
     def testSampleParam(self):
         param = SampleParam('param', lb=-4, ub=6)
+        print(f"\n{param}")
+
         param_lst = param.generate(repeats=3, cycles=200)
         self.assertEqual(600, len(param_lst))
         self.assertTrue(np.all(param_lst >= -4))
