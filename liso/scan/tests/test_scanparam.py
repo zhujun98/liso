@@ -47,6 +47,8 @@ class TestStepParam(unittest.TestCase):
         self.assertLess(abs(0.1 - np.std([lst[::4], lst[1::4]])), 0.01)
         self.assertLess(abs(0.1 - np.std([lst[2::4], lst[3::4]])), 0.01)
 
+        self._test_reproducibility(param)
+
     def testJitterParam(self):
         param = JitterParam('param', value=-0.1)
         print(f"\n{param}")
@@ -63,6 +65,8 @@ class TestStepParam(unittest.TestCase):
         param_lst = param.generate(repeats=3, cycles=200)
         self.assertLess(abs(1 - np.std(param_lst)), 0.1)
 
+        self._test_reproducibility(param)
+
     def testSampleParam(self):
         param = SampleParam('param', lb=-4, ub=6)
         print(f"\n{param}")
@@ -71,3 +75,13 @@ class TestStepParam(unittest.TestCase):
         self.assertEqual(600, len(param_lst))
         self.assertTrue(np.all(param_lst >= -4))
         self.assertTrue(np.all(param_lst < 6))
+
+        self._test_reproducibility(param)
+
+    @staticmethod
+    def _test_reproducibility(param):
+        lsts = []
+        for _ in range(2):
+            np.random.seed(42)
+            lsts.append(param.generate(repeats=1, cycles=10))
+        np.testing.assert_array_almost_equal(lsts[0], lsts[1])
